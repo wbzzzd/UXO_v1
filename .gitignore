@@ -1,0 +1,42 @@
+# Qt specific
+*.pro.user
+*.pro.user.*
+*.autosave
+.moc/
+obj/
+build/
+*.o
+
+# Compiled files
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+
+# IDE specific
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+/bin/
+/lib/
+/include/
+
+# Qt build folders
+cmake-build-*/
+Makefile*
+*.mk
+
+# Documentation builds
+*.pdf
+*.html
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
