@@ -1,0 +1,52 @@
+{
+    "devices": [
+        {
+            "id": "drone-001",
+            "type": "drone",
+            "name": "侦察无人机1",
+            "manufacturer": "厂商A",
+            "model": "UAV-X100",
+            "capabilities": ["infrared", "lidar", "camera"],
+            "control": {
+                "type": "mqtt",
+                "topic": "devices/drone-001/control"
+            }
+        },
+        {
+            "id": "robot-001",
+            "type": "robot",
+            "name": "排爆机器人1",
+            "manufacturer": "厂商B",
+            "model": "RX-200",
+            "capabilities": ["arm", "cutting", "detonation"],
+            "control": {
+                "type": "tcp",
+                "host": "192.168.1.100",
+                "port": 8000
+            }
+        }
+    ],
+    "sensors": [
+        {
+            "id": "gpr-001",
+            "type": "gpr",
+            "name": "探地雷达1",
+            "frequency": 1000,
+            "maxDepth": 2.0,
+            "interface": {
+                "type": "ethernet",
+                "protocol": "tcp"
+            }
+        },
+        {
+            "id": "infrared-001",
+            "type": "infrared",
+            "name": "红外热像仪1",
+            "resolution": "1280x1024",
+            "interface": {
+                "type": "ethernet",
+                "protocol": "rtsp"
+            }
+        }
+    ]
+}

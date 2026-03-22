@@ -4,7 +4,6 @@
 *.autosave
 .moc/
 obj/
-build/
 *.o
 
 # Compiled files
@@ -25,7 +24,7 @@ build/
 # Build artifacts
 /bin/
 /lib/
-/include/
+build/
 
 # Qt build folders
 cmake-build-*/
@@ -40,3 +39,6 @@ Makefile*
 *.tmp
 *.bak
 *.cache
+
+# Logs
+logs/
