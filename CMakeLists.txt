@@ -18,9 +18,7 @@ find_package(Qt5 REQUIRED COMPONENTS
     3DInput
     3DExtras
     Network
-    WebSockets
     Sql
-    Charts
 )
 
 find_package(ZeroMQ QUIET)
@@ -29,12 +27,6 @@ find_package(PostgreSQL QUIET)
 set(HEADERS_DIR ${CMAKE_SOURCE_DIR}/include)
 set(SOURCES_DIR ${CMAKE_SOURCE_DIR}/src)
 
-add_subdirectory(src/App)
-add_subdirectory(src/MainWindow)
-add_subdirectory(src/Modules)
-add_subdirectory(src/Core)
-add_subdirectory(src/Drivers)
 add_subdirectory(src/Common)
-
-enable_testing()
-add_subdirectory(tests)
+add_subdirectory(src/MainWindow)
+add_subdirectory(src/App)

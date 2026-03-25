@@ -1,11 +1,12 @@
 #include "App/Application.h"
-
-using namespace App;
+#include "MainWindow/MainWindow.h"
+#include <QDebug>
 
 Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
     , m_configPath("./config")
     , m_initialized(false)
+    , m_mainWindow(nullptr)
 {
     setApplicationName("UXOMissionControl");
     setApplicationVersion("1.0.0");
@@ -47,6 +48,9 @@ bool Application::initialize()
         return false;
     }
 
+    m_mainWindow = new MainWindow();
+    m_mainWindow->show();
+
     m_initialized = true;
     emit initialized();
     return true;
@@ -54,6 +58,14 @@ bool Application::initialize()
 
 void Application::run()
 {
+}
+
+void Application::showMainWindow()
+{
+    if (m_mainWindow) {
+        m_mainWindow->show();
+        m_mainWindow->activateWindow();
+    }
 }
 
 bool Application::loadConfiguration()

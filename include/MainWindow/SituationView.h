@@ -2,6 +2,8 @@
 #define SITUATIONVIEW_H
 
 #include <QWidget>
+#include <QString>
+#include <QVector3D>
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QCamera>
 #include <Qt3DExtras/QOrbitCameraController>
@@ -19,6 +21,9 @@ public:
     void addTargetMarker(const QString &targetId, const QVector3D &position);
     void removeTargetMarker(const QString &targetId);
     void updateTargetPosition(const QString &targetId, const QVector3D &position);
+    void clearAllTargets();
+    void focusOnTarget(const QVector3D &position);
+    void highlightTarget(const QString &targetId, bool highlight);
 
 signals:
     void targetClicked(const QString &targetId);

@@ -2,6 +2,7 @@
 #define CORE_DATA_TYPES_H
 
 #include <QString>
+#include <QVector>
 #include <QVector3D>
 #include <QDateTime>
 #include <QtMath>

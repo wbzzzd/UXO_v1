@@ -3,7 +3,7 @@
 
 int main(int argc, char *argv[])
 {
-    App::Application app(argc, argv);
+    Application app(argc, argv);
 
     if (!app.initialize()) {
         qCritical() << "Application initialization failed";
