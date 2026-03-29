@@ -1,5 +1,6 @@
 #include "MainWindow/LeftPanelWidget.h"
 #include "Common/MockDataGenerator.h"
+#include "Common/GlobalStyle.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -40,13 +41,95 @@ LeftPanelWidget::~LeftPanelWidget()
 
 void LeftPanelWidget::setupUi()
 {
-    setMinimumWidth(320);
-    setMaximumWidth(320);
-    setStyleSheet("background-color: #252526;");
+    setMinimumWidth(GlobalStyle::Sizes::LeftPanelWidth);
+    setMaximumWidth(GlobalStyle::Sizes::LeftPanelWidth);
+    setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(8, 8, 8, 8);
     mainLayout->setSpacing(8);
+
+    // 添加搜索和筛选工具栏
+    QWidget *toolBar = new QWidget(this);
+    toolBar->setStyleSheet(QString("background-color: %1; border-radius: 4px; margin-bottom: 8px;")
+        .arg(GlobalStyle::Colors::ToolbarBackground));
+    QHBoxLayout *toolBarLayout = new QHBoxLayout(toolBar);
+    toolBarLayout->setContentsMargins(8, 6, 8, 6);
+    toolBarLayout->setSpacing(8);
+
+    // 搜索框
+    m_searchEdit = new QLineEdit(toolBar);
+    m_searchEdit->setPlaceholderText("搜索目标...");
+    m_searchEdit->setStyleSheet(QString(
+        "QLineEdit { background-color: %1; color: %2; border: 1px solid %3; border-radius: 4px; padding: 4px 8px; }"
+        "QLineEdit:focus { border: 1px solid %4; }"
+        "QLineEdit::placeholder { color: %5; }")
+        .arg(GlobalStyle::Colors::Background)
+        .arg(GlobalStyle::Colors::TextPrimary)
+        .arg(GlobalStyle::Colors::Border)
+        .arg(GlobalStyle::Colors::PrimaryGreen)
+        .arg(GlobalStyle::Colors::TextDisabled));
+    m_searchEdit->setFixedHeight(28);
+    connect(m_searchEdit, &QLineEdit::textChanged, this, &LeftPanelWidget::onSearchTextChanged);
+    toolBarLayout->addWidget(m_searchEdit, 1);
+
+    // 筛选按钮
+    QPushButton *filterBtn = new QPushButton("筛选", toolBar);
+    filterBtn->setFixedSize(50, 28);
+    filterBtn->setStyleSheet(QString(
+        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; font-size: 12px; }"
+        "QPushButton:hover { background-color: %3; }")
+        .arg(GlobalStyle::Colors::ToolbarBackground)
+        .arg(GlobalStyle::Colors::TextSecondary)
+        .arg(GlobalStyle::Colors::Border));
+    connect(filterBtn, &QPushButton::clicked, this, &LeftPanelWidget::onFilterChanged);
+    toolBarLayout->addWidget(filterBtn);
+
+    // 刷新按钮
+    QPushButton *refreshBtn = new QPushButton("刷新", toolBar);
+    refreshBtn->setFixedSize(50, 28);
+    refreshBtn->setStyleSheet(QString(
+        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; font-size: 12px; }"
+        "QPushButton:hover { background-color: %3; }")
+        .arg(GlobalStyle::Colors::PrimaryGreen)
+        .arg(GlobalStyle::Colors::TextPrimary)
+        .arg(GlobalStyle::Colors::PrimaryGreenHover));
+    connect(refreshBtn, &QPushButton::clicked, this, &LeftPanelWidget::onRefreshTargets);
+    toolBarLayout->addWidget(refreshBtn);
+
+    mainLayout->addWidget(toolBar);
+
+    // 状态子标签（待处置/处置中/已完成）
+    QWidget *statusTabs = new QWidget(this);
+    statusTabs->setStyleSheet(QString("background-color: %1; border-radius: 4px; margin-bottom: 8px;")
+        .arg(GlobalStyle::Colors::ToolbarBackground));
+    QHBoxLayout *statusLayout = new QHBoxLayout(statusTabs);
+    statusLayout->setContentsMargins(4, 4, 4, 4);
+    statusLayout->setSpacing(0);
+
+    QString statusTabStyle = QString(
+        "QPushButton { background-color: transparent; color: %1; border: none; border-bottom: 2px solid transparent; padding: 8px 12px; font-size: 13px; }"
+        "QPushButton:hover { background-color: %2; }"
+        "QPushButton[selected=\"true\"] { color: %3; border-bottom: 2px solid %4; }")
+        .arg(GlobalStyle::Colors::TextSecondary)
+        .arg(GlobalStyle::Colors::Border)
+        .arg(GlobalStyle::Colors::TextPrimary)
+        .arg(GlobalStyle::Colors::PrimaryGreen);
+
+    QPushButton *tab1 = new QPushButton("待处置 (8)", statusTabs);
+    tab1->setProperty("selected", true);
+    tab1->setStyleSheet(statusTabStyle);
+    statusLayout->addWidget(tab1);
+
+    QPushButton *tab2 = new QPushButton("处置中 (5)", statusTabs);
+    tab2->setStyleSheet(statusTabStyle);
+    statusLayout->addWidget(tab2);
+
+    QPushButton *tab3 = new QPushButton("已完成 (2)", statusTabs);
+    tab3->setStyleSheet(statusTabStyle);
+    statusLayout->addWidget(tab3);
+
+    mainLayout->addWidget(statusTabs);
 
     m_tabWidget = new QTabWidget(this);
     m_tabWidget->setStyleSheet(R"(

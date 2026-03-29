@@ -323,6 +323,95 @@ Types:
 - chore: 构建/工具
 ```
 
+### 6.4 代码注释规范
+
+#### 6.4.1 文件头注释
+每个 `.cpp` 和 `.h` 文件开头必须包含文件头注释：
+
+```cpp
+/**
+ * @file 文件名.h / 文件名.cpp
+ * @brief 简要描述文件功能
+ * @details 详细描述（可选）
+ * @author 作者名
+ * @date 创建日期 YYYY-MM-DD
+ * @version 版本号
+ */
+```
+
+#### 6.4.2 类注释
+每个类定义前必须包含类注释：
+
+```cpp
+/**
+ * @brief 类名简要描述
+ * @details 类详细功能描述
+ */
+class ClassName : public QObject
+{
+    Q_OBJECT
+};
+```
+
+#### 6.4.3 方法注释
+公共方法必须包含注释：
+
+```cpp
+/**
+ * @brief 方法功能简要描述
+ * @param 参数名 参数描述
+ * @return 返回值描述
+ * @note 注意事项（可选）
+ * @see 相关方法/类（可选）
+ */
+ReturnType methodName(ParamType param);
+```
+
+#### 6.4.4 注释示例
+
+```cpp
+/**
+ * @file MainWindow.h
+ * @brief 主窗口类定义
+ * @details 负责系统主界面的创建、布局管理、菜单栏、工具栏、状态栏的初始化
+ * @author 开发团队
+ * @date 2024-01-01
+ * @version 1.0.0
+ */
+
+/**
+ * @brief 目标信息数据结构
+ * @details 存储单个目标的所有属性信息，包括位置、类型、威胁等级等
+ */
+struct TargetInfo {
+    QString id;                    ///< 目标唯一标识符
+    TargetType type;               ///< 目标类型
+    QVector3D position;            ///< 目标位置坐标
+    ThreatLevel threatLevel;       ///< 威胁等级
+};
+```
+
+#### 6.4.5 注释符号规范
+
+| 符号 | 用途 | 示例 |
+|------|------|------|
+| `///` | Doxygen 单行注释 | `/// @brief 描述` |
+| `/** */` | Doxygen 多行注释 | `/** @brief 描述 */` |
+| `//` | 行内普通注释 | `// TODO: 后续优化` |
+| `///<` | 成员变量注释 | `QString name; ///< 名称` |
+| `//!` | TODO 标记 | `//! TODO: 实现xxx` |
+| `//!<` | FIXME 标记 | `//!< FIXME: 修复xxx` |
+
+#### 6.4.6 TODO/FIXME 标记规范
+- `//! TODO: 说明需要完成的工作`
+- `//! FIXME: 说明需要修复的问题`
+- 格式: `//! TODO/FIXME: 描述 @author 作者 @date 日期`
+
+#### 6.4.7 注释检查
+- 上线前必须移除所有 `//! TODO` 标记
+- 所有 `//! FIXME` 必须已修复或确认已知问题
+- 关键逻辑必须有注释说明
+
 ---
 
 ## 7. 维护说明

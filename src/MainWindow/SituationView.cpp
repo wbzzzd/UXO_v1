@@ -94,13 +94,32 @@ void SituationView::setup3DView()
     groundTransform->setTranslation(QVector3D(2000.0f, -0.5f, 2000.0f));
 
     Qt3DExtras::QPhongMaterial *groundMaterial = new Qt3DExtras::QPhongMaterial(m_rootEntity);
-    groundMaterial->setDiffuse(QColor("#2D4A2D"));
-    groundMaterial->setAmbient(QColor("#1A1A1A"));
+    groundMaterial->setDiffuse(QColor("#3D5C3D"));  // 草地绿色
+    groundMaterial->setAmbient(QColor("#1A2A1A"));
+    groundMaterial->setSpecular(QColor("#101010"));
 
     m_rootEntity->addComponent(groundMesh);
     m_rootEntity->addComponent(groundTransform);
     m_rootEntity->addComponent(groundMaterial);
 
+    // 添加滑行道
+    Qt3DExtras::QCuboidMesh *taxiwayMesh = new Qt3DExtras::QCuboidMesh(m_rootEntity);
+    taxiwayMesh->setXExtent(500.0f);
+    taxiwayMesh->setYExtent(0.1f);
+    taxiwayMesh->setZExtent(500.0f);
+
+    Qt3DCore::QTransform *taxiwayTransform = new Qt3DCore::QTransform(m_rootEntity);
+    taxiwayTransform->setTranslation(QVector3D(500.0f, 0.05f, 2000.0f));
+
+    Qt3DExtras::QPhongMaterial *taxiwayMaterial = new Qt3DExtras::QPhongMaterial(m_rootEntity);
+    taxiwayMaterial->setDiffuse(QColor("#4A4A4A"));  // 滑行道灰色
+    taxiwayMaterial->setAmbient(QColor("#2A2A2A"));
+
+    m_rootEntity->addComponent(taxiwayMesh);
+    m_rootEntity->addComponent(taxiwayTransform);
+    m_rootEntity->addComponent(taxiwayMaterial);
+
+    // 跑道
     Qt3DExtras::QCuboidMesh *runwayMesh = new Qt3DExtras::QCuboidMesh(m_rootEntity);
     runwayMesh->setXExtent(3000.0f);
     runwayMesh->setYExtent(0.2f);
@@ -110,7 +129,9 @@ void SituationView::setup3DView()
     runwayTransform->setTranslation(QVector3D(2000.0f, 0.0f, 2000.0f));
 
     Qt3DExtras::QPhongMaterial *runwayMaterial = new Qt3DExtras::QPhongMaterial(m_rootEntity);
-    runwayMaterial->setDiffuse(QColor("#3D3D3D"));
+    runwayMaterial->setDiffuse(QColor("#4A4A4A"));  // 跑道深灰色沥青
+    runwayMaterial->setAmbient(QColor("#2A2A2A"));
+    runwayMaterial->setSpecular(QColor("#202020"));
 
     m_rootEntity->addComponent(runwayMesh);
     m_rootEntity->addComponent(runwayTransform);

@@ -185,7 +185,7 @@ void MainWindow::createToolBar()
 void MainWindow::createStatusBar()
 {
     m_statusBarWidget = new StatusBarWidget(this);
-    setStatusBar(m_statusBarWidget);
+    statusBar()->addWidget(m_statusBarWidget);
 }
 
 void MainWindow::createDockWidgets()

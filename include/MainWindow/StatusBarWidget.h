@@ -1,12 +1,15 @@
-#ifndef STATUSBARWIDGET_H
-#define STATUSBARWIDGET_H
+#ifndef MAINWINDOW_STATUSBARWIDGET_H
+#define MAINWINDOW_STATUSBARWIDGET_H
 
-#include <QStatusBar>
-#include <QLabel>
-#include <QPushButton>
-#include <QScrollArea>
+#include <QWidget>
+#include <QString>
 
-class StatusBarWidget : public QStatusBar
+class QLabel;
+class QPushButton;
+class QScrollArea;
+class QHBoxLayout;
+
+class StatusBarWidget : public QWidget
 {
     Q_OBJECT
 
@@ -14,21 +17,25 @@ public:
     explicit StatusBarWidget(QWidget *parent = nullptr);
     ~StatusBarWidget();
 
-    void updateDeviceStatus(int online, int total);
-    void addAlarm(const QString &message);
-    void clearAlarms();
+    void updateDeviceStatus(int onlineCount, int totalCount);
+    void addAlarm(const QString& message);
+    void setMinBatteryLevel(int level);
 
 signals:
     void emergencyStopClicked();
 
-private slots:
+public slots:
     void onEmergencyStop();
 
 private:
+    void setupUi();
+    QWidget* createSeparator();
+
     QLabel *m_deviceStatusLabel;
     QLabel *m_batteryLabel;
     QScrollArea *m_alarmScrollArea;
-    QLabel *m_alarmLabel;
+    QWidget *m_alarmContainer;
+    QHBoxLayout *m_alarmLayout;
     QPushButton *m_emergencyStopBtn;
 };
 

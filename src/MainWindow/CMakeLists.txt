@@ -5,6 +5,7 @@ set(MAINWINDOW_SOURCES
     DecisionView.cpp
     StatusBarWidget.cpp
     LeftPanelWidget.cpp
+    TargetDetailPanel.cpp
 )
 
 set(MAINWINDOW_HEADERS
@@ -14,6 +15,7 @@ set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/DecisionView.h
     ${HEADERS_DIR}/MainWindow/StatusBarWidget.h
     ${HEADERS_DIR}/MainWindow/LeftPanelWidget.h
+    ${HEADERS_DIR}/MainWindow/TargetDetailPanel.h
 )
 
 set(CMAKE_AUTOMOC ON)

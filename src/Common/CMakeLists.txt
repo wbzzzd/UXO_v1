@@ -1,5 +1,6 @@
 set(COMMON_SOURCES
     MockDataGenerator.cpp
+    GlobalStyle.cpp
 )
 
 add_library(Common STATIC ${COMMON_SOURCES})
