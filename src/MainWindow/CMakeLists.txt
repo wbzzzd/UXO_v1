@@ -31,4 +31,5 @@ target_link_libraries(MainWindow
     Qt5::3DRender
     Qt5::3DExtras
     Common
+    Core
 )

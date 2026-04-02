@@ -28,5 +28,6 @@ set(HEADERS_DIR ${CMAKE_SOURCE_DIR}/include)
 set(SOURCES_DIR ${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(src/Common)
+add_subdirectory(src/Core)
 add_subdirectory(src/MainWindow)
 add_subdirectory(src/App)

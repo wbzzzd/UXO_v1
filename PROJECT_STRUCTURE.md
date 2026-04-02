@@ -69,10 +69,15 @@ UXO_v1/
 │   │
 │   ├── Core/                         # 核心模块
 │   │   ├── Data/                     # 数据模型
+│   │   │   ├── Types.h               # 基础数据类型
+│   │   │   ├── AirportData.h        # 机场数据结构
 │   │   │   ├── TargetInfo.h
 │   │   │   ├── MissionInfo.h
 │   │   │   ├── DeviceInfo.h
 │   │   │   └── AlarmInfo.h
+│   │   │
+│   │   ├── 3D/                       # 3D渲染模块
+│   │   │   └── AirportSceneFactory.h # 机场场景工厂
 │   │   │
 │   │   ├── Comm/                     # 通信服务
 │   │   │   ├── MqttService.h
@@ -122,6 +127,7 @@ UXO_v1/
 │   │
 │   ├── Core/
 │   │   ├── Data/
+│   │   ├── 3D/
 │   │   ├── Comm/
 │   │   ├── Algo/
 │   │   └── Storage/

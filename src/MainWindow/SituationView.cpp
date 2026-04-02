@@ -1,3 +1,8 @@
+/**
+ * @file SituationView.cpp
+ * @brief 态势显示视图实现
+ * @details 使用AirportSceneFactory创建3D机场场景，实现数据驱动的渲染架构
+ */
 #include "MainWindow/SituationView.h"
 
 #include <QVBoxLayout>
@@ -11,11 +16,17 @@
 #include <Qt3DExtras/QCuboidMesh>
 #include <Qt3DExtras/QPlaneMesh>
 #include <Qt3DExtras/QPhongMaterial>
+#include <Qt3DExtras/QForwardRenderer>
 #include <Qt3DCore/QTransform>
+#include <Qt3DRender/QRenderSettings>
 #include <QColor>
 
 #include "Core/Data/Types.h"
 
+/**
+ * @brief 目标标记实体类
+ * @details 用于在3D场景中显示可疑物品位置，根据威胁等级显示不同颜色
+ */
 class TargetMarkerEntity : public Qt3DCore::QEntity
 {
 public:
@@ -23,23 +34,26 @@ public:
         : Qt3DCore::QEntity(parent)
         , m_target(target)
     {
+        // 创建变换组件 - 设置位置和缩放
         Qt3DCore::QTransform *transform = new Qt3DCore::QTransform(this);
         transform->setTranslation(target.position);
         transform->setScale(3.0f);
         addComponent(transform);
 
+        // 创建立方体网格
         Qt3DExtras::QCuboidMesh *mesh = new Qt3DExtras::QCuboidMesh(this);
         mesh->setXExtent(1.0f);
         mesh->setYExtent(1.0f);
         mesh->setZExtent(1.0f);
         addComponent(mesh);
 
+        // 根据威胁等级设置颜色
         Qt3DExtras::QPhongMaterial *material = new Qt3DExtras::QPhongMaterial(this);
         QColor color;
         switch (target.threatLevel) {
-            case Core::ThreatLevel::High: color = QColor("#FF5252"); break;
-            case Core::ThreatLevel::Medium: color = QColor("#FFB74D"); break;
-            case Core::ThreatLevel::Low: color = QColor("#FFF176"); break;
+            case Core::ThreatLevel::High: color = QColor("#FF5252"); break;     // 红色 - 高危
+            case Core::ThreatLevel::Medium: color = QColor("#FFB74D"); break;   // 橙色 - 中危
+            case Core::ThreatLevel::Low: color = QColor("#FFF176"); break;       // 黄色 - 低危
             default: color = QColor("#888888");
         }
         material->setDiffuse(color);
@@ -62,6 +76,7 @@ SituationView::SituationView(QWidget *parent)
     , m_rootEntity(nullptr)
     , m_camera(nullptr)
     , m_cameraController(nullptr)
+    , m_sceneFactory(new Core::AirportSceneFactory())
 {
     setup3DView();
     setupToolBar();
@@ -69,6 +84,7 @@ SituationView::SituationView(QWidget *parent)
 
 SituationView::~SituationView()
 {
+    delete m_sceneFactory;
 }
 
 void SituationView::setup3DView()
@@ -77,111 +93,61 @@ void SituationView::setup3DView()
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
+    // 创建3D窗口
     m_3dWindow = new Qt3DExtras::Qt3DWindow();
     m_3dWindow->setMinimumSize(QSize(400, 300));
+    m_3dWindow->setSurfaceType(QSurface::OpenGLSurface);
+    m_3dWindow->format().setSamples(4);
+    
+    // 设置天空背景色
+    Qt3DExtras::QForwardRenderer *frameGraph = m_3dWindow->defaultFrameGraph();
+    frameGraph->setClearColor(QColor("#87CEEB"));  // 浅蓝色天空
 
+    // 创建窗口容器
     QWidget *container = QWidget::createWindowContainer(m_3dWindow, this);
     container->setStyleSheet("background-color: #1E1E1E;");
     layout->addWidget(container);
 
-    m_rootEntity = new Qt3DCore::QEntity();
+    // 使用工厂创建机场3D场景
+    m_airportData = Core::AirportData();  // 加载默认模拟数据
+    m_rootEntity = m_sceneFactory->createScene(m_airportData);
 
-    Qt3DExtras::QPlaneMesh *groundMesh = new Qt3DExtras::QPlaneMesh(m_rootEntity);
-    groundMesh->setWidth(5000.0f);
-    groundMesh->setHeight(5000.0f);
-
-    Qt3DCore::QTransform *groundTransform = new Qt3DCore::QTransform(m_rootEntity);
-    groundTransform->setTranslation(QVector3D(2000.0f, -0.5f, 2000.0f));
-
-    Qt3DExtras::QPhongMaterial *groundMaterial = new Qt3DExtras::QPhongMaterial(m_rootEntity);
-    groundMaterial->setDiffuse(QColor("#3D5C3D"));  // 草地绿色
-    groundMaterial->setAmbient(QColor("#1A2A1A"));
-    groundMaterial->setSpecular(QColor("#101010"));
-
-    m_rootEntity->addComponent(groundMesh);
-    m_rootEntity->addComponent(groundTransform);
-    m_rootEntity->addComponent(groundMaterial);
-
-    // 添加滑行道
-    Qt3DExtras::QCuboidMesh *taxiwayMesh = new Qt3DExtras::QCuboidMesh(m_rootEntity);
-    taxiwayMesh->setXExtent(500.0f);
-    taxiwayMesh->setYExtent(0.1f);
-    taxiwayMesh->setZExtent(500.0f);
-
-    Qt3DCore::QTransform *taxiwayTransform = new Qt3DCore::QTransform(m_rootEntity);
-    taxiwayTransform->setTranslation(QVector3D(500.0f, 0.05f, 2000.0f));
-
-    Qt3DExtras::QPhongMaterial *taxiwayMaterial = new Qt3DExtras::QPhongMaterial(m_rootEntity);
-    taxiwayMaterial->setDiffuse(QColor("#4A4A4A"));  // 滑行道灰色
-    taxiwayMaterial->setAmbient(QColor("#2A2A2A"));
-
-    m_rootEntity->addComponent(taxiwayMesh);
-    m_rootEntity->addComponent(taxiwayTransform);
-    m_rootEntity->addComponent(taxiwayMaterial);
-
-    // 跑道
-    Qt3DExtras::QCuboidMesh *runwayMesh = new Qt3DExtras::QCuboidMesh(m_rootEntity);
-    runwayMesh->setXExtent(3000.0f);
-    runwayMesh->setYExtent(0.2f);
-    runwayMesh->setZExtent(40.0f);
-
-    Qt3DCore::QTransform *runwayTransform = new Qt3DCore::QTransform(m_rootEntity);
-    runwayTransform->setTranslation(QVector3D(2000.0f, 0.0f, 2000.0f));
-
-    Qt3DExtras::QPhongMaterial *runwayMaterial = new Qt3DExtras::QPhongMaterial(m_rootEntity);
-    runwayMaterial->setDiffuse(QColor("#4A4A4A"));  // 跑道深灰色沥青
-    runwayMaterial->setAmbient(QColor("#2A2A2A"));
-    runwayMaterial->setSpecular(QColor("#202020"));
-
-    m_rootEntity->addComponent(runwayMesh);
-    m_rootEntity->addComponent(runwayTransform);
-    m_rootEntity->addComponent(runwayMaterial);
-
-    Qt3DRender::QPointLight *light = new Qt3DRender::QPointLight();
-    light->setColor(Qt::white);
-    light->setIntensity(0.8f);
-    m_rootEntity->addComponent(light);
-
-    Qt3DCore::QTransform *lightTransform = new Qt3DCore::QTransform(m_rootEntity);
-    lightTransform->setTranslation(QVector3D(2000.0f, 500.0f, 2000.0f));
-    m_rootEntity->addComponent(lightTransform);
-
+    // 设置相机
     m_camera = m_3dWindow->camera();
-    m_camera->setPosition(QVector3D(2000.0f, 800.0f, 2500.0f));
-    m_camera->setViewCenter(QVector3D(2000.0f, 0.0f, 2000.0f));
-    m_camera->setUpVector(QVector3D(0.0f, 1.0f, 0.0f));
+    m_sceneFactory->setupCamera(m_camera, m_airportData);
 
-    m_cameraController = new Qt3DExtras::QOrbitCameraController(m_rootEntity);
-    m_cameraController->setCamera(m_camera);
-    m_cameraController->setZoomInLimit(50.0f);
-    m_cameraController->setLinearSpeed(500.0f);
-    m_cameraController->setLookSpeed(500.0f);
+    // 创建相机控制器
+    m_cameraController = m_sceneFactory->createCameraController(m_rootEntity, m_camera);
 
-    Qt3DRender::QCameraSelector *cameraSelector = new Qt3DRender::QCameraSelector(m_rootEntity);
-    cameraSelector->setCamera(m_camera);
-
+    // 设置根实体
     m_3dWindow->setRootEntity(m_rootEntity);
 }
 
 void SituationView::setupToolBar()
 {
+    // TODO: 添加3D视图工具栏（视角切换、缩放按钮等）
 }
 
 void SituationView::setCameraView(const QString &view)
 {
     if (!m_camera) return;
 
+    QVector3D target = m_airportData.cameraTarget;
+    
     if (view == "top") {
-        m_camera->setPosition(QVector3D(2000.0f, 1500.0f, 2000.0f));
-        m_camera->setViewCenter(QVector3D(2000.0f, 0.0f, 2000.0f));
+        // 俯视图 - 从正上方看
+        m_camera->setPosition(QVector3D(target.x(), 1500.0f, target.z()));
+        m_camera->setViewCenter(target);
     } else if (view == "side") {
-        m_camera->setPosition(QVector3D(100.0f, 200.0f, 2000.0f));
-        m_camera->setViewCenter(QVector3D(2000.0f, 0.0f, 2000.0f));
+        // 侧视图 - 从侧面看
+        m_camera->setPosition(QVector3D(100.0f, 200.0f, target.z()));
+        m_camera->setViewCenter(target);
     }
 }
 
 void SituationView::addTargetMarker(const QString &targetId, const QVector3D &position)
 {
+    // 检查目标是否已存在
     for (auto child : m_rootEntity->children()) {
         auto entity = qobject_cast<Qt3DCore::QEntity*>(child);
         if (entity && entity->objectName() == "marker_" + targetId) {
@@ -189,11 +155,13 @@ void SituationView::addTargetMarker(const QString &targetId, const QVector3D &po
         }
     }
 
+    // 创建目标信息
     Core::TargetInfo target;
     target.id = targetId;
     target.position = position;
     target.threatLevel = Core::ThreatLevel::Medium;
 
+    // 创建3D标记
     TargetMarkerEntity *marker = new TargetMarkerEntity(target, m_rootEntity);
     marker->setObjectName("marker_" + targetId);
 }
@@ -241,6 +209,7 @@ void SituationView::focusOnTarget(const QVector3D &position)
 {
     if (!m_camera) return;
 
+    // 移动相机到目标附近
     QVector3D targetPos = position + QVector3D(0, 50, 50);
     m_camera->setPosition(targetPos);
     m_camera->setViewCenter(position);
@@ -265,4 +234,29 @@ void SituationView::highlightTarget(const QString &targetId, bool highlight)
             break;
         }
     }
+}
+
+void SituationView::loadAirportData(const Core::AirportData& airportData)
+{
+    m_airportData = airportData;
+    
+    // 重新创建场景
+    if (m_rootEntity) {
+        m_rootEntity->deleteLater();
+    }
+    m_rootEntity = m_sceneFactory->createScene(m_airportData);
+    
+    // 更新相机
+    if (m_camera) {
+        m_sceneFactory->setupCamera(m_camera, m_airportData);
+    }
+    
+    // 更新根实体
+    m_3dWindow->setRootEntity(m_rootEntity);
+    
+    // 重新创建控制器
+    if (m_cameraController) {
+        delete m_cameraController;
+    }
+    m_cameraController = m_sceneFactory->createCameraController(m_rootEntity, m_camera);
 }
