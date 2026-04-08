@@ -6,7 +6,11 @@
 #include "MainWindow/SituationView.h"
 
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QPushButton>
+#include <QLabel>
+#include <QToolBar>
+#include <QAction>
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QCamera>
 #include <Qt3DRender/QCameraSelector>
@@ -76,6 +80,9 @@ SituationView::SituationView(QWidget *parent)
     , m_rootEntity(nullptr)
     , m_camera(nullptr)
     , m_cameraController(nullptr)
+    , m_toolBar(nullptr)
+    , m_zoomLabel(nullptr)
+    , m_positionLabel(nullptr)
     , m_sceneFactory(new Core::AirportSceneFactory())
 {
     setup3DView();
@@ -125,7 +132,108 @@ void SituationView::setup3DView()
 
 void SituationView::setupToolBar()
 {
-    // TODO: 添加3D视图工具栏（视角切换、缩放按钮等）
+    QHBoxLayout *mainLayout = qobject_cast<QHBoxLayout*>(layout());
+    if (!mainLayout) {
+        // 重新设置布局为水平布局
+        delete layout();
+        mainLayout = new QHBoxLayout(this);
+        mainLayout->setContentsMargins(0, 0, 0, 0);
+        mainLayout->setSpacing(0);
+        
+        // 重新添加3D窗口
+        QWidget *container = QWidget::createWindowContainer(m_3dWindow, this);
+        container->setStyleSheet("background-color: #1E1E1E;");
+        mainLayout->addWidget(container, 1);
+    }
+    
+    // 创建工具栏（右侧竖直方向）
+    QWidget *toolBarContainer = new QWidget(this);
+    toolBarContainer->setFixedWidth(60);
+    toolBarContainer->setStyleSheet(
+        "background-color: rgba(30, 30, 30, 200);"
+        "border-left: 1px solid #3D3D3D;"
+    );
+    
+    QVBoxLayout *toolBarLayout = new QVBoxLayout(toolBarContainer);
+    toolBarLayout->setContentsMargins(5, 10, 5, 10);
+    toolBarLayout->setSpacing(8);
+    toolBarLayout->setAlignment(Qt::AlignTop);
+    
+    // 标题
+    QLabel *titleLabel = new QLabel("视角", toolBarContainer);
+    titleLabel->setStyleSheet("color: #AAAAAA; font-size: 10px;");
+    titleLabel->setAlignment(Qt::AlignCenter);
+    toolBarLayout->addWidget(titleLabel);
+    
+    // 俯视按钮
+    QPushButton *btnTop = new QPushButton("俯", toolBarContainer);
+    btnTop->setFixedSize(40, 30);
+    btnTop->setToolTip("俯视图");
+    btnTop->setStyleSheet(
+        "QPushButton { background-color: #0078D7; color: white; border: none; border-radius: 4px; font-size: 12px; }"
+        "QPushButton:hover { background-color: #1984D8; }"
+        "QPushButton:pressed { background-color: #005A9E; }"
+    );
+    connect(btnTop, &QPushButton::clicked, [this]() { setCameraView("top"); updateZoomLabel(); });
+    toolBarLayout->addWidget(btnTop);
+    
+    // 侧视按钮
+    QPushButton *btnSide = new QPushButton("侧", toolBarContainer);
+    btnSide->setFixedSize(40, 30);
+    btnSide->setToolTip("侧视图");
+    btnSide->setStyleSheet(
+        "QPushButton { background-color: #4A4A4A; color: #DDDDDD; border: 1px solid #5A5A5A; border-radius: 4px; font-size: 12px; }"
+        "QPushButton:hover { background-color: #5A5A5A; }"
+    );
+    connect(btnSide, &QPushButton::clicked, [this]() { setCameraView("side"); updateZoomLabel(); });
+    toolBarLayout->addWidget(btnSide);
+    
+    // 3D视角按钮
+    QPushButton *btn3D = new QPushButton("3D", toolBarContainer);
+    btn3D->setFixedSize(40, 30);
+    btn3D->setToolTip("3D视角");
+    btn3D->setStyleSheet(
+        "QPushButton { background-color: #4A4A4A; color: #DDDDDD; border: 1px solid #5A5A5A; border-radius: 4px; font-size: 12px; }"
+        "QPushButton:hover { background-color: #5A5A5A; }"
+    );
+    connect(btn3D, &QPushButton::clicked, [this]() { setCameraView("3d"); updateZoomLabel(); });
+    toolBarLayout->addWidget(btn3D);
+    
+    toolBarLayout->addSpacing(10);
+    
+    // 复位按钮
+    QPushButton *btnReset = new QPushButton("复位", toolBarContainer);
+    btnReset->setFixedSize(40, 30);
+    btnReset->setToolTip("复位视角");
+    btnReset->setStyleSheet(
+        "QPushButton { background-color: #D9534F; color: white; border: none; border-radius: 4px; font-size: 11px; }"
+        "QPushButton:hover { background-color: #E74C3C; }"
+    );
+    connect(btnReset, &QPushButton::clicked, this, &SituationView::resetCameraView);
+    toolBarLayout->addWidget(btnReset);
+    
+    toolBarLayout->addSpacing(20);
+    
+    // 缩放级别标签
+    m_zoomLabel = new QLabel("100%", toolBarContainer);
+    m_zoomLabel->setStyleSheet("color: #888888; font-size: 10px;");
+    m_zoomLabel->setAlignment(Qt::AlignCenter);
+    m_zoomLabel->setFixedHeight(20);
+    toolBarLayout->addWidget(m_zoomLabel);
+    
+    // 位置信息标签
+    m_positionLabel = new QLabel("位置", toolBarContainer);
+    m_positionLabel->setStyleSheet("color: #666666; font-size: 9px;");
+    m_positionLabel->setAlignment(Qt::AlignCenter);
+    m_positionLabel->setWordWrap(true);
+    m_positionLabel->setFixedHeight(40);
+    toolBarLayout->addWidget(m_positionLabel);
+    
+    toolBarLayout->addStretch();
+    
+    mainLayout->addWidget(toolBarContainer);
+    
+    updateZoomLabel();
 }
 
 void SituationView::setCameraView(const QString &view)
@@ -141,6 +249,10 @@ void SituationView::setCameraView(const QString &view)
     } else if (view == "side") {
         // 侧视图 - 从侧面看
         m_camera->setPosition(QVector3D(100.0f, 200.0f, target.z()));
+        m_camera->setViewCenter(target);
+    } else if (view == "3d") {
+        // 3D视角 - 默认倾斜视角
+        m_camera->setPosition(QVector3D(target.x() + 500.0f, 500.0f, target.z() + 700.0f));
         m_camera->setViewCenter(target);
     }
 }
@@ -259,4 +371,31 @@ void SituationView::loadAirportData(const Core::AirportData& airportData)
         delete m_cameraController;
     }
     m_cameraController = m_sceneFactory->createCameraController(m_rootEntity, m_camera);
+}
+
+void SituationView::resetCameraView()
+{
+    if (!m_camera) return;
+    m_sceneFactory->setupCamera(m_camera, m_airportData);
+    updateZoomLabel();
+}
+
+void SituationView::updateZoomLabel()
+{
+    if (!m_camera || !m_zoomLabel || !m_positionLabel) return;
+    
+    // 计算相机与目标的距离作为"缩放"参考
+    QVector3D pos = m_camera->position();
+    QVector3D target = m_camera->viewCenter();
+    float distance = (pos - target).length();
+    
+    // 估算缩放比例（基于默认距离800）
+    int zoomPercent = static_cast<int>(800.0f / distance * 100.0f);
+    m_zoomLabel->setText(QString("缩放: %1%").arg(zoomPercent));
+    
+    // 更新位置信息
+    m_positionLabel->setText(QString("X:%1\nY:%2\nZ:%3")
+        .arg(static_cast<int>(pos.x()))
+        .arg(static_cast<int>(pos.y()))
+        .arg(static_cast<int>(pos.z())));
 }

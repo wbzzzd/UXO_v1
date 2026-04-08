@@ -9,6 +9,8 @@
 #include <QWidget>
 #include <QString>
 #include <QVector3D>
+#include <QToolBar>
+#include <QLabel>
 #include <Qt3DCore/QEntity>
 #include <Qt3DRender/QCamera>
 #include <Qt3DExtras/QOrbitCameraController>
@@ -26,6 +28,7 @@ public:
     ~SituationView();
 
     void setCameraView(const QString &view);
+    void resetCameraView();
     void addTargetMarker(const QString &targetId, const QVector3D &position);
     void removeTargetMarker(const QString &targetId);
     void updateTargetPosition(const QString &targetId, const QVector3D &position);
@@ -46,11 +49,16 @@ signals:
 private:
     void setup3DView();
     void setupToolBar();
+    void updateZoomLabel();
 
     Qt3DExtras::Qt3DWindow *m_3dWindow;
     Qt3DCore::QEntity *m_rootEntity;
     Qt3DRender::QCamera *m_camera;
     Qt3DExtras::QOrbitCameraController *m_cameraController;
+    
+    QToolBar *m_toolBar;           ///< 3D视图工具栏
+    QLabel *m_zoomLabel;            ///< 缩放级别显示标签
+    QLabel *m_positionLabel;        ///< 相机位置显示标签
     
     Core::AirportData m_airportData;           ///< 当前机场数据
     Core::AirportSceneFactory* m_sceneFactory; ///< 3D场景工厂
