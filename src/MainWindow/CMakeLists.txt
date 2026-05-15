@@ -6,6 +6,14 @@ set(MAINWINDOW_SOURCES
     StatusBarWidget.cpp
     LeftPanelWidget.cpp
     TargetDetailPanel.cpp
+    NavigationWidget.cpp
+    VideoStreamPanel.cpp
+    RightPanelWidget.cpp
+    DeviceStatusPanel.cpp
+    DecisionSuggestionPanel.cpp
+    AlertPanel.cpp
+    DetectionControlPanel.cpp
+    BatchOperationBar.cpp
 )
 
 set(MAINWINDOW_HEADERS
@@ -16,6 +24,14 @@ set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/StatusBarWidget.h
     ${HEADERS_DIR}/MainWindow/LeftPanelWidget.h
     ${HEADERS_DIR}/MainWindow/TargetDetailPanel.h
+    ${HEADERS_DIR}/MainWindow/NavigationWidget.h
+    ${HEADERS_DIR}/MainWindow/VideoStreamPanel.h
+    ${HEADERS_DIR}/MainWindow/RightPanelWidget.h
+    ${HEADERS_DIR}/MainWindow/DeviceStatusPanel.h
+    ${HEADERS_DIR}/MainWindow/DecisionSuggestionPanel.h
+    ${HEADERS_DIR}/MainWindow/AlertPanel.h
+    ${HEADERS_DIR}/MainWindow/DetectionControlPanel.h
+    ${HEADERS_DIR}/MainWindow/BatchOperationBar.h
 )
 
 set(CMAKE_AUTOMOC ON)

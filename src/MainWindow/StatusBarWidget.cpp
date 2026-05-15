@@ -25,28 +25,28 @@ StatusBarWidget::~StatusBarWidget()
 
 void StatusBarWidget::setupUi()
 {
-    setFixedHeight(60);
+    setFixedHeight(28);
     setStyleSheet("background-color: #1E1E1E; border-top: 1px solid #3C3C3C;");
 
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(16, 8, 16, 8);
-    mainLayout->setSpacing(20);
+    mainLayout->setContentsMargins(16, 2, 16, 2);
+    mainLayout->setSpacing(16);
 
     m_deviceStatusLabel = new QLabel("设备: 3/5 在线", this);
-    m_deviceStatusLabel->setStyleSheet("color: #FFFFFF; font-size: 14px;");
+    m_deviceStatusLabel->setStyleSheet("color: #FFFFFF; font-size: 12px;");
     m_deviceStatusLabel->setCursor(Qt::PointingHandCursor);
     mainLayout->addWidget(m_deviceStatusLabel);
 
     mainLayout->addWidget(createSeparator());
 
     m_batteryLabel = new QLabel("最低电量: 85%", this);
-    m_batteryLabel->setStyleSheet("color: #4CAF50; font-size: 14px;");
+    m_batteryLabel->setStyleSheet("color: #4CAF50; font-size: 12px;");
     mainLayout->addWidget(m_batteryLabel);
 
     mainLayout->addWidget(createSeparator());
 
     m_alarmScrollArea = new QScrollArea(this);
-    m_alarmScrollArea->setMaximumHeight(30);
+    m_alarmScrollArea->setMaximumHeight(22);
     m_alarmScrollArea->setMinimumWidth(400);
     m_alarmScrollArea->setStyleSheet("background: transparent; border: none;");
 
@@ -62,16 +62,16 @@ void StatusBarWidget::setupUi()
 
     mainLayout->addStretch();
 
-    m_emergencyStopBtn = new QPushButton("  紧 急 停 止  ", this);
-    m_emergencyStopBtn->setFixedSize(120, 40);
+    m_emergencyStopBtn = new QPushButton("紧急停止", this);
+    m_emergencyStopBtn->setFixedSize(80, 22);
     m_emergencyStopBtn->setStyleSheet(R"(
         QPushButton {
             background-color: #D32F2F;
             color: #FFFFFF;
-            font-size: 14px;
+            font-size: 11px;
             font-weight: bold;
             border: none;
-            border-radius: 4px;
+            border-radius: 3px;
         }
         QPushButton:hover {
             background-color: #B71C1C;
@@ -114,7 +114,7 @@ void StatusBarWidget::setMinBatteryLevel(int level)
 {
     QString color = (level > 60) ? "#4CAF50" : (level > 20 ? "#FFB74D" : "#FF5252");
     m_batteryLabel->setText(QString("最低电量: %1%").arg(level));
-    m_batteryLabel->setStyleSheet(QString("color: %1; font-size: 14px;").arg(color));
+    m_batteryLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(color));
 }
 
 void StatusBarWidget::onEmergencyStop()

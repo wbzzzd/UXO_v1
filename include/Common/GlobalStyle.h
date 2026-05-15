@@ -87,28 +87,25 @@ namespace Fonts {
  * @details 按照UI设计文档1.3.1节定义
  */
 namespace Sizes {
-    // 窗口尺寸
-    const int WindowWidth = 1920;      ///< 默认窗口宽度
-    const int WindowHeight = 1080;     ///< 默认窗口高度
+    const int WindowWidth = 1920;
+    const int WindowHeight = 1080;
 
-    // 固定尺寸
-    const int LeftPanelWidth = 320;     ///< 左侧面板宽度
-    const int RightPanelWidth = 360;   ///< 右侧面板宽度
-    const int StatusBarHeight = 60;     ///< 状态栏高度
-    const int ToolbarHeight = 48;       ///< 工具栏高度
-    const int MenuBarHeight = 30;       ///< 菜单栏高度
-    const int TitleBarHeight = 30;      ///< 标题栏高度
+    const int NavigationBarWidth = 80;
+    const int LeftPanelWidth = 320;
+    const int RightPanelWidth = 360;
+    const int StatusBarHeight = 28;
+    const int ToolbarHeight = 32;
+    const int MenuBarHeight = 30;
+    const int TitleBarHeight = 32;
 
-    // 列表项高度
-    const int TargetItemHeight = 56;    ///< 目标列表项高度
-    const int TaskItemHeight = 80;      ///< 任务卡片高度
-    const int DeviceItemHeight = 64;    ///< 设备列表项高度
+    const int TargetItemHeight = 56;
+    const int TaskItemHeight = 80;
+    const int DeviceItemHeight = 64;
 
-    // 按钮尺寸
-    const int ButtonMinWidth = 80;      ///< 按钮最小宽度
-    const int ButtonHeight = 32;        ///< 标准按钮高度
-    const int IconButtonSize = 24;      ///< 图标按钮尺寸
-    const int ToolbarButtonHeight = 32; ///< 工具栏按钮高度
+    const int ButtonMinWidth = 80;
+    const int ButtonHeight = 32;
+    const int IconButtonSize = 24;
+    const int ToolbarButtonHeight = 32;
 }
 
 /**

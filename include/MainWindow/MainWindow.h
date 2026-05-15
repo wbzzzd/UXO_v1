@@ -5,17 +5,19 @@
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
-#include <QDockWidget>
 #include <QSplitter>
 
-class SituationView;
-class DeviceControlView;
-class DecisionView;
-class StatusBarWidget;
+namespace Core { struct TargetInfo; }
 
-namespace Ui {
-class MainWindow;
-}
+class SituationView;
+class StatusBarWidget;
+class NavigationWidget;
+class VideoStreamPanel;
+class LeftPanelWidget;
+class RightPanelWidget;
+class AlertPanel;
+class DetectionControlPanel;
+class BatchOperationBar;
 
 class MainWindow : public QMainWindow
 {
@@ -38,24 +40,34 @@ private slots:
     void on_actionViewStatusBar();
     void on_actionSystemSettings();
     void on_actionAbout();
+    void onNavigationChanged(int index);
+    void onTargetSelected(const Core::TargetInfo& target);
+    void onTargetDoubleClicked(const Core::TargetInfo& target);
 
 private:
     void setupUi();
     void createMenuBar();
     void createToolBar();
     void createStatusBar();
-    void createDockWidgets();
+    void createMainLayout();
     void createConnections();
+    void loadMockData();
 
-    SituationView *m_situationView;
-    DeviceControlView *m_deviceControlView;
-    DecisionView *m_decisionView;
+    NavigationWidget *m_navigationWidget;
+    VideoStreamPanel *m_videoStreamPanel;
+    LeftPanelWidget *m_leftPanel;
+    RightPanelWidget *m_rightPanel;
+    AlertPanel *m_alertPanel;
+    DetectionControlPanel *m_detectionControlPanel;
+    BatchOperationBar *m_batchOperationBar;
     StatusBarWidget *m_statusBarWidget;
 
-    QDockWidget *m_leftDock;
-    QDockWidget *m_rightDock;
+    QSplitter *m_mainSplitter;
+    QSplitter *m_centerSplitter;
+    QWidget *m_centerArea;
 
-    QSplitter *m_centralSplitter;
+    bool m_leftPanelVisible;
+    bool m_rightPanelVisible;
 };
 
 #endif
