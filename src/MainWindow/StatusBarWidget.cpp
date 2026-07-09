@@ -11,6 +11,7 @@ StatusBarWidget::StatusBarWidget(QWidget *parent)
     : QWidget(parent)
     , m_deviceStatusLabel(nullptr)
     , m_batteryLabel(nullptr)
+    , m_simulationLabel(nullptr)
     , m_alarmScrollArea(nullptr)
     , m_alarmContainer(nullptr)
     , m_alarmLayout(nullptr)
@@ -42,6 +43,14 @@ void StatusBarWidget::setupUi()
     m_batteryLabel = new QLabel("最低电量: 85%", this);
     m_batteryLabel->setStyleSheet("color: #4CAF50; font-size: 12px;");
     mainLayout->addWidget(m_batteryLabel);
+
+    mainLayout->addWidget(createSeparator());
+
+    // 模拟模式标识
+    m_simulationLabel = new QLabel("[模拟模式]", this);
+    m_simulationLabel->setStyleSheet("color: #FFB74D; font-size: 12px; font-weight: bold;");
+    m_simulationLabel->setVisible(false);
+    mainLayout->addWidget(m_simulationLabel);
 
     mainLayout->addWidget(createSeparator());
 
@@ -115,6 +124,11 @@ void StatusBarWidget::setMinBatteryLevel(int level)
     QString color = (level > 60) ? "#4CAF50" : (level > 20 ? "#FFB74D" : "#FF5252");
     m_batteryLabel->setText(QString("最低电量: %1%").arg(level));
     m_batteryLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(color));
+}
+
+void StatusBarWidget::setSimulationMode(bool enabled)
+{
+    m_simulationLabel->setVisible(enabled);
 }
 
 void StatusBarWidget::onEmergencyStop()

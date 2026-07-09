@@ -20,6 +20,7 @@ public:
     void updateDeviceStatus(int onlineCount, int totalCount);
     void addAlarm(const QString& message);
     void setMinBatteryLevel(int level);
+    void setSimulationMode(bool enabled);  // 设置模拟模式标识
 
 signals:
     void emergencyStopClicked();
@@ -33,6 +34,7 @@ private:
 
     QLabel *m_deviceStatusLabel;
     QLabel *m_batteryLabel;
+    QLabel *m_simulationLabel;  // 模拟模式标识
     QScrollArea *m_alarmScrollArea;
     QWidget *m_alarmContainer;
     QHBoxLayout *m_alarmLayout;
