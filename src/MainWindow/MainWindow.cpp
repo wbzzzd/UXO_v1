@@ -302,6 +302,14 @@ void MainWindow::loadMockData()
     // 右侧面板：设备状态
     m_rightPanel->setDevices(devices);
 
+    // 三维态势图：添加模拟目标标记
+    SituationView *sv = m_rightPanel->situationView();
+    if (sv) {
+        for (const Core::TargetInfo& t : targets) {
+            sv->addTargetMarker(t.id, t.position);
+        }
+    }
+
     // 状态栏：设备在线数、最低电量和模拟模式标识
     int onlineCount = 0;
     int minBattery = 100;
