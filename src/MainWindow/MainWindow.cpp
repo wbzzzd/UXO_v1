@@ -8,9 +8,10 @@
 #include "MainWindow/AlertPanel.h"
 #include "MainWindow/DetectionControlPanel.h"
 #include "MainWindow/BatchOperationBar.h"
+#include "MainWindow/DecisionSuggestionPanel.h"
 
 #include "Core/Data/Types.h"
-#include "Common/MockDataGenerator.h"
+#include "Core/Simulation/DemoScenarioProvider.h"
 #include "Common/GlobalStyle.h"
 
 #include <QMenuBar>
@@ -284,18 +285,24 @@ void MainWindow::createConnections()
     });
 }
 
+// 加载模拟演示场景数据（来自 DemoScenarioProvider，不连接真实设备）
 void MainWindow::loadMockData()
 {
-    QVector<Core::TargetInfo> targets = Common::MockDataGenerator::generateTargets(15);
-    QVector<Core::MissionInfo> missions = Common::MockDataGenerator::generateMissions(targets, 8);
-    QVector<Core::DeviceInfo> devices = Common::MockDataGenerator::generateDevices(5);
+    // 从本地模拟场景提供者获取数据
+    Core::Simulation::DemoScenario scenario = Core::Simulation::DemoScenarioProvider::create();
+    QVector<Core::TargetInfo> targets = scenario.targets;
+    QVector<Core::MissionInfo> missions = scenario.missions;
+    QVector<Core::DeviceInfo> devices = scenario.devices;
 
+    // 左侧面板：目标、任务、设备列表
     m_leftPanel->setTargets(targets);
     m_leftPanel->setMissions(missions);
     m_leftPanel->setDevices(devices);
 
+    // 右侧面板：设备状态
     m_rightPanel->setDevices(devices);
 
+    // 状态栏：设备在线数、最低电量和模拟模式标识
     int onlineCount = 0;
     int minBattery = 100;
     for (const Core::DeviceInfo& dev : devices) {
@@ -308,17 +315,23 @@ void MainWindow::loadMockData()
     }
     m_statusBarWidget->updateDeviceStatus(onlineCount, devices.size());
     m_statusBarWidget->setMinBatteryLevel(minBattery);
+    m_statusBarWidget->setSimulationMode(true);
 
-    QVector<Core::AlarmInfo> alarms;
+    // 告警面板：添加模拟告警
     for (int i = 0; i < 3; ++i) {
         Core::AlarmInfo alarm;
-        alarm.id = QString("ALM-%1").arg(i + 1, 3, 10, QChar('0'));
+        alarm.id = QString("ALM-DEMO-%1").arg(i + 1, 3, 10, QChar('0'));
         alarm.level = (i == 0) ? Core::AlarmLevel::Warning : Core::AlarmLevel::Info;
-        alarm.message = QString("告警信息 %1: 设备状态异常").arg(i + 1);
+        alarm.message = QString("模拟告警 %1: %2").arg(i + 1).arg(
+            (i == 0) ? QStringLiteral("模拟设备电量偏低") : QStringLiteral("模拟目标待确认"));
         alarm.createTime = QDateTime::currentDateTime().addSecs(-i * 60);
-        alarms.append(alarm);
         m_alertPanel->addAlert(alarm);
         m_statusBarWidget->addAlarm(alarm.message);
+    }
+
+    // 决策面板：展示首个模拟任务的处置建议
+    if (!missions.isEmpty()) {
+        m_rightPanel->decisionPanel()->setMission(missions.first());
     }
 }
 

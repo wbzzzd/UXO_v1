@@ -1,5 +1,5 @@
 #include "MainWindow/LeftPanelWidget.h"
-#include "Common/MockDataGenerator.h"
+#include "Core/Simulation/DemoScenarioProvider.h"
 #include "Common/GlobalStyle.h"
 
 #include <QVBoxLayout>
@@ -25,14 +25,7 @@ LeftPanelWidget::LeftPanelWidget(QWidget *parent)
     , m_threatFilterCombo(nullptr)
 {
     setupUi();
-
-    m_targets = Common::MockDataGenerator::generateTargets(15);
-    m_missions = Common::MockDataGenerator::generateMissions(m_targets, 8);
-    m_devices = Common::MockDataGenerator::generateDevices(5);
-
-    populateTargetList();
-    populateMissionList();
-    populateDeviceList();
+    // 数据由 MainWindow::loadMockData() 通过 setTargets/setMissions/setDevices 注入
 }
 
 LeftPanelWidget::~LeftPanelWidget()
@@ -404,10 +397,16 @@ void LeftPanelWidget::setDevices(const QVector<Core::DeviceInfo> &devices)
     populateDeviceList();
 }
 
+// 刷新：重新加载模拟场景数据
 void LeftPanelWidget::onRefreshTargets()
 {
-    m_targets = Common::MockDataGenerator::generateTargets(15);
+    Core::Simulation::DemoScenario scenario = Core::Simulation::DemoScenarioProvider::create();
+    m_targets = scenario.targets;
+    m_missions = scenario.missions;
+    m_devices = scenario.devices;
     populateTargetList();
+    populateMissionList();
+    populateDeviceList();
 }
 
 void LeftPanelWidget::onFilterChanged()
