@@ -1,0 +1,59 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "volcengine-ark/glm-5.2",
+  "instructions": [
+    "AGENTS.md",
+    "docs/dev/*.md",
+    "docs/dev/decisions/*.md",
+    "docs/OMO_ADAPTATION_PLAN.md"
+  ],
+  "watcher": {
+    "ignore": [
+      "build/**",
+      ".git/**",
+      ".omo/run-continuation/**",
+      ".omo/ulw-loop/**",
+      ".omo/sessions/**",
+      "logs/**"
+    ]
+  },
+  "permission": {
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow"
+    },
+    "bash": {
+      "*": "ask",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "cmake -S *": "allow",
+      "cmake --build *": "allow",
+      "test *": "allow",
+      "grep *": "allow",
+      "find *": "allow",
+      "rm *": "deny",
+      "git reset *": "deny",
+      "git checkout *": "deny",
+      "git clean *": "deny",
+      "git push *": "ask"
+    }
+  },
+  "provider": {
+    "volcengine-ark": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Volcengine Ark",
+      "options": {
+        "baseURL": "https://ark.cn-beijing.volces.com/api/plan/v1",
+        "apiKey": "{env:ARK_API_KEY}"
+      },
+      "models": {
+        "glm-5.2": {
+          "name": "glm-5.2"
+        }
+      }
+    }
+  }
+}

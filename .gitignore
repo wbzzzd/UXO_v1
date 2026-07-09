@@ -42,3 +42,16 @@ Makefile*
 
 # Logs
 logs/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# OMO runtime state
+.omo/run-continuation/
+.omo/ulw-loop/
+.omo/ralph-loop.local.md
+.omo/sessions/
+.omo/cache/
+.omo/tmp/
