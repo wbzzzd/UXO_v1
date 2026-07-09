@@ -6,10 +6,9 @@
 
 #include <QApplication>
 #include <QString>
+#include <QTimer>
 
 class MainWindow;
-
-namespace App {
 
 // 应用主类，管理初始化流程和主窗口生命周期
 class Application : public QApplication
@@ -23,9 +22,14 @@ public:
     bool initialize();  // 执行初始化流程，成功返回 true
     void run();         // 创建并显示主窗口
 
+    MainWindow* mainWindow() const { return m_mainWindow; }
+
 signals:
     void initialized();
     void errorOccurred(const QString &message);
+
+public slots:
+    void showMainWindow();
 
 private:
     bool loadConfiguration();      // 加载配置，当前为占位
@@ -38,7 +42,5 @@ private:
     bool m_initialized;
     MainWindow *m_mainWindow;
 };
-
-}
 
 #endif

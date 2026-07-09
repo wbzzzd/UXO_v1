@@ -3,8 +3,7 @@
 
 #include "App/Application.h"
 #include "MainWindow/MainWindow.h"
-
-using namespace App;
+#include <QDebug>
 
 Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
@@ -54,12 +53,15 @@ bool Application::initialize()
         return false;
     }
 
+    m_mainWindow = new MainWindow();
+    m_mainWindow->show();
+
     m_initialized = true;
     emit initialized();
     return true;
 }
 
-// 创建并显示主窗口
+// 创建并显示主窗口（若 initialize 已创建则直接显示）
 void Application::run()
 {
     if (m_mainWindow == nullptr) {
@@ -67,6 +69,14 @@ void Application::run()
     }
 
     m_mainWindow->show();
+}
+
+void Application::showMainWindow()
+{
+    if (m_mainWindow) {
+        m_mainWindow->show();
+        m_mainWindow->activateWindow();
+    }
 }
 
 // 以下均为占位实现，直接返回成功，不连接真实配置/日志/数据库/通信/模块

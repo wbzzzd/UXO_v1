@@ -1,5 +1,5 @@
 // 启动可见性测试
-// 验证 Application::run() 会显示标题为"排弹抢修指挥系统 V1.0"的 MainWindow。
+// 验证 Application::initialize() 会创建并显示标题为"排弹抢修指挥系统 V1.0"的 MainWindow。
 
 #include "App/Application.h"
 #include "MainWindow/MainWindow.h"
@@ -9,7 +9,7 @@
 
 int main(int argc, char *argv[])
 {
-    App::Application app(argc, argv);
+    Application app(argc, argv);
 
     // 初始化必须成功
     if (!app.initialize()) {

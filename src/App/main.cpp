@@ -5,7 +5,7 @@
 
 int main(int argc, char *argv[])
 {
-    App::Application app(argc, argv);
+    Application app(argc, argv);
 
     // 初始化应用：配置、日志、数据库、通信、模块（当前均为占位）
     if (!app.initialize()) {
