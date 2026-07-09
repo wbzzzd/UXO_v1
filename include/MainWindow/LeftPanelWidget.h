@@ -44,6 +44,7 @@ private:
     void populateTargetList();
     void populateMissionList();
     void populateDeviceList();
+    void updateStatusTabs();  // 根据实际数据更新状态标签计数
 
     QTabWidget *m_tabWidget;
     QTableWidget *m_targetTable;
@@ -53,6 +54,10 @@ private:
     QLineEdit *m_searchEdit;
     QComboBox *m_typeFilterCombo;
     QComboBox *m_threatFilterCombo;
+
+    QPushButton *m_statusTabPending;    // 待处置
+    QPushButton *m_statusTabExecuting; // 处置中
+    QPushButton *m_statusTabCompleted;  // 已完成
 
     QVector<Core::TargetInfo> m_targets;
     QVector<Core::MissionInfo> m_missions;

@@ -109,18 +109,18 @@ void LeftPanelWidget::setupUi()
         .arg(GlobalStyle::Colors::TextPrimary)
         .arg(GlobalStyle::Colors::PrimaryGreen);
 
-    QPushButton *tab1 = new QPushButton("待处置 (8)", statusTabs);
-    tab1->setProperty("selected", true);
-    tab1->setStyleSheet(statusTabStyle);
-    statusLayout->addWidget(tab1);
+    m_statusTabPending = new QPushButton("待处置 (0)", statusTabs);
+    m_statusTabPending->setProperty("selected", true);
+    m_statusTabPending->setStyleSheet(statusTabStyle);
+    statusLayout->addWidget(m_statusTabPending);
 
-    QPushButton *tab2 = new QPushButton("处置中 (5)", statusTabs);
-    tab2->setStyleSheet(statusTabStyle);
-    statusLayout->addWidget(tab2);
+    m_statusTabExecuting = new QPushButton("处置中 (0)", statusTabs);
+    m_statusTabExecuting->setStyleSheet(statusTabStyle);
+    statusLayout->addWidget(m_statusTabExecuting);
 
-    QPushButton *tab3 = new QPushButton("已完成 (2)", statusTabs);
-    tab3->setStyleSheet(statusTabStyle);
-    statusLayout->addWidget(tab3);
+    m_statusTabCompleted = new QPushButton("已完成 (0)", statusTabs);
+    m_statusTabCompleted->setStyleSheet(statusTabStyle);
+    statusLayout->addWidget(m_statusTabCompleted);
 
     mainLayout->addWidget(statusTabs);
 
@@ -340,6 +340,37 @@ void LeftPanelWidget::populateMissionList()
 
         m_missionTable->setRowHeight(i, 40);
     }
+
+    updateStatusTabs();
+}
+
+// 根据实际任务数据更新状态标签计数
+void LeftPanelWidget::updateStatusTabs()
+{
+    int pending = 0, executing = 0, completed = 0;
+    for (const Core::MissionInfo& m : m_missions) {
+        switch (m.status) {
+            case Core::MissionStatus::Planned:
+            case Core::MissionStatus::PendingApproval:
+            case Core::MissionStatus::Approved:
+                pending++;
+                break;
+            case Core::MissionStatus::Executing:
+            case Core::MissionStatus::Paused:
+                executing++;
+                break;
+            case Core::MissionStatus::Completed:
+            case Core::MissionStatus::Failed:
+            case Core::MissionStatus::Cancelled:
+                completed++;
+                break;
+            default:
+                pending++;
+        }
+    }
+    m_statusTabPending->setText(QString("待处置 (%1)").arg(pending));
+    m_statusTabExecuting->setText(QString("处置中 (%1)").arg(executing));
+    m_statusTabCompleted->setText(QString("已完成 (%1)").arg(completed));
 }
 
 void LeftPanelWidget::populateDeviceList()

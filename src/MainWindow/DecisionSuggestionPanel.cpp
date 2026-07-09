@@ -107,9 +107,7 @@ void DecisionSuggestionPanel::setupUi()
     contentLayout->addLayout(confRow);
 
     m_detailLabel = new QLabel(
-        "根据目标特征分析，建议采用聚能引爆方式处置。\n"
-        "预计处置时间: 15分钟\n"
-        "所需物料: 聚能切割器×1, 引爆装置×1",
+        QStringLiteral("[模拟模式] 请选择目标以获取决策建议。\n（当前数据为模拟，不连接真实设备）"),
         contentWidget);
     m_detailLabel->setWordWrap(true);
     m_detailLabel->setStyleSheet(QString("color: %1; font-size: %2px; line-height: 1.4;")
