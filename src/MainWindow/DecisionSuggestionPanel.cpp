@@ -207,6 +207,33 @@ void DecisionSuggestionPanel::setTarget(const Core::TargetInfo& target)
     setSuggestion(method, riskLevel, confidence);
 }
 
+// 展示模拟任务信息，更新决策详情文案
+void DecisionSuggestionPanel::setMission(const Core::MissionInfo& mission)
+{
+    m_currentMission = mission;
+
+    QString statusStr;
+    switch (mission.status) {
+        case Core::MissionStatus::Planned: statusStr = "规划中"; break;
+        case Core::MissionStatus::PendingApproval: statusStr = "待审批"; break;
+        case Core::MissionStatus::Approved: statusStr = "已批准"; break;
+        case Core::MissionStatus::Executing: statusStr = "执行中"; break;
+        case Core::MissionStatus::Completed: statusStr = "已完成"; break;
+        default: statusStr = "未知";
+    }
+
+    m_detailLabel->setText(
+        QString("模拟任务编号: %1\n"
+                "任务状态: %2\n"
+                "执行单位: %3\n"
+                "指派设备: %4\n"
+                "（模拟数据，不连接真实设备）")
+        .arg(mission.id)
+        .arg(statusStr)
+        .arg(mission.assignee)
+        .arg(mission.deviceId));
+}
+
 void DecisionSuggestionPanel::clear()
 {
     m_methodLabel->setText("待评估");

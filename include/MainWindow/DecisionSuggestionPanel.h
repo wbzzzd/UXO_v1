@@ -20,6 +20,7 @@ public:
 
     void setSuggestion(const QString& method, const QString& riskLevel, double confidence);
     void setTarget(const Core::TargetInfo& target);
+    void setMission(const Core::MissionInfo& mission);  // 展示模拟任务信息
     void clear();
 
 signals:
@@ -42,6 +43,7 @@ private:
     QPushButton *m_directStartBtn;
 
     Core::TargetInfo m_currentTarget;
+    Core::MissionInfo m_currentMission;  // 当前关联的模拟任务
 };
 
 #endif
