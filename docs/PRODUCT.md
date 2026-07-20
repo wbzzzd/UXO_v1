@@ -70,7 +70,7 @@ NEXT 草稿方向（第 8 节）的目标是把这条模拟切片补成"可演�
 | 排爆处置 | F-100~F-106 | `[T]` | 真实排爆控制，禁止在 MVP 实现 |
 | 插件层 | F-110~F-127 | `[C-部分]` | 模拟工作流面板（操作日志+状态推进）；无取证、回放、配置分发 |
 | 模拟数据来源 | 新增 | `[C]` | `DemoScenarioProvider`，1 目标 1 任务 2 设备 |
-| 模拟状态机 | 新增 | `[C]` | `SimulationWorkflow`，内存 `Detected->Confirmed->Disposed` |
+| 模拟状态机 | 新增 | `[C]` | `SimulationWorkflow`，内存 `Detected->Confirmed->Disposing->Disposed` |
 | 未爆弹识别 | UXR-001~005 | `[T-设计输入]` | 已有增量设计草案，尚未批准实施 |
 | 应急起降带规划 | MOS-001~007 | `[T-设计输入]` | 已有增量设计草案，尚未批准实施 |
 
