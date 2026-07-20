@@ -55,3 +55,8 @@ logs/
 .omo/sessions/
 .omo/cache/
 .omo/tmp/
+.omo/boulder.json
+.omo/evidence/
+
+# Agent cross-session memory (runtime state)
+.workbuddy/
