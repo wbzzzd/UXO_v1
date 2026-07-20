@@ -21,7 +21,12 @@
 
 ## 开发流程
 
-- 开始任务前按顺序读取 `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/UI.md`、`docs/DEVELOPMENT.md` 和相关源码。
+- `AGENTS.md` 是默认常驻上下文；不要在每次任务中无差别读取全部核心文档。
+- 产品范围、需求或路线任务：读取 `docs/PRODUCT.md`。
+- 状态、模块、依赖或业务逻辑任务：读取相关需求及 `docs/ARCHITECTURE.md`、`docs/DEVELOPMENT.md`。
+- 页面或交互任务：读取相关需求及 `docs/UI.md`、`docs/DEVELOPMENT.md`；涉及状态边界时再读 `docs/ARCHITECTURE.md`。
+- 构建、测试、发布或工程流程任务：读取 `docs/DEVELOPMENT.md`。
+- 功能开发：读取获批的 `docs/features/<feature>.md` 和它明确引用的核心文档章节，不遍历全部历史资料。
 - 功能开发必须关联 `docs/PRODUCT.md` 中的需求 ID；需求状态必须为已批准，`TARGET`、`NEXT 草稿`、`Proposed` 和归档资料不得直接触发实现。
 - 新功能先在 `docs/features/` 建立一份增量设计，评审为 `Approved` 后才能生成执行计划。
 - 多文件或架构性修改必须先计划，得到用户确认后再实现。
