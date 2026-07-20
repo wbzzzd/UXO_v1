@@ -6,7 +6,6 @@
 #include "Core/Data/Types.h"
 
 class QLabel;
-class QPushButton;
 class QVBoxLayout;
 
 class DeviceStatusPanel : public QWidget
@@ -22,7 +21,6 @@ public:
 
 signals:
     void deviceClicked(const QString& deviceId);
-    void openConsoleRequested(const QString& deviceId);
 
 private:
     void setupUi();
@@ -34,7 +32,6 @@ private:
         QLabel *statusDot;
         QLabel *statusText;
         QLabel *batteryLabel;
-        QPushButton *consoleBtn;
         Core::DeviceInfo info;
     };
 

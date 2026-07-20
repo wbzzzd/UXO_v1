@@ -22,12 +22,15 @@ public:
     ~LeftPanelWidget();
 
     void setTargets(const QVector<Core::TargetInfo>& targets);
+    // 仅更新权威模拟目标副本及其状态单元格。
+    void updateTargetStatus(const QString& targetId, Core::TargetStatus status);
     void setMissions(const QVector<Core::MissionInfo>& missions);
     void setDevices(const QVector<Core::DeviceInfo>& devices);
 
 signals:
     void targetSelected(const Core::TargetInfo& target);
     void targetDoubleClicked(const Core::TargetInfo& target);
+    void refreshSimulationRequested();
     void missionSelected(const Core::MissionInfo& mission);
     void deviceSelected(const Core::DeviceInfo& device);
 

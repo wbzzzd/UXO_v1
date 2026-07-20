@@ -59,8 +59,9 @@ void VideoStreamPanel::setupUi()
 
     m_fullscreenExitBtn = new QPushButton("退出全屏", m_singleContainer);
     m_fullscreenExitBtn->setFixedSize(80, 28);
+    // 固定尺寸视频按钮需覆盖全局最小宽度和内边距，确保留在控制栏内。
     m_fullscreenExitBtn->setStyleSheet(QString(
-        "QPushButton { background-color: rgba(0,0,0,150); color: %1; border: none; border-radius: 4px; font-size: 12px; }"
+        "QPushButton { background-color: rgba(0,0,0,150); color: %1; border: none; border-radius: 4px; min-width: 0px; padding: 0px; font-size: 12px; }"
         "QPushButton:hover { background-color: rgba(0,0,0,200); }")
         .arg(GlobalStyle::Colors::TextPrimary));
     m_fullscreenExitBtn->hide();
@@ -93,7 +94,7 @@ void VideoStreamPanel::setupUi()
         btn->setFixedSize(28, 24);
         btn->setProperty("layoutCount", count);
         btn->setStyleSheet(QString(
-            "QPushButton { background-color: %1; color: %2; border: 1px solid %3; border-radius: 3px; font-size: 12px; }"
+            "QPushButton { background-color: %1; color: %2; border: 1px solid %3; border-radius: 3px; min-width: 0px; padding: 0px; font-size: 12px; }"
             "QPushButton:hover { background-color: %3; }"
             "QPushButton[active=\"true\"] { background-color: %4; color: %2; border: 1px solid %4; }")
             .arg(GlobalStyle::Colors::Background)
@@ -115,7 +116,7 @@ void VideoStreamPanel::setupUi()
     QPushButton *fullscreenBtn = new QPushButton("全屏", m_controlBar);
     fullscreenBtn->setFixedSize(48, 24);
     fullscreenBtn->setStyleSheet(QString(
-        "QPushButton { background-color: %1; color: %2; border: 1px solid %3; border-radius: 3px; font-size: 12px; }"
+        "QPushButton { background-color: %1; color: %2; border: 1px solid %3; border-radius: 3px; min-width: 0px; padding: 0px; font-size: 12px; }"
         "QPushButton:hover { background-color: %3; }")
         .arg(GlobalStyle::Colors::Background)
         .arg(GlobalStyle::Colors::TextPrimary)
@@ -180,10 +181,11 @@ void VideoStreamPanel::createVideoCells()
         cell.statusLabel->setStyleSheet(QString("color: %1; font-size: 10px;").arg(statusColor));
         infoLayout->addWidget(cell.statusLabel);
 
-        cell.fullscreenBtn = new QPushButton("⛶", infoBar);
+        cell.fullscreenBtn = new QPushButton("全", infoBar);
+        cell.fullscreenBtn->setToolTip("全屏查看");
         cell.fullscreenBtn->setFixedSize(20, 20);
         cell.fullscreenBtn->setStyleSheet(
-            "QPushButton { background: transparent; color: #AAA; border: none; font-size: 14px; }"
+            "QPushButton { background: transparent; color: #AAA; border: none; min-width: 0px; padding: 0px; font-size: 14px; }"
             "QPushButton:hover { color: white; }");
         connect(cell.fullscreenBtn, &QPushButton::clicked, this, [this, i]() {
             setFullscreenIndex(i);

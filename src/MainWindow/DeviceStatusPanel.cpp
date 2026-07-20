@@ -4,9 +4,6 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPushButton>
-#include <QFrame>
-#include <QMouseEvent>
 
 DeviceStatusPanel::DeviceStatusPanel(QWidget *parent)
     : QWidget(parent)
@@ -35,7 +32,8 @@ void DeviceStatusPanel::setupUi()
     QHBoxLayout *headerLayout = new QHBoxLayout(header);
     headerLayout->setContentsMargins(4, 0, 4, 0);
 
-    m_titleLabel = new QLabel("设备状态", header);
+    // 设备区仅展示本地模拟数据，不提供设备控制入口。
+    m_titleLabel = new QLabel("模拟设备状态（只读）", header);
     m_titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
         .arg(GlobalStyle::Colors::TextPrimary)
         .arg(GlobalStyle::Fonts::TitleSize));
@@ -91,23 +89,23 @@ void DeviceStatusPanel::refreshList()
             case Core::DeviceStatus::Online:
             case Core::DeviceStatus::Idle:
                 statusColor = GlobalStyle::Colors::StatusOnline;
-                statusText = "在线";
+                statusText = "模拟在线";
                 break;
             case Core::DeviceStatus::Busy:
                 statusColor = GlobalStyle::Colors::StatusBusy;
-                statusText = "任务中";
+                statusText = "模拟任务中";
                 break;
             case Core::DeviceStatus::Offline:
                 statusColor = GlobalStyle::Colors::StatusOffline;
-                statusText = "离线";
+                statusText = "模拟离线";
                 break;
             case Core::DeviceStatus::Error:
                 statusColor = GlobalStyle::Colors::StatusError;
-                statusText = "故障";
+                statusText = "模拟故障";
                 break;
             default:
                 statusColor = GlobalStyle::Colors::TextDisabled;
-                statusText = "未知";
+                statusText = "模拟未知";
         }
 
         card.statusDot = new QLabel("●", card.card);
@@ -122,7 +120,6 @@ void DeviceStatusPanel::refreshList()
 
         card.statusText = new QLabel(statusText, card.card);
         card.statusText->setStyleSheet(QString("color: %1; font-size: 11px;").arg(statusColor));
-        card.statusText->setFixedWidth(40);
         cardLayout->addWidget(card.statusText);
 
         cardLayout->addStretch();
@@ -136,19 +133,6 @@ void DeviceStatusPanel::refreshList()
         card.batteryLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(batteryColor));
         card.batteryLabel->setFixedWidth(40);
         cardLayout->addWidget(card.batteryLabel);
-
-        card.consoleBtn = new QPushButton("控制台", card.card);
-        card.consoleBtn->setFixedSize(44, 22);
-        card.consoleBtn->setStyleSheet(QString(
-            "QPushButton { background-color: %1; color: %2; border: none; border-radius: 3px; font-size: 10px; }"
-            "QPushButton:hover { background-color: %3; }")
-            .arg(GlobalStyle::Colors::PrimaryGreen)
-            .arg(GlobalStyle::Colors::TextPrimary)
-            .arg(GlobalStyle::Colors::PrimaryGreenHover));
-        connect(card.consoleBtn, &QPushButton::clicked, this, [this, device]() {
-            emit openConsoleRequested(device.id);
-        });
-        cardLayout->addWidget(card.consoleBtn);
 
         // TODO: mousePressEvent 是 protected 虚函数，不能直接 connect
         // 后续应通过事件过滤器或自定义 widget 实现卡片点击
@@ -174,23 +158,23 @@ void DeviceStatusPanel::updateDeviceStatus(const QString& deviceId, Core::Device
                 case Core::DeviceStatus::Online:
                 case Core::DeviceStatus::Idle:
                     statusColor = GlobalStyle::Colors::StatusOnline;
-                    statusText = "在线";
+                    statusText = "模拟在线";
                     break;
                 case Core::DeviceStatus::Busy:
                     statusColor = GlobalStyle::Colors::StatusBusy;
-                    statusText = "任务中";
+                    statusText = "模拟任务中";
                     break;
                 case Core::DeviceStatus::Offline:
                     statusColor = GlobalStyle::Colors::StatusOffline;
-                    statusText = "离线";
+                    statusText = "模拟离线";
                     break;
                 case Core::DeviceStatus::Error:
                     statusColor = GlobalStyle::Colors::StatusError;
-                    statusText = "故障";
+                    statusText = "模拟故障";
                     break;
                 default:
                     statusColor = GlobalStyle::Colors::TextDisabled;
-                    statusText = "未知";
+                    statusText = "模拟未知";
             }
 
             m_cards[i].statusDot->setStyleSheet(QString("color: %1; font-size: 10px;").arg(statusColor));

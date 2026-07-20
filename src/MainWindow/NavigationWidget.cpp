@@ -49,12 +49,14 @@ void NavigationWidget::setupUi()
 
     layout->addSpacing(16);
 
+    // 固定宽度导航按钮需覆盖全局最小宽度，避免边框超出 80px 导航栏。
     QString normalStyle = QString(
         "QPushButton {"
         "   background-color: transparent;"
         "   color: %1;"
         "   border: none;"
         "   border-left: 3px solid transparent;"
+        "   min-width: 0px;"
         "   padding: 12px 0px;"
         "   font-size: 12px;"
         "   text-align: center;"
@@ -73,6 +75,7 @@ void NavigationWidget::setupUi()
         "   color: %2;"
         "   border: none;"
         "   border-left: 3px solid %3;"
+        "   min-width: 0px;"
         "   padding: 12px 0px;"
         "   font-size: 12px;"
         "   text-align: center;"
@@ -122,6 +125,7 @@ void NavigationWidget::updateSelection()
         "   color: %1;"
         "   border: none;"
         "   border-left: 3px solid transparent;"
+        "   min-width: 0px;"
         "   padding: 12px 0px;"
         "   font-size: 12px;"
         "   text-align: center;"
@@ -140,6 +144,7 @@ void NavigationWidget::updateSelection()
         "   color: %2;"
         "   border: none;"
         "   border-left: 3px solid %3;"
+        "   min-width: 0px;"
         "   padding: 12px 0px;"
         "   font-size: 12px;"
         "   text-align: center;"

@@ -9,7 +9,6 @@ class DeviceStatusPanel;
 class DecisionSuggestionPanel;
 class QSplitter;
 class QLabel;
-class QPushButton;
 
 class RightPanelWidget : public QWidget
 {
@@ -29,11 +28,7 @@ public:
 
 signals:
     void deviceClicked(const QString& deviceId);
-    void openConsoleRequested(const QString& deviceId);
     void targetClicked(const QString& targetId);
-    void saveDraftRequested();
-    void submitApprovalRequested();
-    void directStartRequested();
 
 private:
     void setupUi();

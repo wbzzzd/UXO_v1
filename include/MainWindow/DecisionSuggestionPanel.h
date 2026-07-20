@@ -6,7 +6,6 @@
 #include "Core/Data/Types.h"
 
 class QLabel;
-class QPushButton;
 class QVBoxLayout;
 class QProgressBar;
 
@@ -23,24 +22,16 @@ public:
     void setMission(const Core::MissionInfo& mission);  // 展示模拟任务信息
     void clear();
 
-signals:
-    void saveDraftRequested();
-    void submitApprovalRequested();
-    void directStartRequested();
-
 private:
     void setupUi();
 
     QLabel *m_titleLabel;
+    QLabel *m_simulationStatusLabel;
     QLabel *m_methodLabel;
     QLabel *m_riskLabel;
     QLabel *m_confidenceLabel;
     QProgressBar *m_confidenceBar;
     QLabel *m_detailLabel;
-
-    QPushButton *m_saveDraftBtn;
-    QPushButton *m_submitApprovalBtn;
-    QPushButton *m_directStartBtn;
 
     Core::TargetInfo m_currentTarget;
     Core::MissionInfo m_currentMission;  // 当前关联的模拟任务

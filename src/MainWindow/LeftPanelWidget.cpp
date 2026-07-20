@@ -1,5 +1,4 @@
 #include "MainWindow/LeftPanelWidget.h"
-#include "Core/Simulation/DemoScenarioProvider.h"
 #include "Common/GlobalStyle.h"
 
 #include <QVBoxLayout>
@@ -13,6 +12,37 @@
 #include <QLabel>
 #include <QTableWidgetItem>
 #include <QDebug>
+
+namespace {
+
+constexpr int kTargetCheckColumn = 0;
+constexpr int kTargetTypeColumn = 1;
+constexpr int kTargetConfidenceColumn = 2;
+constexpr int kTargetPositionColumn = 3;
+constexpr int kTargetStatusColumn = 4;
+
+constexpr int kTargetCheckColumnWidth = 28;
+constexpr int kTargetTypeColumnWidth = 52;
+constexpr int kTargetConfidenceColumnWidth = 48;
+constexpr int kTargetPositionColumnWidth = 72;
+
+QString simulationTargetStatusText(Core::TargetStatus status)
+{
+    switch (status) {
+    case Core::TargetStatus::Detected:
+        return QStringLiteral("[模拟] 已发现");
+    case Core::TargetStatus::Confirmed:
+        return QStringLiteral("[模拟] 已确认");
+    case Core::TargetStatus::Disposing:
+        return QStringLiteral("[模拟] 处置中");
+    case Core::TargetStatus::Disposed:
+        return QStringLiteral("[模拟] 已完成");
+    default:
+        return QStringLiteral("[模拟] 状态未知");
+    }
+}
+
+}
 
 LeftPanelWidget::LeftPanelWidget(QWidget *parent)
     : QWidget(parent)
@@ -101,7 +131,7 @@ void LeftPanelWidget::setupUi()
     statusLayout->setSpacing(0);
 
     QString statusTabStyle = QString(
-        "QPushButton { background-color: transparent; color: %1; border: none; border-bottom: 2px solid transparent; padding: 8px 12px; font-size: 13px; }"
+        "QPushButton { background-color: transparent; color: %1; border: none; border-bottom: 2px solid transparent; min-width: 0px; padding: 8px 2px; font-size: 12px; }"
         "QPushButton:hover { background-color: %2; }"
         "QPushButton[selected=\"true\"] { color: %3; border-bottom: 2px solid %4; }")
         .arg(GlobalStyle::Colors::TextSecondary)
@@ -109,18 +139,19 @@ void LeftPanelWidget::setupUi()
         .arg(GlobalStyle::Colors::TextPrimary)
         .arg(GlobalStyle::Colors::PrimaryGreen);
 
-    m_statusTabPending = new QPushButton("待处置 (0)", statusTabs);
+    // 计数来自任务数据，三个等宽按钮需在 320px 左栏内明确显示“任务”语义。
+    m_statusTabPending = new QPushButton("待处置任务 0", statusTabs);
     m_statusTabPending->setProperty("selected", true);
     m_statusTabPending->setStyleSheet(statusTabStyle);
-    statusLayout->addWidget(m_statusTabPending);
+    statusLayout->addWidget(m_statusTabPending, 1);
 
-    m_statusTabExecuting = new QPushButton("处置中 (0)", statusTabs);
+    m_statusTabExecuting = new QPushButton("处置中任务 0", statusTabs);
     m_statusTabExecuting->setStyleSheet(statusTabStyle);
-    statusLayout->addWidget(m_statusTabExecuting);
+    statusLayout->addWidget(m_statusTabExecuting, 1);
 
-    m_statusTabCompleted = new QPushButton("已完成 (0)", statusTabs);
+    m_statusTabCompleted = new QPushButton("已完成任务 0", statusTabs);
     m_statusTabCompleted->setStyleSheet(statusTabStyle);
-    statusLayout->addWidget(m_statusTabCompleted);
+    statusLayout->addWidget(m_statusTabCompleted, 1);
 
     mainLayout->addWidget(statusTabs);
 
@@ -147,6 +178,7 @@ void LeftPanelWidget::setupUi()
     )");
 
     m_targetTable = new QTableWidget(this);
+    m_targetTable->setObjectName(QStringLiteral("targetTable"));
     m_missionTable = new QTableWidget(this);
     m_deviceTable = new QTableWidget(this);
 
@@ -163,13 +195,22 @@ void LeftPanelWidget::setupUi()
 
 void LeftPanelWidget::setupTargetList()
 {
-    m_targetTable->setColumnCount(4);
-    m_targetTable->setHorizontalHeaderLabels({"", "类型", "置信度", "位置"});
-    m_targetTable->horizontalHeader()->setStyleSheet("QHeaderView::section { background-color: #2D2D2D; color: #FFFFFF; padding: 4px; }");
-    m_targetTable->setColumnWidth(0, 30);
-    m_targetTable->setColumnWidth(1, 80);
-    m_targetTable->setColumnWidth(2, 60);
-    m_targetTable->setColumnWidth(3, 100);
+    m_targetTable->setColumnCount(5);
+    m_targetTable->setHorizontalHeaderLabels({"", "类型", "置信度", "位置", "模拟状态"});
+    QHeaderView *targetHeader = m_targetTable->horizontalHeader();
+    targetHeader->setStyleSheet("QHeaderView::section { background-color: #2D2D2D; color: #FFFFFF; padding: 4px; }");
+    // 固定压缩前四列共 200px，末列拉伸占满余量，保证 320px 面板内模拟状态可读。
+    targetHeader->setMinimumSectionSize(kTargetCheckColumnWidth);
+    targetHeader->setSectionResizeMode(kTargetCheckColumn, QHeaderView::Fixed);
+    targetHeader->setSectionResizeMode(kTargetTypeColumn, QHeaderView::Fixed);
+    targetHeader->setSectionResizeMode(kTargetConfidenceColumn, QHeaderView::Fixed);
+    targetHeader->setSectionResizeMode(kTargetPositionColumn, QHeaderView::Fixed);
+    targetHeader->setSectionResizeMode(kTargetStatusColumn, QHeaderView::Stretch);
+    m_targetTable->setColumnWidth(kTargetCheckColumn, kTargetCheckColumnWidth);
+    m_targetTable->setColumnWidth(kTargetTypeColumn, kTargetTypeColumnWidth);
+    m_targetTable->setColumnWidth(kTargetConfidenceColumn, kTargetConfidenceColumnWidth);
+    m_targetTable->setColumnWidth(kTargetPositionColumn, kTargetPositionColumnWidth);
+    m_targetTable->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_targetTable->verticalHeader()->setVisible(false);
     m_targetTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_targetTable->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -299,6 +340,8 @@ void LeftPanelWidget::populateTargetList()
 
         QString posStr = QString("X:%1 Y:%2").arg(int(target.position.x())).arg(int(target.position.z()));
         m_targetTable->setItem(i, 3, new QTableWidgetItem(posStr));
+        m_targetTable->setItem(i, kTargetStatusColumn,
+                               new QTableWidgetItem(simulationTargetStatusText(target.status)));
 
         m_targetTable->setRowHeight(i, 40);
     }
@@ -368,9 +411,9 @@ void LeftPanelWidget::updateStatusTabs()
                 pending++;
         }
     }
-    m_statusTabPending->setText(QString("待处置 (%1)").arg(pending));
-    m_statusTabExecuting->setText(QString("处置中 (%1)").arg(executing));
-    m_statusTabCompleted->setText(QString("已完成 (%1)").arg(completed));
+    m_statusTabPending->setText(QString("待处置任务 %1").arg(pending));
+    m_statusTabExecuting->setText(QString("处置中任务 %1").arg(executing));
+    m_statusTabCompleted->setText(QString("已完成任务 %1").arg(completed));
 }
 
 void LeftPanelWidget::populateDeviceList()
@@ -416,6 +459,23 @@ void LeftPanelWidget::setTargets(const QVector<Core::TargetInfo> &targets)
     populateTargetList();
 }
 
+void LeftPanelWidget::updateTargetStatus(const QString &targetId, Core::TargetStatus status)
+{
+    for (int row = 0; row < m_targets.size(); ++row) {
+        Core::TargetInfo &target = m_targets[row];
+        if (target.id != targetId) {
+            continue;
+        }
+
+        target.status = status;
+        QTableWidgetItem *statusItem = m_targetTable->item(row, kTargetStatusColumn);
+        if (statusItem != nullptr) {
+            statusItem->setText(simulationTargetStatusText(status));
+        }
+        return;
+    }
+}
+
 void LeftPanelWidget::setMissions(const QVector<Core::MissionInfo> &missions)
 {
     m_missions = missions;
@@ -428,16 +488,10 @@ void LeftPanelWidget::setDevices(const QVector<Core::DeviceInfo> &devices)
     populateDeviceList();
 }
 
-// 刷新：重新加载模拟场景数据
+// 刷新仅请求权威工作流同步，面板不重置本地选择。
 void LeftPanelWidget::onRefreshTargets()
 {
-    Core::Simulation::DemoScenario scenario = Core::Simulation::DemoScenarioProvider::create();
-    m_targets = scenario.targets;
-    m_missions = scenario.missions;
-    m_devices = scenario.devices;
-    populateTargetList();
-    populateMissionList();
-    populateDeviceList();
+    emit refreshSimulationRequested();
 }
 
 void LeftPanelWidget::onFilterChanged()

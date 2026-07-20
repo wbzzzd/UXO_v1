@@ -1,24 +1,21 @@
 #include "MainWindow/DecisionSuggestionPanel.h"
 #include "Common/GlobalStyle.h"
+#include "Core/Simulation/SimulationWorkflow.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPushButton>
 #include <QProgressBar>
-#include <QFrame>
 
 DecisionSuggestionPanel::DecisionSuggestionPanel(QWidget *parent)
     : QWidget(parent)
     , m_titleLabel(nullptr)
+    , m_simulationStatusLabel(nullptr)
     , m_methodLabel(nullptr)
     , m_riskLabel(nullptr)
     , m_confidenceLabel(nullptr)
     , m_confidenceBar(nullptr)
     , m_detailLabel(nullptr)
-    , m_saveDraftBtn(nullptr)
-    , m_submitApprovalBtn(nullptr)
-    , m_directStartBtn(nullptr)
 {
     setupUi();
 }
@@ -40,7 +37,7 @@ void DecisionSuggestionPanel::setupUi()
     QHBoxLayout *headerLayout = new QHBoxLayout(header);
     headerLayout->setContentsMargins(4, 0, 4, 0);
 
-    m_titleLabel = new QLabel("决策建议", header);
+    m_titleLabel = new QLabel("模拟决策建议", header);
     m_titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
         .arg(GlobalStyle::Colors::TextPrimary)
         .arg(GlobalStyle::Fonts::TitleSize));
@@ -56,6 +53,14 @@ void DecisionSuggestionPanel::setupUi()
     QVBoxLayout *contentLayout = new QVBoxLayout(contentWidget);
     contentLayout->setContentsMargins(12, 12, 12, 12);
     contentLayout->setSpacing(10);
+
+    // 决策区仅展示本地模拟状态，不提供处置操作入口。
+    m_simulationStatusLabel = new QLabel("[模拟] 目标状态：未选择", contentWidget);
+    m_simulationStatusLabel->setObjectName("decisionSimulationStatusLabel");
+    m_simulationStatusLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
+        .arg(GlobalStyle::Colors::TextSecondary)
+        .arg(GlobalStyle::Fonts::CaptionSize));
+    contentLayout->addWidget(m_simulationStatusLabel);
 
     QLabel *methodTitle = new QLabel("建议方案", contentWidget);
     methodTitle->setStyleSheet(QString("color: %1; font-size: 12px;").arg(GlobalStyle::Colors::TextSecondary));
@@ -116,47 +121,6 @@ void DecisionSuggestionPanel::setupUi()
     contentLayout->addWidget(m_detailLabel);
 
     mainLayout->addWidget(contentWidget);
-
-    QWidget *btnRow = new QWidget(this);
-    QHBoxLayout *btnLayout = new QHBoxLayout(btnRow);
-    btnLayout->setContentsMargins(0, 4, 0, 0);
-    btnLayout->setSpacing(6);
-    btnLayout->addStretch();
-
-    m_saveDraftBtn = new QPushButton("保存草稿", btnRow);
-    m_saveDraftBtn->setFixedHeight(28);
-    m_saveDraftBtn->setStyleSheet(QString(
-        "QPushButton { background-color: %1; color: %2; border: 1px solid %3; border-radius: 4px; padding: 4px 12px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %3; }")
-        .arg("transparent")
-        .arg(GlobalStyle::Colors::TextSecondary)
-        .arg(GlobalStyle::Colors::Border));
-    connect(m_saveDraftBtn, &QPushButton::clicked, this, &DecisionSuggestionPanel::saveDraftRequested);
-    btnLayout->addWidget(m_saveDraftBtn);
-
-    m_submitApprovalBtn = new QPushButton("提交审批", btnRow);
-    m_submitApprovalBtn->setFixedHeight(28);
-    m_submitApprovalBtn->setStyleSheet(QString(
-        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; padding: 4px 12px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %3; }")
-        .arg(GlobalStyle::Colors::PrimaryGreen)
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::PrimaryGreenHover));
-    connect(m_submitApprovalBtn, &QPushButton::clicked, this, &DecisionSuggestionPanel::submitApprovalRequested);
-    btnLayout->addWidget(m_submitApprovalBtn);
-
-    m_directStartBtn = new QPushButton("直接启动", btnRow);
-    m_directStartBtn->setFixedHeight(28);
-    m_directStartBtn->setStyleSheet(QString(
-        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; padding: 4px 12px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %3; }")
-        .arg(GlobalStyle::Colors::DangerRed)
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::DangerRedHover));
-    connect(m_directStartBtn, &QPushButton::clicked, this, &DecisionSuggestionPanel::directStartRequested);
-    btnLayout->addWidget(m_directStartBtn);
-
-    mainLayout->addWidget(btnRow);
 }
 
 void DecisionSuggestionPanel::setSuggestion(const QString& method, const QString& riskLevel, double confidence)
@@ -179,6 +143,9 @@ void DecisionSuggestionPanel::setSuggestion(const QString& method, const QString
 void DecisionSuggestionPanel::setTarget(const Core::TargetInfo& target)
 {
     m_currentTarget = target;
+    m_simulationStatusLabel->setText(
+        QStringLiteral("[模拟] 目标状态：%1")
+            .arg(Core::Simulation::SimulationWorkflow::simulationStatusText(target.status)));
 
     QString method;
     QString riskLevel;
@@ -234,6 +201,7 @@ void DecisionSuggestionPanel::setMission(const Core::MissionInfo& mission)
 
 void DecisionSuggestionPanel::clear()
 {
+    m_simulationStatusLabel->setText(QStringLiteral("[模拟] 目标状态：未选择模拟目标"));
     m_methodLabel->setText("待评估");
     m_riskLabel->setText("● 未知");
     m_riskLabel->setStyleSheet(QString("color: %1; font-size: 12px; font-weight: bold;")

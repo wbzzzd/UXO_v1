@@ -58,7 +58,8 @@ void RightPanelWidget::setupUi()
     mapHeaderLayout->addWidget(mapTitle);
     mapHeaderLayout->addStretch();
 
-    QPushButton *mapFullscreenBtn = new QPushButton("⛶", mapHeader);
+    QPushButton *mapFullscreenBtn = new QPushButton("全", mapHeader);
+    mapFullscreenBtn->setToolTip("全屏查看");
     mapFullscreenBtn->setFixedSize(24, 24);
     mapFullscreenBtn->setStyleSheet(
         "QPushButton { background: transparent; color: #AAA; border: none; font-size: 16px; }"
@@ -92,24 +93,20 @@ void RightPanelWidget::setupUi()
 
     m_splitter->addWidget(decisionSection);
 
-    m_splitter->setStretchFactor(0, 6);
+    // 紧凑高度分配：1280x720 下决策面板需完整显示任务详情（含指派设备与模拟声明末两行），
+    // 将地图拉伸因子由 6 降为 5、决策由 2 升为 3，并为决策区设置最小高度，
+    // 确保低分辨率下详情末两行不被截断；1920 下地图仍占主导，设备区比例不变。
+    decisionSection->setMinimumHeight(280);
+    m_splitter->setStretchFactor(0, 5);
     m_splitter->setStretchFactor(1, 2);
-    m_splitter->setStretchFactor(2, 2);
+    m_splitter->setStretchFactor(2, 3);
 
     mainLayout->addWidget(m_splitter);
 
     connect(m_deviceStatusPanel, &DeviceStatusPanel::deviceClicked,
             this, &RightPanelWidget::deviceClicked);
-    connect(m_deviceStatusPanel, &DeviceStatusPanel::openConsoleRequested,
-            this, &RightPanelWidget::openConsoleRequested);
     connect(m_situationView, &SituationView::targetClicked,
             this, &RightPanelWidget::targetClicked);
-    connect(m_decisionPanel, &DecisionSuggestionPanel::saveDraftRequested,
-            this, &RightPanelWidget::saveDraftRequested);
-    connect(m_decisionPanel, &DecisionSuggestionPanel::submitApprovalRequested,
-            this, &RightPanelWidget::submitApprovalRequested);
-    connect(m_decisionPanel, &DecisionSuggestionPanel::directStartRequested,
-            this, &RightPanelWidget::directStartRequested);
 }
 
 SituationView* RightPanelWidget::situationView() const

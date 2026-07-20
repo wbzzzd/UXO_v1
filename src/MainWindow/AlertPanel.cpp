@@ -104,28 +104,23 @@ void AlertPanel::refreshList()
         itemLayout->setSpacing(6);
 
         QString levelColor;
-        QString levelIcon;
         switch (alarm.level) {
             case Core::AlarmLevel::Critical:
                 levelColor = GlobalStyle::Colors::DangerRed;
-                levelIcon = "🔴";
                 break;
             case Core::AlarmLevel::Error:
                 levelColor = GlobalStyle::Colors::ThreatHigh;
-                levelIcon = "🔴";
                 break;
             case Core::AlarmLevel::Warning:
                 levelColor = GlobalStyle::Colors::ThreatMedium;
-                levelIcon = "🟡";
                 break;
             default:
                 levelColor = GlobalStyle::Colors::TextSecondary;
-                levelIcon = "🔵";
         }
 
-        QLabel *iconLabel = new QLabel(levelIcon, alertItem);
+        QLabel *iconLabel = new QLabel("●", alertItem);
         iconLabel->setFixedWidth(16);
-        iconLabel->setStyleSheet("font-size: 10px;");
+        iconLabel->setStyleSheet(QString("color: %1; font-size: 10px;").arg(levelColor));
         itemLayout->addWidget(iconLabel);
 
         QString timeStr = alarm.createTime.toString("HH:mm");

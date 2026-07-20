@@ -245,10 +245,14 @@ void MainWindow::createMainLayout()
 
 void MainWindow::createStatusBar()
 {
+    constexpr int kStatusBarHostHeight = 28;
+    constexpr int kStatusBarContentHeight = 22;
+
     m_statusBarWidget = new StatusBarWidget(this);
-    m_statusBarWidget->setFixedHeight(28);
+    // QStatusBar 自带上下内边距，宿主高度应大于内容高度，避免内容越过窗口底边。
+    m_statusBarWidget->setFixedHeight(kStatusBarContentHeight);
     statusBar()->addWidget(m_statusBarWidget, 1);
-    statusBar()->setFixedHeight(28);
+    statusBar()->setFixedHeight(kStatusBarHostHeight);
 }
 
 void MainWindow::createConnections()
@@ -260,29 +264,26 @@ void MainWindow::createConnections()
             this, &MainWindow::onTargetSelected);
     connect(m_leftPanel, &LeftPanelWidget::targetDoubleClicked,
             this, &MainWindow::onTargetDoubleClicked);
+    connect(m_leftPanel, &LeftPanelWidget::refreshSimulationRequested,
+            this, &MainWindow::onRefreshSimulationRequested);
 
     connect(m_rightPanel, &RightPanelWidget::targetClicked,
             this, [this](const QString& targetId) {
         qDebug() << "Target clicked in 3D view:" << targetId;
     });
 
-    connect(m_rightPanel, &RightPanelWidget::openConsoleRequested,
-            this, [](const QString& deviceId) {
-        qDebug() << "Open console for device:" << deviceId;
-    });
-
-    connect(m_detectionControlPanel, &DetectionControlPanel::takeoffRequested,
-            this, [this]() {
-        m_detectionControlPanel->addLogEntry("发送起飞指令...");
-    });
-    connect(m_detectionControlPanel, &DetectionControlPanel::landRequested,
-            this, [this]() {
-        m_detectionControlPanel->addLogEntry("发送降落指令...");
-    });
-    connect(m_detectionControlPanel, &DetectionControlPanel::returnToBaseRequested,
-            this, [this]() {
-        m_detectionControlPanel->addLogEntry("发送返航指令...");
-    });
+    connect(m_detectionControlPanel,
+            &DetectionControlPanel::confirmSimulationRequested,
+            this,
+            &MainWindow::onConfirmSimulationRequested);
+    connect(m_detectionControlPanel,
+            &DetectionControlPanel::startSimulationDisposalRequested,
+            this,
+            &MainWindow::onStartSimulationDisposalRequested);
+    connect(m_detectionControlPanel,
+            &DetectionControlPanel::completeSimulationDisposalRequested,
+            this,
+            &MainWindow::onCompleteSimulationDisposalRequested);
 }
 
 // 加载模拟演示场景数据（来自 DemoScenarioProvider，不连接真实设备）
@@ -290,22 +291,22 @@ void MainWindow::loadMockData()
 {
     // 从本地模拟场景提供者获取数据
     Core::Simulation::DemoScenario scenario = Core::Simulation::DemoScenarioProvider::create();
-    QVector<Core::TargetInfo> targets = scenario.targets;
-    QVector<Core::MissionInfo> missions = scenario.missions;
-    QVector<Core::DeviceInfo> devices = scenario.devices;
+    m_simulationWorkflow.reset(scenario.targets);
+    m_missions = scenario.missions;
+    m_devices = scenario.devices;
 
-    // 左侧面板：目标、任务、设备列表
-    m_leftPanel->setTargets(targets);
-    m_leftPanel->setMissions(missions);
-    m_leftPanel->setDevices(devices);
+    // 左侧目标列表始终读取工作流中的权威副本。
+    m_leftPanel->setTargets(m_simulationWorkflow.targets());
+    m_leftPanel->setMissions(m_missions);
+    m_leftPanel->setDevices(m_devices);
 
     // 右侧面板：设备状态
-    m_rightPanel->setDevices(devices);
+    m_rightPanel->setDevices(m_devices);
 
     // 三维态势图：添加模拟目标标记
     SituationView *sv = m_rightPanel->situationView();
     if (sv) {
-        for (const Core::TargetInfo& t : targets) {
+        for (const Core::TargetInfo& t : m_simulationWorkflow.targets()) {
             sv->addTargetMarker(t.id, t.position);
         }
     }
@@ -313,7 +314,7 @@ void MainWindow::loadMockData()
     // 状态栏：设备在线数、最低电量和模拟模式标识
     int onlineCount = 0;
     int minBattery = 100;
-    for (const Core::DeviceInfo& dev : devices) {
+    for (const Core::DeviceInfo& dev : m_devices) {
         if (dev.status == Core::DeviceStatus::Online || dev.status == Core::DeviceStatus::Idle || dev.status == Core::DeviceStatus::Busy) {
             onlineCount++;
         }
@@ -321,7 +322,7 @@ void MainWindow::loadMockData()
             minBattery = static_cast<int>(dev.batteryLevel);
         }
     }
-    m_statusBarWidget->updateDeviceStatus(onlineCount, devices.size());
+    m_statusBarWidget->updateDeviceStatus(onlineCount, m_devices.size());
     m_statusBarWidget->setMinBatteryLevel(minBattery);
     m_statusBarWidget->setSimulationMode(true);
 
@@ -337,10 +338,12 @@ void MainWindow::loadMockData()
         m_statusBarWidget->addAlarm(alarm.message);
     }
 
-    // 决策面板：展示首个模拟任务的处置建议
-    if (!missions.isEmpty()) {
-        m_rightPanel->decisionPanel()->setMission(missions.first());
+    // 初始保持未选择状态，同时保留模拟任务详情。
+    if (!m_missions.isEmpty()) {
+        m_rightPanel->decisionPanel()->setMission(m_missions.first());
     }
+    refreshSelectedTarget();
+    refreshSimulationLog();
 }
 
 void MainWindow::onNavigationChanged(int index)
@@ -350,16 +353,83 @@ void MainWindow::onNavigationChanged(int index)
 
 void MainWindow::onTargetSelected(const Core::TargetInfo& target)
 {
-    m_rightPanel->setTarget(target);
-    m_detectionControlPanel->addLogEntry(
-        QString("选中目标: %1 (%2)").arg(target.id).arg(target.typeName));
+    // 面板传入对象只提供标识，展示始终回读工作流中的权威目标。
+    if (!m_simulationWorkflow.selectTarget(target.id)) {
+        refreshSimulationLog();
+        return;
+    }
+
+    refreshSelectedTarget();
+    refreshSimulationLog();
 }
 
 void MainWindow::onTargetDoubleClicked(const Core::TargetInfo& target)
 {
-    m_rightPanel->setTarget(target);
-    m_detectionControlPanel->addLogEntry(
-        QString("聚焦目标: %1").arg(target.id));
+    // 双击复用选择流程，工作流会保证重复选择不追加日志。
+    onTargetSelected(target);
+}
+
+void MainWindow::onConfirmSimulationRequested()
+{
+    requestSelectedTargetStatus(Core::TargetStatus::Confirmed);
+}
+
+void MainWindow::onStartSimulationDisposalRequested()
+{
+    requestSelectedTargetStatus(Core::TargetStatus::Disposing);
+}
+
+void MainWindow::onCompleteSimulationDisposalRequested()
+{
+    requestSelectedTargetStatus(Core::TargetStatus::Disposed);
+}
+
+void MainWindow::onRefreshSimulationRequested()
+{
+    // 刷新使用当前内存状态，不重新加载场景或清空工作流。
+    m_leftPanel->setTargets(m_simulationWorkflow.targets());
+    m_leftPanel->setMissions(m_missions);
+    m_leftPanel->setDevices(m_devices);
+    m_rightPanel->setDevices(m_devices);
+    refreshSelectedTarget();
+    refreshSimulationLog();
+}
+
+void MainWindow::requestSelectedTargetStatus(Core::TargetStatus requestedStatus)
+{
+    if (!m_simulationWorkflow.requestSelectedTargetStatus(requestedStatus)) {
+        // 被拒绝时仅刷新日志，所有状态展示保持不变。
+        refreshSimulationLog();
+        return;
+    }
+
+    const Core::TargetInfo *target = m_simulationWorkflow.selectedTarget();
+    if (target == nullptr) {
+        return;
+    }
+
+    m_leftPanel->updateTargetStatus(target->id, target->status);
+    refreshSelectedTarget();
+    refreshSimulationLog();
+}
+
+void MainWindow::refreshSelectedTarget()
+{
+    const Core::TargetInfo *target = m_simulationWorkflow.selectedTarget();
+    if (target == nullptr) {
+        // 决策面板构造时已是未选择态，此处避免覆盖已加载的模拟任务详情。
+        m_detectionControlPanel->showNoSelection();
+        return;
+    }
+
+    m_rightPanel->setTarget(*target);
+    m_detectionControlPanel->setSelectedTarget(*target);
+}
+
+void MainWindow::refreshSimulationLog()
+{
+    // 日志完全来自工作流的进程内记录。
+    m_detectionControlPanel->setOperationLog(m_simulationWorkflow.logEntries());
 }
 
 void MainWindow::on_actionNewTask()

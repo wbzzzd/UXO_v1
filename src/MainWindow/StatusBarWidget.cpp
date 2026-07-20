@@ -7,6 +7,17 @@
 #include <QMessageBox>
 #include <QPainter>
 
+namespace {
+
+constexpr int kStatusContentHeight = 22;
+constexpr int kStatusVerticalMargin = 1;
+constexpr int kSeparatorHeight = 18;
+constexpr int kAlarmHeight = 18;
+constexpr int kEmergencyButtonWidth = 80;
+constexpr int kEmergencyButtonHeight = 20;
+
+}
+
 StatusBarWidget::StatusBarWidget(QWidget *parent)
     : QWidget(parent)
     , m_deviceStatusLabel(nullptr)
@@ -26,11 +37,11 @@ StatusBarWidget::~StatusBarWidget()
 
 void StatusBarWidget::setupUi()
 {
-    setFixedHeight(28);
+    setFixedHeight(kStatusContentHeight);
     setStyleSheet("background-color: #1E1E1E; border-top: 1px solid #3C3C3C;");
 
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(16, 2, 16, 2);
+    mainLayout->setContentsMargins(16, kStatusVerticalMargin, 16, kStatusVerticalMargin);
     mainLayout->setSpacing(16);
 
     m_deviceStatusLabel = new QLabel("设备: 3/5 在线", this);
@@ -55,11 +66,13 @@ void StatusBarWidget::setupUi()
     mainLayout->addWidget(createSeparator());
 
     m_alarmScrollArea = new QScrollArea(this);
-    m_alarmScrollArea->setMaximumHeight(22);
+    m_alarmScrollArea->setMaximumHeight(kAlarmHeight);
     m_alarmScrollArea->setMinimumWidth(400);
     m_alarmScrollArea->setStyleSheet("background: transparent; border: none;");
 
     m_alarmContainer = new QWidget(this);
+    // 内容高度与滚动视口一致，避免尺寸提示造成底部 1px 溢出。
+    m_alarmContainer->setFixedHeight(kAlarmHeight);
     m_alarmLayout = new QHBoxLayout(m_alarmContainer);
     m_alarmLayout->setContentsMargins(0, 0, 0, 0);
     m_alarmLayout->setSpacing(10);
@@ -72,7 +85,7 @@ void StatusBarWidget::setupUi()
     mainLayout->addStretch();
 
     m_emergencyStopBtn = new QPushButton("紧急停止", this);
-    m_emergencyStopBtn->setFixedSize(80, 22);
+    m_emergencyStopBtn->setFixedSize(kEmergencyButtonWidth, kEmergencyButtonHeight);
     m_emergencyStopBtn->setStyleSheet(R"(
         QPushButton {
             background-color: #D32F2F;
@@ -81,6 +94,9 @@ void StatusBarWidget::setupUi()
             font-weight: bold;
             border: none;
             border-radius: 3px;
+            min-width: 0px;
+            max-width: 80px;
+            padding: 0px;
         }
         QPushButton:hover {
             background-color: #B71C1C;
@@ -96,7 +112,7 @@ void StatusBarWidget::setupUi()
 QWidget* StatusBarWidget::createSeparator()
 {
     QFrame *sep = new QFrame(this);
-    sep->setFixedSize(1, 24);
+    sep->setFixedSize(1, kSeparatorHeight);
     sep->setStyleSheet("background-color: #3C3C3C;");
     return sep;
 }
@@ -109,11 +125,12 @@ void StatusBarWidget::updateDeviceStatus(int onlineCount, int totalCount)
 void StatusBarWidget::addAlarm(const QString& message)
 {
     QLabel *alarmLabel = new QLabel(message, this);
+    alarmLabel->setFixedHeight(kAlarmHeight);
     alarmLabel->setStyleSheet(R"(
         color: #FFB74D;
         font-size: 12px;
         background-color: #2D2D2D;
-        padding: 4px 8px;
+        padding: 2px 8px;
         border-radius: 4px;
     )");
     m_alarmLayout->addWidget(alarmLabel);

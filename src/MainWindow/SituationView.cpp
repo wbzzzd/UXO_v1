@@ -155,8 +155,8 @@ void SituationView::setupToolBar()
     );
     
     QVBoxLayout *toolBarLayout = new QVBoxLayout(toolBarContainer);
-    toolBarLayout->setContentsMargins(5, 10, 5, 10);
-    toolBarLayout->setSpacing(8);
+    toolBarLayout->setContentsMargins(5, 4, 5, 4);
+    toolBarLayout->setSpacing(4);
     toolBarLayout->setAlignment(Qt::AlignTop);
     
     // 标题
@@ -167,10 +167,11 @@ void SituationView::setupToolBar()
     
     // 俯视按钮
     QPushButton *btnTop = new QPushButton("俯", toolBarContainer);
-    btnTop->setFixedSize(40, 30);
+    btnTop->setFixedSize(40, 28);
     btnTop->setToolTip("俯视图");
+    // 局部清除全局按钮的最小宽度和内边距，确保四个视角按钮保持在 60px 工具栏内。
     btnTop->setStyleSheet(
-        "QPushButton { background-color: #0078D7; color: white; border: none; border-radius: 4px; font-size: 12px; }"
+        "QPushButton { background-color: #0078D7; color: white; border: none; border-radius: 4px; font-size: 12px; min-width: 0px; max-width: 40px; padding: 0px; }"
         "QPushButton:hover { background-color: #1984D8; }"
         "QPushButton:pressed { background-color: #005A9E; }"
     );
@@ -179,10 +180,10 @@ void SituationView::setupToolBar()
     
     // 侧视按钮
     QPushButton *btnSide = new QPushButton("侧", toolBarContainer);
-    btnSide->setFixedSize(40, 30);
+    btnSide->setFixedSize(40, 28);
     btnSide->setToolTip("侧视图");
     btnSide->setStyleSheet(
-        "QPushButton { background-color: #4A4A4A; color: #DDDDDD; border: 1px solid #5A5A5A; border-radius: 4px; font-size: 12px; }"
+        "QPushButton { background-color: #4A4A4A; color: #DDDDDD; border: 1px solid #5A5A5A; border-radius: 4px; font-size: 12px; min-width: 0px; max-width: 40px; padding: 0px; }"
         "QPushButton:hover { background-color: #5A5A5A; }"
     );
     connect(btnSide, &QPushButton::clicked, [this]() { setCameraView("side"); updateZoomLabel(); });
@@ -190,29 +191,29 @@ void SituationView::setupToolBar()
     
     // 3D视角按钮
     QPushButton *btn3D = new QPushButton("3D", toolBarContainer);
-    btn3D->setFixedSize(40, 30);
+    btn3D->setFixedSize(40, 28);
     btn3D->setToolTip("3D视角");
     btn3D->setStyleSheet(
-        "QPushButton { background-color: #4A4A4A; color: #DDDDDD; border: 1px solid #5A5A5A; border-radius: 4px; font-size: 12px; }"
+        "QPushButton { background-color: #4A4A4A; color: #DDDDDD; border: 1px solid #5A5A5A; border-radius: 4px; font-size: 12px; min-width: 0px; max-width: 40px; padding: 0px; }"
         "QPushButton:hover { background-color: #5A5A5A; }"
     );
     connect(btn3D, &QPushButton::clicked, [this]() { setCameraView("3d"); updateZoomLabel(); });
     toolBarLayout->addWidget(btn3D);
     
-    toolBarLayout->addSpacing(10);
+    toolBarLayout->addSpacing(0);
     
     // 复位按钮
     QPushButton *btnReset = new QPushButton("复位", toolBarContainer);
-    btnReset->setFixedSize(40, 30);
+    btnReset->setFixedSize(40, 28);
     btnReset->setToolTip("复位视角");
     btnReset->setStyleSheet(
-        "QPushButton { background-color: #D9534F; color: white; border: none; border-radius: 4px; font-size: 11px; }"
+        "QPushButton { background-color: #D9534F; color: white; border: none; border-radius: 4px; font-size: 11px; min-width: 0px; max-width: 40px; padding: 0px; }"
         "QPushButton:hover { background-color: #E74C3C; }"
     );
     connect(btnReset, &QPushButton::clicked, this, &SituationView::resetCameraView);
     toolBarLayout->addWidget(btnReset);
     
-    toolBarLayout->addSpacing(20);
+    toolBarLayout->addSpacing(2);
     
     // 缩放级别标签
     m_zoomLabel = new QLabel("100%", toolBarContainer);
