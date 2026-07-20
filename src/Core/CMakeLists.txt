@@ -2,6 +2,7 @@ set(CORE_SOURCES
     AirportData.cpp
     3D/AirportSceneFactory.cpp
     Simulation/DemoScenarioProvider.cpp
+    Simulation/SimulationWorkflow.cpp
 )
 
 add_library(Core STATIC ${CORE_SOURCES})

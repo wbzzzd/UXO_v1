@@ -20,7 +20,7 @@ DemoScenario DemoScenarioProvider::create()
     target.depth = 0.45;
     target.confidence = 0.86;
     target.threatLevel = ThreatLevel::High;
-    target.status = TargetStatus::Confirmed;
+    target.status = TargetStatus::Detected;
     target.detectTime = QDateTime::currentDateTimeUtc();
     target.updateTime = target.detectTime;
     target.remark = QStringLiteral("模拟目标，仅用于本地演示");

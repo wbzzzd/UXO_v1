@@ -24,6 +24,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // 模拟工作流必须从"已发现"状态开始
+    if (scenario.targets.first().status != Core::TargetStatus::Detected) {
+        qCritical() << "Then the demo target starts at Detected";
+        return 1;
+    }
+
     // 必须恰好提供1个任务
     if (scenario.missions.size() != 1) {
         qCritical() << "Then the demo scenario provides exactly one mission";
