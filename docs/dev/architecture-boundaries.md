@@ -1,6 +1,6 @@
 # 架构边界
 
-最后更新：2026-07-07
+最后更新：2026-07-14
 
 ## 当前边界
 
@@ -8,7 +8,9 @@
 - `src/MainWindow/` 和 `include/MainWindow/`：当前可见界面骨架和主窗口区域。
 - `include/Core/Data/Types.h`：当前共享数据类型入口。
 - `include/Core/Simulation/` 和 `src/Core/Simulation/`：当前本地模拟演示数据入口。
+  - `Core::Simulation::SimulationWorkflow`：纯内存工作流所有权，维护目标列表、当前选中目标与按时间追加的操作日志，无持久化、无外部控制。
 - `config/`：本地配置和后续模拟数据输入位置。
+- `MainWindow`：仅负责 UI 组合、用户交互与展示状态，不直接控制真实设备；流程状态由 `SimulationWorkflow` 承载。
 
 ## 未来边界建议
 
