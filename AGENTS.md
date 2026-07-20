@@ -7,8 +7,9 @@
 - 项目是 Qt 5 / CMake / C++17 桌面客户端，目标程序名为 `UXOMissionControl`。
 - 当前真实纳入构建的代码主要在 `src/App/`、`src/MainWindow/`、`include/App/`、`include/MainWindow/` 和 `include/Core/Data/Types.h`。
 - `src/App/main.cpp` 当前创建 `App::Application`，调用 `initialize()` 初始化，调用 `app.run()` 创建并显示 `MainWindow`，然后进入 `app.exec()`。
-- SRS、SDD、`PROJECT_STRUCTURE.md` 和 UI 设计文档是目标/设计资料，不代表所有模块已经实现。
-- 当前 MVP 应优先做可见、可演示、模拟数据闭环的指挥席流程。
+- `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/UI.md`、`docs/DEVELOPMENT.md` 是当前核心基线。
+- SRS、SDD、旧 UI 设计、`docs/dev/` 和功能草案是来源资料；不得在与核心基线冲突时直接指导实现。
+- 当前 NEXT 仍是草稿，代码实施前必须先完成对应文档评审并获得用户确认。
 
 ## 安全边界
 
@@ -20,10 +21,12 @@
 
 ## 开发流程
 
-- 先读 `docs/OMO_ADAPTATION_PLAN.md`、`docs/dev/` 和当前源码，再制定计划。
+- 开始任务前按顺序读取 `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/UI.md`、`docs/DEVELOPMENT.md` 和相关源码。
+- 功能开发必须关联 `docs/PRODUCT.md` 中的需求 ID；需求状态必须为已批准，`TARGET`、`NEXT 草稿`、`Proposed` 和归档资料不得直接触发实现。
+- 新功能先在 `docs/features/` 建立一份增量设计，评审为 `Approved` 后才能生成执行计划。
 - 多文件或架构性修改必须先计划，得到用户确认后再实现。
 - 修改前检查 `git status --short`，不要还原、覆盖或提交用户已有改动。
-- 文档事实以源码和实际构建为准；目标设计文档只能作为需求输入。
+- CURRENT 事实以源码和实际构建为准；产品范围、目标架构、UI 规则和工程门禁分别以四份核心文档为准。
 - 代码变更必须写中文注释；按任务粒度及时提交 git，commit message 须说明变更内容与目的。
 - 每次工作会话保存记录并附总结；任务完成后在对应计划文档更新完成状态。
 - 委托的子任务或 subagent 失败时，必须立即停止该执行通道并告知用户，不得自行接手执行；先检查原 session 和工作区已有进度，再续跑最小剩余步骤。
@@ -55,9 +58,11 @@ cmake --build build --target UXOMissionControl -j2
 ## 文档纪律
 
 - `README.md` 只做入口导航。
-- `docs/dev/` 记录当前工程事实、MVP 范围、架构边界和模拟策略。
+- 四份核心文档是默认开发入口；`docs/dev/` 在重整评审完成前保留为事实来源，之后逐项决定合并或归档。
+- `docs/features/` 只放功能增量设计；`Proposed` 文档不能直接指导实现。
+- `docs/archive/` 与 `docs/research/` 不进入默认开发上下文，仅在追溯历史或验证依据时读取。
 - `.omo/rules/` 放项目级 OMO 规则；`.omo/plans/` 放可评审计划；`.omo/run-continuation/` 等运行态数据不得提交。
-- 新增或修改入口、构建方式、配置、模块边界时，同步更新对应文档。
+- 产品范围变更更新 `PRODUCT.md`；模块或状态边界变更更新 `ARCHITECTURE.md`；页面与交互变更更新 `UI.md`；构建、测试和完成门禁变更更新 `DEVELOPMENT.md`。
 
 ## 禁止事项
 

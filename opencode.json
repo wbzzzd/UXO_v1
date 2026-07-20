@@ -3,9 +3,10 @@
   "model": "volcengine-ark/glm-5.2",
   "instructions": [
     "AGENTS.md",
-    "docs/dev/*.md",
-    "docs/dev/decisions/*.md",
-    "docs/OMO_ADAPTATION_PLAN.md"
+    "docs/PRODUCT.md",
+    "docs/ARCHITECTURE.md",
+    "docs/UI.md",
+    "docs/DEVELOPMENT.md"
   ],
   "watcher": {
     "ignore": [
