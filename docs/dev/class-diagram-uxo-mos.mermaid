@@ -1,0 +1,287 @@
+%% 类图：UXR + MOS 数据结构与接口
+%% 来源：architecture-uxo-recognition-and-mos.md 第 3 节
+
+classDiagram
+    %% ===== Core/Data 层 =====
+    class YieldConfidence {
+        <<enumeration>>
+        Unknown
+        High
+        Medium
+        Low
+        Conservative
+    }
+
+    class EstimationMethod {
+        <<enumeration>>
+        Unknown
+        ModelId
+        Dimension
+        Fusion
+        Manual
+        Conservative
+    }
+
+    class RecognitionStatus {
+        <<enumeration>>
+        Unknown
+        AutoDetected
+        Confirmed
+        Rejected
+        ManualOverride
+    }
+
+    class SensorSource {
+        <<enumeration>>
+        Unknown
+        EO
+        IR
+        LiDAR
+        GPR
+        Magnetic
+    }
+
+    class YieldEstimate {
+        +double nominalYield
+        +double uncertainty
+        +YieldConfidence confidence
+        +EstimationMethod estimationMethod
+        +YieldEstimate()
+    }
+
+    class SensorContribution {
+        +SensorSource source
+        +double contribution
+        +SensorContribution()
+    }
+
+    class TargetInfo {
+        +QString id
+        +TargetType type
+        +QString typeName
+        +QVector3D position
+        +double depth
+        +double confidence
+        +ThreatLevel threatLevel
+        +TargetStatus status
+        +QDateTime detectTime
+        +QDateTime updateTime
+        %% === 识别扩展字段 ===
+        +QString recognizedType
+        +double recognitionConfidence
+        +YieldEstimate yieldEstimate
+        +QVector~SensorContribution~ recognitionSources
+        +RecognitionStatus recognitionStatus
+        +QDateTime recognitionTime
+        +TargetInfo()
+    }
+
+    %% ===== Core/MOS 数据模型 =====
+    class RunwayModel {
+        +double length
+        +double width
+        +double heading
+        +RunwayModel()
+    }
+
+    class DamagePoint {
+        +QString id
+        +QVector2D position
+        +Type type
+        +double impactRadius
+        +QString source
+        +DamagePoint()
+    }
+
+    class MOSResult {
+        +QVector2D origin
+        +double length
+        +double width
+        +double area
+        +double safetyMargin
+        +bool valid
+        +QString reason
+        +MOSResult()
+    }
+
+    class MOSPlanParams {
+        +double minLength
+        +double minWidth
+        +double safetyFactorK
+        +double craterExpandFactor
+        +MOSPlanParams()
+    }
+
+    %% ===== Core/Recognition 服务层 =====
+    class IRecognitionService {
+        <<interface>>
+        +~IRecognitionService()
+        +recognize(input: TargetInfo) TargetInfo*
+    }
+
+    class MockOrdnanceDatabase {
+        -QVector~OrdnanceEntry~ m_entries
+        +MockOrdnanceDatabase()
+        +lookup(type: TargetType) OrdnanceEntry*
+        +size() int
+    }
+
+    class MockRecognitionService {
+        -MockOrdnanceDatabase m_database
+        -double m_modelIdProbability
+        -double m_fusionProbability
+        +MockRecognitionService()
+        +recognize(input: TargetInfo) TargetInfo*
+        -determineMethod(targetId: QString) EstimationMethod
+        -generateYield(entry: OrdnanceEntry, method: EstimationMethod) YieldEstimate
+        -generateSources(method: EstimationMethod) QVector~SensorContribution~
+    }
+
+    %% ===== Core/MOS 规划层 =====
+    class IMOSPlanner {
+        <<interface>>
+        +~IMOSPlanner()
+        +plan(runway: RunwayModel, damages: QVector~DamagePoint~, params: MOSPlanParams) MOSResult*
+    }
+
+    class MOSPlanner {
+        +MOSPlanner()
+        +plan(runway: RunwayModel, damages: QVector~DamagePoint~, params: MOSPlanParams) MOSResult*
+        -computeBlockedXIntervals(y: double, damages: QVector~DamagePoint~) QVector~QPair~
+        -mergeIntervals(intervals: QVector~QPair~) QVector~QPair~
+        -findMaxGap(intervals: QVector~QPair~, runwayLength: double) double
+    }
+
+    %% ===== Simulation 层 =====
+    class SimulationWorkflow {
+        -QVector~TargetInfo~ m_targets
+        -QString m_selectedTargetId
+        -QVector~SimulationOperationLogEntry~ m_logEntries
+        +reset(targets: QVector~TargetInfo~)
+        +selectTarget(targetId: QString) bool
+        +requestSelectedTargetStatus(status: TargetStatus) bool
+        +confirmRecognition(targetId: QString) bool
+        +rejectRecognition(targetId: QString) bool
+        +overrideRecognition(targetId: QString, type: QString, yield: double) bool
+        +targets() QVector~TargetInfo~&
+        +selectedTarget() TargetInfo*
+        +logEntries() QVector~SimulationOperationLogEntry~&
+    }
+
+    class DemoScenarioProvider {
+        +create() DemoScenario*
+    }
+
+    class DemoScenario {
+        +QString label
+        +QVector~TargetInfo~ targets
+        +QVector~MissionInfo~ missions
+        +QVector~DeviceInfo~ devices
+        +RunwayModel runway
+        +QVector~DamagePoint~ damages
+    }
+
+    %% ===== MainWindow UI 层 =====
+    class TargetDetailPanel {
+        -QLabel* m_recognizedTypeLabel
+        -QProgressBar* m_confidenceBar
+        -QLabel* m_yieldLabel
+        -QLabel* m_confidenceLevelLabel
+        -QLabel* m_sourcesLabel
+        -QPushButton* m_confirmRecogBtn
+        -QPushButton* m_rejectRecogBtn
+        -QPushButton* m_overrideRecogBtn
+        +setTarget(target: TargetInfo)
+        -setupRecognitionSection() QWidget*
+        -updateRecognitionDisplay()
+    }
+
+    class RecognitionOverrideDialog {
+        +RecognitionOverrideDialog(parent: QWidget*)
+        +getSelectedType() QString
+        +getNominalYield() double
+    }
+
+    class MOSView {
+        -RunwayModel m_runway
+        -QVector~DamagePoint~ m_damages
+        -MOSResult m_result
+        -double m_scale
+        -QPointF m_offset
+        +setRunway(runway: RunwayModel)
+        +setDamages(damages: QVector~DamagePoint~)
+        +setMOSResult(result: MOSResult)
+        +resetView()
+        -paintEvent(event: QPaintEvent*)
+        -wheelEvent(event: QWheelEvent*)
+        -mousePressEvent(event: QMouseEvent*)
+        -mouseMoveEvent(event: QMouseEvent*)
+    }
+
+    class MOSConfigPanel {
+        -QComboBox* m_aircraftCombo
+        -QDoubleSpinBox* m_minLengthSpin
+        -QDoubleSpinBox* m_minWidthSpin
+        -QDoubleSpinBox* m_safetyKSpin
+        -QDoubleSpinBox* m_craterExpandSpin
+        +setParams(params: MOSPlanParams)
+        +getParams() MOSPlanParams
+        +paramsChanged(params: MOSPlanParams)*
+    }
+
+    class MainWindow {
+        -SimulationWorkflow m_simulationWorkflow
+        -unique_ptr~IRecognitionService~ m_recognitionService
+        -unique_ptr~IMOSPlanner~ m_mosPlanner
+        -RunwayModel m_runway
+        -QVector~DamagePoint~ m_damages
+        -MOSPlanParams m_mosParams
+        -MOSResult m_mosResult
+        -MOSView* m_mosView
+        -MOSConfigPanel* m_mosConfigPanel
+        +loadMockData()
+        +onRecognitionConfirmed(targetId: QString)
+        +onRecognitionRejected(targetId: QString)
+        +onRecognitionOverrideRequested(targetId: QString)
+        +onMOSParamsChanged(params: MOSPlanParams)
+        +onMOSReplanRequested()
+    }
+
+    %% ===== 关系 =====
+    YieldEstimate --> YieldConfidence
+    YieldEstimate --> EstimationMethod
+    SensorContribution --> SensorSource
+    TargetInfo --> YieldEstimate : contains
+    TargetInfo --> SensorContribution : contains *
+    TargetInfo --> RecognitionStatus
+
+    MockRecognitionService ..|> IRecognitionService : implements
+    MockRecognitionService --> MockOrdnanceDatabase : owns
+    MockRecognitionService ..> TargetInfo : produces
+
+    MOSPlanner ..|> IMOSPlanner : implements
+    MOSPlanner ..> RunwayModel : uses
+    MOSPlanner ..> DamagePoint : uses
+    MOSPlanner ..> MOSResult : produces
+    MOSPlanner ..> MOSPlanParams : uses
+
+    DemoScenario --> RunwayModel : contains
+    DemoScenario --> DamagePoint : contains *
+    DemoScenario --> TargetInfo : contains *
+    DemoScenarioProvider ..> DemoScenario : creates
+
+    SimulationWorkflow --> TargetInfo : manages *
+
+    MainWindow --> SimulationWorkflow : owns
+    MainWindow --> IRecognitionService : owns
+    MainWindow --> IMOSPlanner : owns
+    MainWindow --> MOSView : owns
+    MainWindow --> MOSConfigPanel : owns
+    MainWindow --> TargetDetailPanel : references
+
+    TargetDetailPanel ..> TargetInfo : displays
+    TargetDetailPanel ..> RecognitionOverrideDialog : creates
+    MOSView ..> RunwayModel : displays
+    MOSView ..> DamagePoint : displays
+    MOSView ..> MOSResult : displays
+    MOSConfigPanel ..> MOSPlanParams : edits

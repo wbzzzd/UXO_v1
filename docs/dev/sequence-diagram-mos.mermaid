@@ -1,0 +1,55 @@
+%% 时序图 2：MOS 规划流程
+%% 来源：architecture-uxo-recognition-and-mos.md 第 4.2 节
+
+sequenceDiagram
+    participant MW as MainWindow
+    participant DSP as DemoScenarioProvider
+    participant MCP as MOSConfigPanel
+    participant MP as MOSPlanner
+    participant MV as MOSView
+
+    Note over MW: 应用启动 / loadMockData()
+    MW->>DSP: DemoScenarioProvider::create()
+    DSP-->>MW: DemoScenario{runway, damages}
+
+    Note over MW: 存储跑道和损毁点
+    MW->>MW: m_runway = scenario.runway
+    MW->>MW: m_damages = scenario.damages
+
+    Note over MW: 初始化 MOS 视图
+    MW->>MV: setRunway(m_runway)
+    MW->>MV: setDamages(m_damages)
+    MW->>MCP: setParams(defaultParams)
+
+    Note over MW: 首次自动规划
+    MW->>MP: plan(m_runway, m_damages, m_mosParams)
+    MP->>MP: 对每个 UXO 类型 DamagePoint<br/>计算 impactRadius = K × W^(1/3)
+    MP->>MP: Y 轴离散化 (1m 步长)
+    loop 每个 Y 采样点
+        MP->>MP: computeBlockedXIntervals(y, damages)
+        MP->>MP: mergeIntervals(blockedRanges)
+        MP->>MP: findMaxGap(merged, runwayLength)
+        alt gap >= minLength
+            MP->>MP: 记录候选矩形
+        end
+    end
+    MP->>MP: 选取最大面积候选
+    MP-->>MW: MOSResult{origin, length, width, area, safetyMargin, valid}
+
+    MW->>MW: m_mosResult = result
+    MW->>MV: setMOSResult(result)
+    MV->>MV: paintEvent() [重绘跑道/弹坑/安全区/MOS]
+    Note over MV: 绿色半透明=MOS区域<br/>红色填充=弹坑<br/>黄色填充=安全距离区
+
+    Note over MW: 用户调整参数
+    MCP->>MW: paramsChanged(newParams)
+    MW->>MW: m_mosParams = newParams
+    MW->>MP: plan(m_runway, m_damages, m_mosParams)
+    MP-->>MW: MOSResult (updated)
+    MW->>MV: setMOSResult(updated)
+    MV->>MV: paintEvent() [重绘]
+
+    Note over MW: 用户缩放/平移视图
+    MV->>MV: wheelEvent() [缩放]
+    MV->>MV: mouseMoveEvent() [平移]
+    MV->>MV: paintEvent() [重绘]

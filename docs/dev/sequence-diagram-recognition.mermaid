@@ -1,0 +1,74 @@
+%% 时序图 1：识别流程
+%% 来源：architecture-uxo-recognition-and-mos.md 第 4.1 节
+
+sequenceDiagram
+    participant MW as MainWindow
+    participant DSP as DemoScenarioProvider
+    participant MRS as MockRecognitionService
+    participant MOD as MockOrdnanceDatabase
+    participant SW as SimulationWorkflow
+    participant LP as LeftPanelWidget
+    participant TDP as TargetDetailPanel
+    participant ROD as RecognitionOverrideDialog
+
+    Note over MW: 应用启动 / loadMockData()
+    MW->>DSP: DemoScenarioProvider::create()
+    DSP-->>MW: DemoScenario{targets(基础), runway, damages}
+
+    Note over MW: 对每个目标调用识别服务
+    loop 每个目标 target
+        MW->>MRS: recognize(target)
+        MRS->>MRS: determineMethod(target.id) [确定性哈希]
+        alt 型号识别法 (80%)
+            MRS->>MOD: lookup(target.type)
+            MOD-->>MRS: OrdnanceEntry{nominalYield, tntRatio}
+            MRS->>MRS: generateYield(entry, ModelId) [±5-15%]
+            MRS->>MRS: generateSources(ModelId) [EO/IR/LiDAR]
+        else 多源融合法 (15%)
+            MRS->>MOD: lookup(target.type)
+            MOD-->>MRS: OrdnanceEntry
+            MRS->>MRS: generateYield(entry, Fusion) [±30-50%]
+            MRS->>MRS: generateSources(Fusion) [EO/IR/Magnetic]
+        else 保守假设法 (5%)
+            MRS->>MRS: generateYield(类别最大值×1.5, Conservative)
+            MRS->>MRS: generateSources(Conservative) [单一来源]
+        end
+        MRS-->>MW: TargetInfo{识别字段已填充}
+    end
+
+    MW->>SW: reset(recognizedTargets)
+    MW->>LP: setTargets(workflow.targets())
+
+    Note over MW: 用户选择目标
+    LP->>MW: targetSelected(target)
+    MW->>SW: selectTarget(target.id)
+    MW->>SW: selectedTarget()
+    SW-->>MW: TargetInfo*
+    MW->>TDP: setTarget(target)
+    TDP->>TDP: updateRecognitionDisplay()
+    Note over TDP: 展示识别类型/置信度/当量/来源<br/>低置信度橙色高亮
+
+    Note over MW: 人工确认回路
+    alt 操作员确认识别
+        TDP->>MW: recognitionConfirmed(targetId)
+        MW->>SW: confirmRecognition(targetId)
+        SW->>SW: target.recognitionStatus = Confirmed
+        SW->>SW: appendLog(RecognitionConfirmed)
+        MW->>TDP: setTarget(updatedTarget)
+    else 操作员驳回（虚警）
+        TDP->>MW: recognitionRejected(targetId)
+        MW->>SW: rejectRecognition(targetId)
+        SW->>SW: target.recognitionStatus = Rejected
+        SW->>SW: appendLog(RecognitionRejected)
+        MW->>TDP: setTarget(updatedTarget)
+    else 操作员手动修正
+        TDP->>MW: recognitionOverrideRequested(targetId)
+        MW->>ROD: exec() [弹出修正对话框]
+        ROD-->>MW: {type: "反跑道雷", yield: 35.0}
+        MW->>SW: overrideRecognition(targetId, type, yield)
+        SW->>SW: target.recognizedType = type
+        SW->>SW: target.yieldEstimate = {yield, MANUAL}
+        SW->>SW: target.recognitionStatus = ManualOverride
+        SW->>SW: appendLog(RecognitionOverride)
+        MW->>TDP: setTarget(updatedTarget)
+    end
