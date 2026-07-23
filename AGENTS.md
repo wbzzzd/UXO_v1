@@ -2,14 +2,13 @@
 
 本文件是 UXO_v1 的项目级 agent 规则。opencode 原生 agent、oh-my-openagent agent 和后续子代理都必须优先遵守。
 
-## 项目事实
+## 项目定位与文档入口
 
-- 项目是 Qt 5 / CMake / C++17 桌面客户端，目标程序名为 `UXOMissionControl`。
-- 当前真实纳入构建的代码主要在 `src/App/`、`src/MainWindow/`、`include/App/`、`include/MainWindow/` 和 `include/Core/Data/Types.h`。
-- `src/App/main.cpp` 当前创建 `App::Application`，调用 `initialize()` 初始化，调用 `app.run()` 创建并显示 `MainWindow`，然后进入 `app.exec()`。
-- `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/UI.md`、`docs/DEVELOPMENT.md` 是当前核心基线。
-- SRS、SDD、旧 UI 设计、`docs/dev/` 和功能草案是来源资料；不得在与核心基线冲突时直接指导实现。
-- 当前 NEXT 仍是草稿，代码实施前必须先完成对应文档评审并获得用户确认。
+- 本仓库交付 Qt 5 / CMake / C++17 桌面客户端 `UXOMissionControl`，不交付完整外部设备和安全执行系统。
+- `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/UI.md`、`docs/DEVELOPMENT.md` 是当前核心基线，分别负责产品、架构、界面和工程事实。
+- CURRENT 实现事实以源码、CMake 和实际验证结果为准；具体模块及启动过程见 `docs/ARCHITECTURE.md`。
+- SRS、SDD、旧 UI 设计、`docs/dev/` 和功能草案仅作为来源资料；与核心基线冲突时不得直接指导实现。
+- 当前 NEXT 仍是草稿，完成对应设计评审并获得用户确认前不得实施。
 
 ## 安全边界
 
@@ -27,8 +26,9 @@
 - 页面或交互任务：读取相关需求及 `docs/UI.md`、`docs/DEVELOPMENT.md`；涉及状态边界时再读 `docs/ARCHITECTURE.md`。
 - 构建、测试、发布或工程流程任务：读取 `docs/DEVELOPMENT.md`。
 - 功能开发：读取获批的 `docs/features/<feature>.md` 和它明确引用的核心文档章节，不遍历全部历史资料。
-- 功能开发必须关联 `docs/PRODUCT.md` 中的需求 ID；需求状态必须为已批准，`TARGET`、`NEXT 草稿`、`Proposed` 和归档资料不得直接触发实现。
-- 新功能先在 `docs/features/` 建立一份增量设计，评审为 `Approved` 后才能生成执行计划。
+- `docs/PRODUCT.md` 第 9 节是项目唯一需求注册表与状态权威，唯一负责分配 `REQ-NNN` ID 和 `Draft`/`Approved`/`Implemented`/`Superseded` 状态；其他文档只能引用需求 ID，不得创建或重编号需求，也不得复制或修改需求状态。
+- 功能开发与执行计划必须同时满足两项前提：关联的 `REQ-NNN` 在 `PRODUCT.md` 中状态为 `Approved`，且对应 `docs/features/<feature>.md` 自身状态为 `Approved`；`Draft` 需求或 `Draft` 功能设计不得进入实现计划。
+- `TARGET`、`NEXT 草稿` 和归档资料不得直接触发实现。
 - 多文件或架构性修改必须先计划，得到用户确认后再实现。
 - 修改前检查 `git status --short`，不要还原、覆盖或提交用户已有改动。
 - CURRENT 事实以源码和实际构建为准；产品范围、目标架构、UI 规则和工程门禁分别以四份核心文档为准。
@@ -64,7 +64,7 @@ cmake --build build --target UXOMissionControl -j2
 
 - `README.md` 只做入口导航。
 - 四份核心文档是默认开发入口；`docs/dev/` 在重整评审完成前保留为事实来源，之后逐项决定合并或归档。
-- `docs/features/` 只放功能增量设计；`Proposed` 文档不能直接指导实现。
+- `docs/features/` 只放功能增量设计；`Draft` 文档不能直接指导实现。
 - `docs/archive/` 与 `docs/research/` 不进入默认开发上下文，仅在追溯历史或验证依据时读取。
 - `.omo/rules/` 放项目级 OMO 规则；`.omo/plans/` 放可评审计划；`.omo/run-continuation/` 等运行态数据不得提交。
 - 产品范围变更更新 `PRODUCT.md`；模块或状态边界变更更新 `ARCHITECTURE.md`；页面与交互变更更新 `UI.md`；构建、测试和完成门禁变更更新 `DEVELOPMENT.md`。

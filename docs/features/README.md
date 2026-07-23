@@ -11,7 +11,7 @@
 
 ## 生命周期
 
-1. `Proposed`：候选设计，可以讨论，不允许据此直接实现。
+1. `Draft`：候选设计，可以讨论，不允许据此直接实现。
 2. `Approved`：范围和验收标准已确认，可以生成 `.omo/plans/` 执行计划。
 3. `Implemented`：代码和测试已完成，稳定变化已回写四份核心文档。
 4. `Superseded`：已被其他方案替代，仅保留历史依据。
@@ -21,7 +21,8 @@
 ```markdown
 # 功能名称
 
-状态：Proposed
+状态：Draft
+关联产品需求：REQ-NNN
 关联版本：待确认
 
 ## 1. 问题与目标
@@ -35,4 +36,10 @@
 ## 9. 待确认事项
 ```
 
-功能文档不得把 `TARGET` 或 `Proposed` 内容写成 `CURRENT`。研究报告只能作为证据引用，不能直接成为需求。
+功能文档不得把 `TARGET` 或 `Draft` 内容写成 `CURRENT`。研究报告只能作为证据引用，不能直接成为需求。
+
+## 需求关联与状态
+
+- `关联产品需求` 字段只能引用 `docs/PRODUCT.md` 第 9 节分配的 `REQ-NNN`；`PRODUCT.md` 是需求 ID 与需求状态的唯一权威。
+- 功能文档只管理自身的设计评审状态（`Draft`/`Approved`/`Implemented`/`Superseded`），不得在文档内复制、改写或覆盖 `REQ-NNN` 的需求状态。
+- `Draft` 需求或 `Draft` 功能设计不得进入实现计划；进入 `.omo/plans/` 执行计划前，关联需求与功能文档自身都必须为 `Approved`。
