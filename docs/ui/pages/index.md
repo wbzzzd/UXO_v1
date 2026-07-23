@@ -5,18 +5,18 @@
 设计系统：[docs/ui/design-system.md](../design-system.md)
 应用壳：[docs/ui/application-shell.md](../application-shell.md)
 
-> 本文是六页 UI 的一览表。每页一段：定位、关键区域、控件 ID 前缀、HTML 原型路径、截图路径。态势页有完整逐控件清单（`situation.md`），其余五页目前只有一览规格与 HTML 原型，详细控件清单属后续任务（见 `README.md` 第 8 节）。
+> 本文是六页 UI 的一览表。每页一段：定位、关键区域、控件 ID 前缀、HTML 原型路径、截图路径。六页均已交付逐控件清单（详见上表"详细清单"列）。
 
 ## 总览
 
 | 页面（中文） | English | 导航前缀 | 详细清单 | HTML 原型 | 1920×1080 截图 |
 |--------------|---------|----------|----------|-----------|----------------|
 | [态势](#1-态势页-situation-sit) | Situation | `SIT-` | [`situation.md`](situation.md) | [`../prototypes/situation/index.html`](../prototypes/situation/index.html) | [`../images/situation/overview-1920x1080.png`](../images/situation/overview-1920x1080.png) |
-| [探测](#2-探测页-detection-det) | Detection | `DET-` | 待补 | [`../prototypes/detection/index.html`](../prototypes/detection/index.html) | [`../images/detection/overview-1920x1080.png`](../images/detection/overview-1920x1080.png) |
-| [决策](#3-决策页-decision-dec) | Decision | `DEC-` | 待补 | [`../prototypes/decision/index.html`](../prototypes/decision/index.html) | [`../images/decision/overview-1920x1080.png`](../images/decision/overview-1920x1080.png) |
-| [设备](#4-设备页-devices-dev) | Devices | `DEV-` | 待补 | [`../prototypes/devices/index.html`](../prototypes/devices/index.html) | [`../images/devices/overview-1920x1080.png`](../images/devices/overview-1920x1080.png) |
-| [统计](#5-统计页-statistics-sta) | Statistics | `STA-` | 待补 | [`../prototypes/statistics/index.html`](../prototypes/statistics/index.html) | [`../images/statistics/overview-1920x1080.png`](../images/statistics/overview-1920x1080.png) |
-| [配置](#6-配置页-configuration-cfg) | Configuration | `CFG-` | 待补 | [`../prototypes/configuration/index.html`](../prototypes/configuration/index.html) | [`../images/configuration/overview-1920x1080.png`](../images/configuration/overview-1920x1080.png) |
+| [探测](#2-探测页-detection-det) | Detection | `DET-` | [`detection.md`](detection.md) | [`../prototypes/detection/index.html`](../prototypes/detection/index.html) | [`../images/detection/overview-1920x1080.png`](../images/detection/overview-1920x1080.png) |
+| [决策](#3-决策页-decision-dec) | Decision | `DEC-` | [`decision.md`](decision.md) | [`../prototypes/decision/index.html`](../prototypes/decision/index.html) | [`../images/decision/overview-1920x1080.png`](../images/decision/overview-1920x1080.png) |
+| [设备](#4-设备页-devices-dev) | Devices | `DEV-` | [`devices.md`](devices.md) | [`../prototypes/devices/index.html`](../prototypes/devices/index.html) | [`../images/devices/overview-1920x1080.png`](../images/devices/overview-1920x1080.png) |
+| [统计](#5-统计页-statistics-sta) | Statistics | `STA-` | [`statistics.md`](statistics.md) | [`../prototypes/statistics/index.html`](../prototypes/statistics/index.html) | [`../images/statistics/overview-1920x1080.png`](../images/statistics/overview-1920x1080.png) |
+| [配置](#6-配置页-configuration-cfg) | Configuration | `CFG-` | [`configuration.md`](configuration.md) | [`../prototypes/configuration/index.html`](../prototypes/configuration/index.html) | [`../images/configuration/overview-1920x1080.png`](../images/configuration/overview-1920x1080.png) |
 
 所有页面共享同一套设计系统（`design-system.md`）与应用壳（`application-shell.md`），仅左/右面板内容、中心区内容、工具栏与状态栏细节按页变化。
 
@@ -53,6 +53,8 @@
 
 **HTML 原型**：[`../prototypes/detection/index.html`](../prototypes/detection/index.html)（单文件，内联 CSS+JS，5 个模拟目标）。
 
+**详细清单**：[`detection.md`](detection.md)（492 行，逐控件规格）。
+
 ## 3. 决策页 Decision (DEC)
 
 **定位**：决策与方案管理页（导航 `DEC-NAV-03`）。一屏呈现：左侧目标列表（带威胁/状态标记）；中心决策依据 Tab 与候选方案比较；右侧资源约束检查、决策草案编辑、风险评估。所有数据为本地固定模拟场景。
@@ -68,6 +70,8 @@
 **控件 ID 前缀**：`DEC-`，包括 `DEC-LP-TARGET-*`、`DEC-CE-EVIDENCE`、`DEC-CE-COMPARE`、`DEC-RP-DRAFT`、`DEC-RP-RISK` 等。
 
 **HTML 原型**：[`../prototypes/decision/index.html`](../prototypes/decision/index.html)（单文件，4 个模拟目标 + 3 个候选方案）。
+
+**详细清单**：[`decision.md`](decision.md)（488 行，逐控件规格）。
 
 ## 4. 设备页 Devices (DEV)
 
@@ -85,6 +89,8 @@
 
 **HTML 原型**：[`../prototypes/devices/index.html`](../prototypes/devices/index.html)（单文件，4 个模拟设备）。
 
+**详细清单**：[`devices.md`](devices.md)（463 行，逐控件规格）。
+
 ## 5. 统计页 Statistics (STA)
 
 **定位**：当前会话指标统计页（导航 `STA-NAV-05`）。一屏呈现：左侧指标分类（总览/目标/任务/设备/告警）与会话信息；中心 KPI 卡片、图表视图、表格视图切换；右侧筛选（时间/类型/威胁）与状态示例。所有指标为当前会话本地固定数据，无历史数据库、无导出、无回放。
@@ -100,6 +106,8 @@
 **控件 ID 前缀**：`STA-`，包括 `STA-LP-METRIC-NAV`、`STA-CE-KPI-*`、`STA-CE-CHART`、`STA-CE-TABLE`、`STA-RP-FILTER-*` 等。
 
 **HTML 原型**：[`../prototypes/statistics/index.html`](../prototypes/statistics/index.html)（单文件，5 个模拟目标 + 4 张 KPI 卡片 + 2 张图表）。
+
+**详细清单**：[`statistics.md`](statistics.md)（531 行，逐控件规格）。
 
 ## 6. 配置页 Configuration (CFG)
 
@@ -118,3 +126,5 @@
 **安全边界**：紧急停止、排爆执行、设备控制指令、数据库写入、外部通信五项全部禁用并标注"锁定/禁用"，原型中按钮均 `disabled`。
 
 **HTML 原型**：[`../prototypes/configuration/index.html`](../prototypes/configuration/index.html)（单文件，6 个配置分类，禁用项以单行摘要呈现）。
+
+**详细清单**：[`configuration.md`](configuration.md)（574 行，逐控件规格）。

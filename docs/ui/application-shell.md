@@ -5,7 +5,7 @@
 设计系统：[docs/ui/design-system.md](design-system.md)
 CURRENT 来源：[`src/MainWindow/MainWindow.cpp`](../../src/MainWindow/MainWindow.cpp)、[`src/MainWindow/NavigationWidget.cpp`](../../src/MainWindow/NavigationWidget.cpp)、[`src/MainWindow/StatusBarWidget.cpp`](../../src/MainWindow/StatusBarWidget.cpp)、[`include/Common/GlobalStyle.h`](../../include/Common/GlobalStyle.h)
 
-> 本文定义六页 UI 共用的应用程序壳：窗口、区域比例、导航栏、菜单栏、工具栏、状态栏。壳是页面容器，页面内部控件规格见 `pages/situation.md`（态势页）与 `pages/index.md`（其余五页一览）。所有视觉值必须取自 `design-system.md`。
+> 本文定义六页 UI 共用的应用程序壳：窗口、区域比例、导航栏、菜单栏、工具栏、状态栏。壳是页面容器，页面内部控件规格见各页 `pages/<page>.md`（详见 `pages/index.md` 一览表）。所有视觉值必须取自 `design-system.md`。
 
 ## 1. 窗口
 

@@ -12,16 +12,16 @@
 | 页面（中文） | English | 导航 ID 前缀 | 设计状态 | 原型状态 | 截图状态 |
 |--------------|---------|--------------|----------|----------|----------|
 | 态势 | Situation | `SIT-` | 详细清单已交付 | 已交付 | 已交付 |
-| 探测 | Detection | `DET-` | 一览规格（见 `pages/index.md`） | 已交付 | 已交付 |
-| 决策 | Decision | `DEC-` | 一览规格（见 `pages/index.md`） | 已交付 | 已交付 |
-| 设备 | Devices | `DEV-` | 一览规格（见 `pages/index.md`） | 已交付 | 已交付 |
-| 统计 | Statistics | `STA-` | 一览规格（见 `pages/index.md`） | 已交付 | 已交付 |
-| 配置 | Configuration | `CFG-` | 一览规格（见 `pages/index.md`） | 已交付 | 已交付 |
+| 探测 | Detection | `DET-` | 详细清单已交付 | 已交付 | 已交付 |
+| 决策 | Decision | `DEC-` | 详细清单已交付 | 已交付 | 已交付 |
+| 设备 | Devices | `DEV-` | 详细清单已交付 | 已交付 | 已交付 |
+| 统计 | Statistics | `STA-` | 详细清单已交付 | 已交付 | 已交付 |
+| 配置 | Configuration | `CFG-` | 详细清单已交付 | 已交付 | 已交付 |
 
 中英文对照表是六页的统一命名约定：目录名、原型路径、截图路径均使用英文（如 `prototypes/situation/index.html`），文档标题与正文使用中文（如"态势页"），两套命名一一对应。
 
-- **态势页**有完整的逐控件契约（`pages/situation.md`），是其余五页详细清单的样板。
-- **其余五页**目前只有一览规格（`pages/index.md`）和 HTML 原型+截图，详细控件清单属后续任务。
+- **态势页**有完整的逐控件契约（`pages/situation.md`），是各页详细清单的样板。
+- **其余五页**均已交付详细控件清单（见 `pages/index.md` 链接）。
 
 ## 2. 证据边界（CURRENT 与 TARGET）
 
@@ -58,12 +58,11 @@
 
 ### 4.2 查阅某一页的详细规格
 
-- **态势页**：直接读 `pages/situation.md`，按区域查阅每个控件的完整规格。
-- **其余五页**：当前只有一览规格（`pages/index.md` 对应段）和 HTML 原型；如需详细控件清单，属后续任务（见第 8 节）。
+- **六页**：直接读对应 `pages/<page>.md`，按区域查阅每个控件的完整规格。各页详细清单链接见 `pages/index.md` 总览表。
 
 ### 4.3 实现 HTML 时
 
-每个文档化的 `<PREFIX>-*` ID 必须在 HTML 中作为 `data-testid` 出现，且与 Playwright 选择器一一对应；视觉值只能取自 `design-system.md` 的 token 表，不得硬编码新值。态势页已按此规则实现，作为其余五页 HTML 原型的参照样板。
+每个文档化的 `<PREFIX>-*` ID 必须在 HTML 中作为 `data-testid` 出现，且与 Playwright 选择器一一对应；视觉值只能取自 `design-system.md` 的 token 表，不得硬编码新值。态势页已按此规则实现，作为各页 HTML 原型的参照样板。
 
 ## 5. 安全边界
 
@@ -113,12 +112,45 @@ CURRENT 在 1280×720 下决策面板存在约 5px 底部溢出（见 `UI.md` �
 
 ## 8. 后续任务
 
-本目录当前交付到"六页 HTML 原型+截图+态势页详细清单"为止。后续未完成任务（不属本轮交付）：
+本目录当前交付到"六页 HTML 原型+截图+六页详细控件清单"为止。后续未完成任务（不属本轮交付）：
 
-- 为探测/决策/设备/统计/配置五页各写一份 `pages/<page>.md` 详细控件清单，参照 `pages/situation.md` 的深度。
 - 为六页 HTML 原型补齐 Playwright 契约测试。
 - 完成 1280×720 与 3840×2160 两视口的截图与验证（当前只交付 1920×1080）。
 
-## 9. 完成条件
+## 9. 维护规则
 
-本轮文档整改完成的判定：读者只看 `README.md` 能了解目录整体结构与阅读顺序；查阅 `pages/index.md` 能知道六页各是什么、关键区域、控件 ID 前缀与截图路径；查阅 `design-system.md` 与 `application-shell.md` 能知道六页共用的视觉与壳契约；查阅 `pages/situation.md` 能知道态势页每个控件的完整规格。没有 Approved/Implemented、真实状态或真实控制表述。
+> 设计变更与文档必须同步更新，禁止只改原型不改文档或只改文档不改原型。
+
+### 9.1 同步更新清单
+
+当发生以下任一变更时，必须同步更新对应文档：
+
+| 变更内容 | 必须同步更新的文档 |
+|---------|-------------------|
+| 新增/删除/重命名 HTML 原型中的 `data-testid` | 对应 `pages/<page>.md` 的控件规格与 ID 索引、`pages/index.md` 一览表 |
+| 修改 HTML 原型的交互行为（点击结果、状态切换、键盘行为） | 对应 `pages/<page>.md` 的控件规格"原型行为"字段 |
+| 新增/删除/修改 HTML 原型的区域布局 | 对应 `pages/<page>.md` 的区域章节、`pages/index.md` 关键区域表 |
+| 修改颜色/字体/间距/动画 token | `design-system.md` 的 token 表 |
+| 修改导航栏/菜单栏/工具栏/状态栏 | `application-shell.md` 对应章节 |
+| 新增页面 | `README.md` 范围表、`pages/index.md` 总览表 |
+| 修改页面截图或重新截图 | 确认截图与原型一致，无需改文档 |
+
+### 9.2 同步更新流程
+
+1. 先改 HTML 原型（`prototypes/<page>/index.html`）。
+2. 再改对应 `pages/<page>.md` 的控件规格、ID 索引、状态规则。
+3. 如涉及共用元素（导航、菜单、工具栏、状态栏、token），再改 `application-shell.md` 或 `design-system.md`。
+4. 如涉及页面增减或关键区域变化，再改 `pages/index.md` 和 `README.md`。
+5. 运行 `node prototypes/screenshot.js <page>` 重新生成截图。
+6. 检查所有 `data-testid` 与文档 ID 索引一一对应。
+
+### 9.3 禁止事项
+
+- 禁止只改原型不改文档：原型中新增了 `data-testid` 但文档 ID 索引未更新。
+- 禁止只改文档不改原型：文档中描述了控件但原型中不存在对应 `data-testid`。
+- 禁止文档与原型行为不一致：文档写"点击后弹出确认框"但原型实际行为不同。
+- 禁止跳过截图更新：原型布局变化后截图未重新生成。
+
+## 10. 完成条件
+
+本轮文档整改完成的判定：读者只看 `README.md` 能了解目录整体结构与阅读顺序；查阅 `pages/index.md` 能知道六页各是什么、关键区域、控件 ID 前缀与截图路径；查阅 `design-system.md` 与 `application-shell.md` 能知道六页共用的视觉与壳契约；查阅 `pages/<page>.md` 能知道对应页每个控件的完整规格。没有 Approved/Implemented、真实状态或真实控制表述。
