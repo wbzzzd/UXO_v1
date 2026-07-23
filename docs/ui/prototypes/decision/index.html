@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<title>排弹抢修指挥系统 V1.0 - 决策页面（设计评审原型）</title>
+<style>
+:root{
+  --color-bg:#1E1E1E;--color-panel:#252526;--color-toolbar:#2D2D2D;--color-menu:#2D2D2D;
+  --color-primary:#4A7A4C;--color-primary-hover:#5A8A5C;--color-danger:#D32F2F;--color-danger-hover:#B71C1C;
+  --color-threat-high:#FF5252;--color-threat-medium:#FFB74D;--color-threat-low:#FFF176;
+  --color-status-online:#4CAF50;--color-status-offline:#888888;--color-status-busy:#FFB74D;--color-status-error:#FF5252;
+  --color-text-primary:#FFFFFF;--color-text-secondary:#AAAAAA;--color-text-disabled:#888888;
+  --color-border:#3C3C3C;--color-border-focus:#4A7A4C;
+  --color-selection:#2A3F54;--color-row-hover:#2A2A2A;
+  --font-family:"Noto Sans CJK SC","Microsoft YaHei","Source Han Sans SC","SimHei",sans-serif;
+  --font-size-title:16px;--font-size-body:14px;--font-size-caption:12px;
+  --font-weight-title:bold;--font-weight-body:normal;
+  --size-nav-width:80px;--size-left-panel-width:320px;--size-right-panel-width:380px;
+  --size-status-bar-height:22px;--size-toolbar-height:32px;--size-menu-bar-height:30px;
+  --space-toolbar-gap:8px;--space-toolbar-pad:8px;
+  --radius-control:4px;--radius-scroll-handle:5px;--size-scrollbar:10px;--min-scroll-handle:30px;
+  --anim-short:150ms;--anim-normal:200ms;--anim-easing:ease-in-out;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-family)}
+html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body)}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;font-size:inherit}
+button:disabled{cursor:not-allowed}
+::-webkit-scrollbar{width:var(--size-scrollbar);height:var(--size-scrollbar)}
+::-webkit-scrollbar-track{background:var(--color-toolbar)}
+::-webkit-scrollbar-thumb{background:var(--color-text-secondary);border-radius:var(--radius-scroll-handle);min-height:var(--min-scroll-handle)}
+::-webkit-scrollbar-thumb:hover{background:var(--color-text-primary)}
+
+.app{display:flex;flex-direction:column;width:1920px;height:1080px}
+.menu-bar{height:var(--size-menu-bar-height);background:var(--color-menu);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 4px}
+.menu-bar button{padding:6px 12px;font-size:var(--font-size-body);color:var(--color-text-primary);background:transparent}
+.menu-bar button:hover{background:var(--color-border)}
+.menu-bar button[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
+.menu-bar button[data-disabled="true"]:hover{background:transparent}
+.toolbar{height:var(--size-toolbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:var(--space-toolbar-gap);padding:0 var(--space-toolbar-pad)}
+.toolbar .tb-label{color:var(--color-text-secondary);font-size:var(--font-size-caption);padding:4px}
+.toolbar .tb-label[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
+.toolbar .tb-btn{padding:4px 8px;color:var(--color-text-secondary);font-size:var(--font-size-caption);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control)}
+.toolbar .tb-btn:hover{background:var(--color-border);color:var(--color-text-primary)}
+.main-area{flex:1;display:flex;overflow:hidden}
+.nav-bar{width:var(--size-nav-width);background:var(--color-bg);border-right:1px solid var(--color-border);display:flex;flex-direction:column;align-items:stretch}
+.nav-logo{height:40px;display:flex;align-items:center;justify-content:center;color:var(--color-primary);font-size:18px;font-weight:bold;letter-spacing:2px}
+.nav-spacer-1{height:16px}
+.nav-items{display:flex;flex-direction:column}
+.nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
+.nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
+.nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
+.nav-item .nav-icon{font-size:18px;line-height:1}
+.nav-spacer-2{flex:1}
+
+/* 左面板：目标列表 */
+.left-panel{width:var(--size-left-panel-width);background:var(--color-panel);padding:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.lp-header{height:32px;display:flex;align-items:center;padding:0 4px}
+.lp-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
+.target-list{flex:1;overflow:auto;display:flex;flex-direction:column;gap:4px}
+.target-card{background:var(--color-toolbar);border:1px solid var(--color-border);border-left:3px solid transparent;border-radius:var(--radius-control);padding:10px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing)}
+.target-card:hover{background:#363636}
+.target-card.selected{background:var(--color-selection);border-left-color:var(--color-primary)}
+.target-card-row1{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.target-card-id{font-size:var(--font-size-caption);color:var(--color-text-secondary);font-family:monospace}
+.target-card-type{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;flex:1}
+.threat-badge{padding:2px 8px;border-radius:3px;font-size:10px;font-weight:bold}
+.threat-badge.high{background:rgba(255,82,82,0.2);color:var(--color-threat-high)}
+.threat-badge.medium{background:rgba(255,183,77,0.2);color:var(--color-threat-medium)}
+.threat-badge.low{background:rgba(255,241,118,0.2);color:var(--color-threat-low)}
+.target-card-row2{display:flex;gap:12px;font-size:11px;color:var(--color-text-secondary)}
+.target-card-status{font-size:11px}
+.target-card-status.detected{color:var(--color-threat-medium)}
+.target-card-status.confirmed{color:var(--color-primary)}
+.target-card-status.disposing{color:var(--color-threat-high)}
+
+/* 中心区 */
+.center-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.center-header{height:40px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:12px}
+.center-title{font-size:var(--font-size-title);color:var(--color-text-primary);font-weight:bold}
+.center-subtitle{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
+.center-content{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+
+/* 决策依据 */
+.basis-panel{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:16px;display:flex;flex-direction:column;gap:12px}
+.basis-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;flex:1}
+.basis-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.basis-item{display:flex;flex-direction:column;gap:4px}
+.basis-label{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
+.basis-value{color:var(--color-text-primary);font-size:var(--font-size-body)}
+.basis-value.highlight{color:var(--color-primary);font-weight:bold}
+.basis-value.danger{color:var(--color-danger);font-weight:bold}
+
+/* 候选方案比较 */
+.plans-header{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
+.plans-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.plan-card{background:var(--color-panel);border:2px solid var(--color-border);border-radius:var(--radius-control);padding:16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing)}
+.plan-card:hover{border-color:var(--color-text-secondary)}
+.plan-card.selected{border-color:var(--color-primary);background:rgba(74,122,76,0.08)}
+.plan-header{display:flex;align-items:center;gap:8px}
+.plan-name{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;flex:1}
+.plan-radio{width:16px;height:16px;border-radius:50%;border:2px solid var(--color-text-secondary);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.plan-card.selected .plan-radio{border-color:var(--color-primary)}
+.plan-card.selected .plan-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--color-primary)}
+.plan-desc{color:var(--color-text-secondary);font-size:var(--font-size-caption);line-height:1.5}
+.plan-metrics{display:flex;flex-direction:column;gap:6px}
+.plan-metric{display:flex;align-items:center;gap:8px;font-size:11px}
+.plan-metric-label{width:64px;color:var(--color-text-secondary)}
+.plan-metric-bar{flex:1;height:6px;background:var(--color-border);border-radius:3px;overflow:hidden}
+.plan-metric-fill{height:100%;border-radius:3px}
+.plan-metric-fill.high{background:var(--color-threat-high)}
+.plan-metric-fill.medium{background:var(--color-threat-medium)}
+.plan-metric-fill.low{background:var(--color-status-online)}
+.plan-metric-value{width:40px;text-align:right;color:var(--color-text-primary)}
+
+/* 资源约束 */
+.constraints-panel{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:16px;display:flex;flex-direction:column;gap:8px}
+.constraint-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border)}
+.constraint-row:last-child{border-bottom:none}
+.constraint-label{width:120px;color:var(--color-text-secondary);font-size:var(--font-size-caption)}
+.constraint-value{color:var(--color-text-primary);font-size:var(--font-size-body);flex:1}
+.constraint-status{padding:2px 8px;border-radius:3px;font-size:10px;font-weight:bold}
+.constraint-status.ok{background:rgba(76,175,80,0.2);color:var(--color-status-online)}
+.constraint-status.warn{background:rgba(255,183,77,0.2);color:var(--color-threat-medium)}
+.constraint-status.block{background:rgba(255,82,82,0.2);color:var(--color-threat-high)}
+
+/* 右面板：决策草案 */
+.right-panel{width:var(--size-right-panel-width);background:var(--color-panel);display:flex;flex-direction:column;overflow:hidden}
+.rp-section{display:flex;flex-direction:column;overflow:hidden}
+.rp-section-header{height:32px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;gap:8px}
+.rp-section-title{flex:1;font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
+.rp-section.draft{flex:3}
+.rp-section.risk{flex:2}
+.rp-section-content{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+
+/* 决策草案状态 */
+.draft-status{background:var(--color-toolbar);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:8px}
+.draft-status-row{display:flex;align-items:center;gap:8px;font-size:var(--font-size-caption)}
+.draft-status-label{color:var(--color-text-secondary)}
+.draft-status-value{color:var(--color-text-primary);font-weight:bold}
+.draft-status-value.selected{color:var(--color-primary)}
+.draft-action-row{display:flex;gap:8px;margin-top:4px}
+.draft-btn{height:36px;flex:1;padding:0 12px;font-size:var(--font-size-caption);background:var(--color-primary);color:var(--color-text-primary);border:none;border-radius:var(--radius-control)}
+.draft-btn:hover:not(:disabled){background:var(--color-primary-hover)}
+.draft-btn:disabled{background:var(--color-border);color:var(--color-text-disabled)}
+.draft-btn.secondary{background:transparent;color:var(--color-text-secondary);border:1px solid var(--color-border)}
+.draft-btn.secondary:hover{background:var(--color-border)}
+.draft-note{color:var(--color-text-disabled);font-size:11px;line-height:1.5}
+
+/* 风险评估 */
+.risk-card{background:var(--color-toolbar);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:8px}
+.risk-row{display:flex;align-items:center;gap:8px}
+.risk-label{width:80px;color:var(--color-text-secondary);font-size:var(--font-size-caption)}
+.risk-value{color:var(--color-text-primary);font-size:var(--font-size-caption);flex:1}
+.risk-bar{flex:1;height:8px;background:var(--color-border);border-radius:4px;overflow:hidden}
+.risk-fill{height:100%;border-radius:4px}
+.risk-fill.high{background:var(--color-threat-high)}
+.risk-fill.medium{background:var(--color-threat-medium)}
+.risk-fill.low{background:var(--color-status-online)}
+
+.status-bar{height:28px;background:var(--color-bg);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:16px}
+.status-label{color:var(--color-text-primary);font-size:var(--font-size-caption)}
+.status-sim{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+.status-separator{width:1px;height:18px;background:var(--color-border)}
+.status-alarm{flex:1;min-width:400px;height:18px;overflow:hidden;display:flex;align-items:center}
+.status-alarm-item{height:18px;color:var(--color-status-busy);font-size:var(--font-size-caption);background:var(--color-toolbar);padding:2px 8px;border-radius:var(--radius-control);margin-right:10px;white-space:nowrap}
+.emergency-btn{width:80px;height:20px;font-size:11px;font-weight:bold;background:var(--color-danger);color:var(--color-text-primary);border:none;border-radius:3px}
+.emergency-btn:disabled{background:var(--color-border);color:var(--color-text-disabled);cursor:not-allowed}
+.sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="menu-bar">
+    <button data-testid="DEC-MENU-FILE">文件(&amp;F)</button>
+    <button data-testid="DEC-MENU-VIEW">视图(&amp;V)</button>
+    <button data-testid="DEC-MENU-TOOLS" data-disabled="true" title="占位控件，未实现">工具(&amp;T)</button>
+    <button data-testid="DEC-MENU-HELP">帮助(&amp;H)</button>
+  </div>
+
+  <div class="toolbar">
+    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="DEC-TB-EXPORT">导出决策</span>
+    <button class="tb-btn" data-testid="DEC-TB-REFRESH" title="刷新模拟决策数据">刷新决策</button>
+    <span style="flex:1"></span>
+    <span class="tb-label" data-testid="DEC-TB-STATUS">决策状态: 草案选择中</span>
+  </div>
+
+  <div class="main-area">
+    <div class="nav-bar">
+      <div class="nav-logo" data-testid="DEC-NAV-LOGO">UXO</div>
+      <div class="nav-spacer-1"></div>
+      <div class="nav-items">
+        <div class="nav-item" data-testid="DEC-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
+        <div class="nav-item" data-testid="DEC-NAV-02"><span class="nav-icon">◎</span><span>探测</span></div>
+        <div class="nav-item selected" data-testid="DEC-NAV-03"><span class="nav-icon">◎</span><span>决策</span></div>
+        <div class="nav-item" data-testid="DEC-NAV-04"><span class="nav-icon">◎</span><span>设备</span></div>
+        <div class="nav-item" data-testid="DEC-NAV-05"><span class="nav-icon">◎</span><span>统计</span></div>
+        <div class="nav-item" data-testid="DEC-NAV-06"><span class="nav-icon">◎</span><span>配置</span></div>
+      </div>
+      <div class="nav-spacer-2"></div>
+    </div>
+
+    <!-- 左面板：目标列表 -->
+    <div class="left-panel">
+      <div class="lp-header"><span class="lp-title">[模拟] 待决策目标</span></div>
+      <div class="target-list" data-testid="DEC-LP-TARGET-LIST">
+        <div class="target-card selected" data-target="target-001">
+          <div class="target-card-row1">
+            <span class="target-card-id">target-001</span>
+            <span class="target-card-type">反跑道雷</span>
+            <span class="threat-badge high">高</span>
+          </div>
+          <div class="target-card-row2">
+            <span>置信度: 86%</span>
+            <span>状态: </span><span class="target-card-status detected">已发现</span>
+          </div>
+        </div>
+        <div class="target-card" data-target="target-002">
+          <div class="target-card-row1">
+            <span class="target-card-id">target-002</span>
+            <span class="target-card-type">航弹</span>
+            <span class="threat-badge high">高</span>
+          </div>
+          <div class="target-card-row2">
+            <span>置信度: 72%</span>
+            <span>状态: </span><span class="target-card-status detected">已发现</span>
+          </div>
+        </div>
+        <div class="target-card" data-target="target-003">
+          <div class="target-card-row1">
+            <span class="target-card-id">target-003</span>
+            <span class="target-card-type">火箭弹</span>
+            <span class="threat-badge medium">中</span>
+          </div>
+          <div class="target-card-row2">
+            <span>置信度: 91%</span>
+            <span>状态: </span><span class="target-card-status confirmed">已确认</span>
+          </div>
+        </div>
+        <div class="target-card" data-target="target-004">
+          <div class="target-card-row1">
+            <span class="target-card-id">target-004</span>
+            <span class="target-card-type">集束弹</span>
+            <span class="threat-badge low">低</span>
+          </div>
+          <div class="target-card-row2">
+            <span>置信度: 65%</span>
+            <span>状态: </span><span class="target-card-status detected">已发现</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中心区：决策依据+候选方案+资源约束 -->
+    <div class="center-area">
+      <div class="center-header">
+        <span class="center-title">决策支持</span>
+        <span class="center-subtitle" data-testid="DEC-CE-TARGET">target-001 · 反跑道雷 · 高威胁</span>
+      </div>
+      <div class="center-content">
+        <!-- 决策依据 -->
+        <div class="basis-panel">
+          <span class="basis-title">[模拟] 决策依据</span>
+          <div class="basis-grid">
+            <div class="basis-item">
+              <span class="basis-label">目标类型</span>
+              <span class="basis-value" style="color:var(--color-threat-high)">反跑道雷</span>
+            </div>
+            <div class="basis-item">
+              <span class="basis-label">威胁等级</span>
+              <span class="basis-value danger">高</span>
+            </div>
+            <div class="basis-item">
+              <span class="basis-label">识别置信度</span>
+              <span class="basis-value highlight">86%</span>
+            </div>
+            <div class="basis-item">
+              <span class="basis-label">位置环境</span>
+              <span class="basis-value">跑道区域</span>
+            </div>
+            <div class="basis-item">
+              <span class="basis-label">周边人员</span>
+              <span class="basis-value">无（已疏散）</span>
+            </div>
+            <div class="basis-item">
+              <span class="basis-label">天气条件</span>
+              <span class="basis-value">晴（模拟）</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 候选方案比较 -->
+        <div>
+          <div class="plans-header">[模拟] 候选处置方案比较</div>
+          <div class="plans-grid" data-testid="DEC-CE-PLANS" style="margin-top:12px">
+            <div class="plan-card selected" data-plan="聚能引爆" data-testid="DEC-CE-PLAN-1">
+              <div class="plan-header">
+                <div class="plan-radio"></div>
+                <span class="plan-name">聚能引爆</span>
+              </div>
+              <div class="plan-desc">使用聚能装药在安全距离引爆目标，适用于金属外壳反跑道雷。需要排爆机器人接近目标。</div>
+              <div class="plan-metrics">
+                <div class="plan-metric">
+                  <span class="plan-metric-label">成功率</span>
+                  <div class="plan-metric-bar"><div class="plan-metric-fill low" style="width:92%"></div></div>
+                  <span class="plan-metric-value">92%</span>
+                </div>
+                <div class="plan-metric">
+                  <span class="plan-metric-label">风险</span>
+                  <div class="plan-metric-bar"><div class="plan-metric-fill high" style="width:70%"></div></div>
+                  <span class="plan-metric-value">高</span>
+                </div>
+                <div class="plan-metric">
+                  <span class="plan-metric-label">耗时</span>
+                  <div class="plan-metric-bar"><div class="plan-metric-fill medium" style="width:50%"></div></div>
+                  <span class="plan-metric-value">45min</span>
+                </div>
+              </div>
+            </div>
+            <div class="plan-card" data-plan="人工拆除" data-testid="DEC-CE-PLAN-2">
+              <div class="plan-header">
+                <div class="plan-radio"></div>
+                <span class="plan-name">人工拆除</span>
+              </div>
+              <div class="plan-desc">由排爆人员近距离拆除引信。适用于需要保留证据的目标。风险最高。</div>
+              <div class="plan-metrics">
+                <div class="plan-metric">
+                  <span class="plan-metric-label">成功率</span>
+                  <div class="plan-metric-bar"><div class="plan-metric-fill medium" style="width:78%"></div></div>
+                  <span class="plan-metric-value">78%</span>
+                </div>
+                <div class="plan-metric">
+                  <span class="plan-metric-label">风险</span>
+                  <div class="plan-metric-bar"><div class="plan-metric-fill high" style="width:95%"></div></div>
+                  <span class="plan-metric-value">极高</span>
+                </div>
+                <div class="plan-metric">
+                  <span class="plan-metric-label">耗时</span>
+                  <div class="plan-metric-bar"><div class="plan-metric-fill high" style="width:90%"></div></div>
+                  <span class="plan-metric-value">120min</span>
+                </div>
+              </div>
+            </div>
+            <div class="plan-card" data-plan="就地封存" data-testid="DEC-CE-PLAN-3">
+              <div class="plan-header">
+                <div class="plan-radio"></div>
+                <span class="plan-name">就地封存</span>
+              </div>
+              <div class="plan-desc">对目标进行标记和封存，等待后续处置。适用于资源不足或环境不允许立即处置的情况。</div>
+              <div class="plan-metrics">
+                <div class="plan-metric">
+                  <span class="plan-metric-label">成功率</span>
+                  <div class="plan-metric-bar"><div class="plan-metric-fill low" style="width:95%"></div></div>
+                  <span class="plan-metric-value">95%</span>
+                </div>
+                <div class="plan-metric">
+                  <span class="plan-metric-label">风险</span>
+                  <div class="plan-metric-bar"><div class="plan-metric-fill low" style="width:20%"></div></div>
+                  <span class="plan-metric-value">低</span>
+                </div>
+                <div class="plan-metric">
+                  <span class="plan-metric-label">耗时</span>
+                  <div class="plan-metric-bar"><div class="plan-metric-fill low" style="width:15%"></div></div>
+                  <span class="plan-metric-value">15min</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 资源约束 -->
+        <div class="constraints-panel">
+          <span style="font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold">[模拟] 资源约束检查</span>
+          <div class="constraint-row">
+            <span class="constraint-label">可用设备</span>
+            <span class="constraint-value">排爆机器人 Robot-1（在线）</span>
+            <span class="constraint-status ok">满足</span>
+          </div>
+          <div class="constraint-row">
+            <span class="constraint-label">人员就位</span>
+            <span class="constraint-value">模拟排爆组（待命）</span>
+            <span class="constraint-status ok">满足</span>
+          </div>
+          <div class="constraint-row">
+            <span class="constraint-label">安全距离</span>
+            <span class="constraint-value">已疏散，半径 500m 无人员</span>
+            <span class="constraint-status ok">满足</span>
+          </div>
+          <div class="constraint-row">
+            <span class="constraint-label">通信链路</span>
+            <span class="constraint-value">[模拟] 本地模拟链路</span>
+            <span class="constraint-status warn">占位</span>
+          </div>
+          <div class="constraint-row">
+            <span class="constraint-label">天气许可</span>
+            <span class="constraint-value">晴，风力 3 级（模拟）</span>
+            <span class="constraint-status ok">满足</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右面板：决策草案+风险评估 -->
+    <div class="right-panel">
+      <div class="rp-section draft">
+        <div class="rp-section-header">
+          <span class="rp-section-title">[模拟] 决策草案</span>
+        </div>
+        <div class="rp-section-content">
+          <div class="draft-status" data-testid="DEC-RP-DRAFT">
+            <div class="draft-status-row">
+              <span class="draft-status-label">当前目标:</span>
+              <span class="draft-status-value" data-testid="DEC-RP-DRAFT-TARGET">target-001</span>
+            </div>
+            <div class="draft-status-row">
+              <span class="draft-status-label">选中方案:</span>
+              <span class="draft-status-value selected" data-testid="DEC-RP-DRAFT-PLAN">聚能引爆</span>
+            </div>
+            <div class="draft-status-row">
+              <span class="draft-status-label">草案状态:</span>
+              <span class="draft-status-value" data-testid="DEC-RP-DRAFT-STATUS">待确认</span>
+            </div>
+            <div class="draft-action-row">
+              <button class="draft-btn" data-testid="DEC-RP-DRAFT-CONFIRM" title="确认草案选择（仅原型状态）">确认草案</button>
+              <button class="draft-btn secondary" data-testid="DEC-RP-DRAFT-RESET" title="重置草案">重置</button>
+            </div>
+            <div class="draft-note">
+              <span class="sim-tag">[模拟]</span> 此处仅记录草案选择状态，不执行真实处置、不下发任务、不控制设备。确认后需到设备页面进行模拟指派。
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rp-section risk">
+        <div class="rp-section-header">
+          <span class="rp-section-title">[模拟] 风险评估</span>
+        </div>
+        <div class="rp-section-content" data-testid="DEC-RP-RISK">
+          <div class="risk-card">
+            <div class="risk-row">
+              <span class="risk-label">人员风险</span>
+              <div class="risk-bar"><div class="risk-fill high" style="width:70%"></div></div>
+              <span class="risk-value">高</span>
+            </div>
+            <div class="risk-row">
+              <span class="risk-label">设备风险</span>
+              <div class="risk-bar"><div class="risk-fill medium" style="width:40%"></div></div>
+              <span class="risk-value">中</span>
+            </div>
+            <div class="risk-row">
+              <span class="risk-label">环境风险</span>
+              <div class="risk-bar"><div class="risk-fill low" style="width:15%"></div></div>
+              <span class="risk-value">低</span>
+            </div>
+            <div class="risk-row">
+              <span class="risk-label">综合风险</span>
+              <div class="risk-bar"><div class="risk-fill high" style="width:65%"></div></div>
+              <span class="risk-value" style="color:var(--color-threat-high);font-weight:bold">高</span>
+            </div>
+            <div class="sim-tag" style="font-size:11px;margin-top:4px">[模拟数据，不替代真实威胁评估]</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-label" data-testid="DEC-SB-DEVICE">设备: 2/2 在线</span>
+    <span class="status-separator"></span>
+    <span class="status-sim" data-testid="DEC-SB-SIM">[模拟模式]</span>
+    <span class="status-separator"></span>
+    <div class="status-alarm" data-testid="DEC-SB-ALARM">
+      <span class="status-alarm-item">模拟告警: target-001 待决策</span>
+    </div>
+    <button class="emergency-btn" data-disabled="true" disabled title="危险占位：无设备停止效果，本原型禁用" data-testid="DEC-SB-EMERGENCY">紧急停止</button>
+  </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  let selectedPlan='聚能引爆';
+  let draftConfirmed=false;
+
+  // 目标选择
+  document.querySelectorAll('.target-card').forEach(c=>{
+    c.addEventListener('click',()=>{
+      document.querySelectorAll('.target-card').forEach(x=>x.classList.remove('selected'));
+      c.classList.add('selected');
+      const id=c.dataset.target;
+      document.querySelector('[data-testid="DEC-CE-TARGET"]').textContent=`${id} · ${c.querySelector('.target-card-type').textContent} · ${c.querySelector('.threat-badge').textContent}威胁`;
+      document.querySelector('[data-testid="DEC-RP-DRAFT-TARGET"]').textContent=id;
+      draftConfirmed=false;
+      document.querySelector('[data-testid="DEC-RP-DRAFT-STATUS"]').textContent='待确认';
+    });
+  });
+
+  // 方案选择
+  document.querySelectorAll('.plan-card').forEach(p=>{
+    p.addEventListener('click',()=>{
+      document.querySelectorAll('.plan-card').forEach(x=>x.classList.remove('selected'));
+      p.classList.add('selected');
+      selectedPlan=p.dataset.plan;
+      document.querySelector('[data-testid="DEC-RP-DRAFT-PLAN"]').textContent=selectedPlan;
+      if(draftConfirmed){document.querySelector('[data-testid="DEC-RP-DRAFT-STATUS"]').textContent='待确认';draftConfirmed=false}
+    });
+  });
+
+  // 确认草案
+  document.querySelector('[data-testid="DEC-RP-DRAFT-CONFIRM"]').addEventListener('click',()=>{
+    draftConfirmed=true;
+    document.querySelector('[data-testid="DEC-RP-DRAFT-STATUS"]').textContent='已确认（草案）';
+  });
+
+  // 重置
+  document.querySelector('[data-testid="DEC-RP-DRAFT-RESET"]').addEventListener('click',()=>{
+    draftConfirmed=false;
+    document.querySelector('[data-testid="DEC-RP-DRAFT-STATUS"]').textContent='待确认';
+  });
+
+  // 导航
+  document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));n.classList.add('selected')}));
+});
+</script>
+</body>
+</html>

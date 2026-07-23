@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<title>排弹抢修指挥系统 V1.0 - 统计页面（设计评审原型）</title>
+<style>
+:root{
+  --color-bg:#1E1E1E;--color-panel:#252526;--color-toolbar:#2D2D2D;--color-menu:#2D2D2D;
+  --color-primary:#4A7A4C;--color-primary-hover:#5A8A5C;--color-danger:#D32F2F;
+  --color-threat-high:#FF5252;--color-threat-medium:#FFB74D;--color-threat-low:#FFF176;
+  --color-status-online:#4CAF50;--color-status-offline:#888888;--color-status-busy:#FFB74D;--color-status-error:#FF5252;
+  --color-text-primary:#FFFFFF;--color-text-secondary:#AAAAAA;--color-text-disabled:#888888;
+  --color-border:#3C3C3C;--color-border-focus:#4A7A4C;--color-selection:#2A3F54;--color-row-hover:#2A2A2A;
+  --color-chart-1:#4A7A4C;--color-chart-2:#4A90A4;--color-chart-3:#D4A44A;--color-chart-4:#A44A4A;
+  --font-family:"Noto Sans CJK SC","Microsoft YaHei","Source Han Sans SC","SimHei",sans-serif;
+  --font-size-title:16px;--font-size-body:14px;--font-size-caption:12px;
+  --size-nav-width:80px;--size-left-panel-width:260px;--size-right-panel-width:320px;
+  --size-toolbar-height:32px;--size-menu-bar-height:30px;
+  --space-toolbar-gap:8px;--space-toolbar-pad:8px;
+  --radius-control:4px;--size-scrollbar:10px;--min-scroll-handle:30px;
+  --anim-short:150ms;--anim-easing:ease-in-out;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-family)}
+html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body)}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;font-size:inherit}
+button:disabled{cursor:not-allowed}
+::-webkit-scrollbar{width:var(--size-scrollbar);height:var(--size-scrollbar)}
+::-webkit-scrollbar-track{background:var(--color-toolbar)}
+::-webkit-scrollbar-thumb{background:var(--color-text-secondary);border-radius:var(--radius-control);min-height:var(--min-scroll-handle)}
+::-webkit-scrollbar-thumb:hover{background:var(--color-text-primary)}
+.app{display:flex;flex-direction:column;width:1920px;height:1080px}
+.menu-bar{height:var(--size-menu-bar-height);background:var(--color-menu);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 4px}
+.menu-bar button{padding:6px 12px;font-size:var(--font-size-body);color:var(--color-text-primary);background:transparent}
+.menu-bar button:hover{background:var(--color-border)}
+.menu-bar button[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
+.toolbar{height:var(--size-toolbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:var(--space-toolbar-gap);padding:0 var(--space-toolbar-pad)}
+.toolbar .tb-label{color:var(--color-text-secondary);font-size:var(--font-size-caption);padding:4px}
+.toolbar .tb-label[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
+.toolbar .tb-btn{padding:4px 8px;color:var(--color-text-secondary);font-size:var(--font-size-caption);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control)}
+.toolbar .tb-btn:hover{background:var(--color-border);color:var(--color-text-primary)}
+.toolbar .tb-btn.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.main-area{flex:1;display:flex;overflow:hidden}
+.nav-bar{width:var(--size-nav-width);background:var(--color-bg);border-right:1px solid var(--color-border);display:flex;flex-direction:column;align-items:stretch}
+.nav-logo{height:40px;display:flex;align-items:center;justify-content:center;color:var(--color-primary);font-size:18px;font-weight:bold;letter-spacing:2px}
+.nav-spacer-1{height:16px}
+.nav-items{display:flex;flex-direction:column}
+.nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
+.nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
+.nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
+.nav-item .nav-icon{font-size:18px;line-height:1}
+.nav-spacer-2{flex:1}
+.left-panel{width:var(--size-left-panel-width);background:var(--color-panel);padding:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.lp-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;padding:0 4px}
+.metric-nav{display:flex;flex-direction:column;gap:4px}
+.metric-nav-item{height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:var(--radius-control);cursor:pointer;color:var(--color-text-secondary);font-size:var(--font-size-body);transition:all var(--anim-short) var(--anim-easing);border-left:3px solid transparent}
+.metric-nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
+.metric-nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
+.session-info{background:var(--color-toolbar);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:6px}
+.session-row{display:flex;justify-content:space-between;font-size:11px}
+.session-label{color:var(--color-text-secondary)}
+.session-value{color:var(--color-text-primary)}
+.center-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.center-header{height:40px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:12px}
+.center-title{font-size:var(--font-size-title);color:var(--color-text-primary);font-weight:bold}
+.center-subtitle{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
+.view-toggle{display:flex;gap:4px;margin-left:auto}
+.view-btn{padding:4px 12px;font-size:var(--font-size-caption);background:var(--color-bg);color:var(--color-text-secondary);border:1px solid var(--color-border);border-radius:var(--radius-control);cursor:pointer}
+.view-btn:hover{background:var(--color-border)}
+.view-btn.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.center-content{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi-card{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:16px;display:flex;flex-direction:column;gap:8px}
+.kpi-label{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
+.kpi-value{font-size:28px;font-weight:bold;color:var(--color-text-primary)}
+.kpi-value.highlight{color:var(--color-primary)}
+.kpi-value.warn{color:var(--color-threat-medium)}
+.kpi-value.danger{color:var(--color-threat-high)}
+.kpi-sub{color:var(--color-text-disabled);font-size:11px}
+.chart-panel{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:16px;display:flex;flex-direction:column;gap:12px}
+.chart-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
+.chart-container{height:200px;display:flex;align-items:flex-end;gap:24px;padding:0 16px 0 48px;border-bottom:1px solid var(--color-border);position:relative}
+.chart-y-axis{position:absolute;left:0;top:0;bottom:0;width:40px;display:flex;flex-direction:column;justify-content:space-between;font-size:10px;color:var(--color-text-disabled);text-align:right;padding-right:4px;padding-bottom:20px}
+.chart-bar-group{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.chart-bar{width:100%;max-width:48px;border-radius:3px 3px 0 0;position:relative}
+.chart-bar-label{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--color-text-primary)}
+.chart-x-label{font-size:11px;color:var(--color-text-secondary);text-align:center}
+.chart-legend{display:flex;gap:16px;justify-content:center}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-text-secondary)}
+.legend-dot{width:10px;height:10px;border-radius:2px}
+.data-table{width:100%;border-collapse:collapse;font-size:var(--font-size-caption)}
+.data-table th{background:var(--color-toolbar);color:var(--color-text-primary);padding:8px;text-align:left;border-bottom:1px solid var(--color-border);font-weight:normal}
+.data-table td{padding:8px;border-bottom:1px solid var(--color-border);color:var(--color-text-primary)}
+.data-table tbody tr:nth-child(even){background:var(--color-panel)}
+.right-panel{width:var(--size-right-panel-width);background:var(--color-panel);display:flex;flex-direction:column;overflow:hidden}
+.rp-section{display:flex;flex-direction:column;overflow:hidden}
+.rp-section-header{height:32px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;gap:8px}
+.rp-section-title{flex:1;font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
+.rp-section.filter{flex:2}
+.rp-section.status{flex:3}
+.rp-section-content{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.filter-chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{padding:3px 8px;font-size:11px;background:var(--color-bg);color:var(--color-text-secondary);border:1px solid var(--color-border);border-radius:10px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing)}
+.chip:hover{background:var(--color-border);color:var(--color-text-primary)}
+.chip.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.status-example{background:var(--color-toolbar);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:8px}
+.status-example-row{display:flex;align-items:center;gap:8px;font-size:var(--font-size-caption)}
+.status-example-label{color:var(--color-text-secondary);width:60px}
+.status-example-value{color:var(--color-text-primary)}
+.status-note{color:var(--color-text-disabled);font-size:11px;line-height:1.5}
+.status-bar{height:28px;background:var(--color-bg);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:16px}
+.status-label{color:var(--color-text-primary);font-size:var(--font-size-caption)}
+.status-sim{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+.status-separator{width:1px;height:18px;background:var(--color-border)}
+.status-alarm{flex:1;min-width:400px;height:18px;overflow:hidden;display:flex;align-items:center}
+.status-alarm-item{height:18px;color:var(--color-status-busy);font-size:var(--font-size-caption);background:var(--color-toolbar);padding:2px 8px;border-radius:var(--radius-control);margin-right:10px;white-space:nowrap}
+.emergency-btn{width:80px;height:20px;font-size:11px;font-weight:bold;background:var(--color-danger);color:var(--color-text-primary);border:none;border-radius:3px}
+.emergency-btn:disabled{background:var(--color-border);color:var(--color-text-disabled);cursor:not-allowed}
+.sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="menu-bar">
+    <button data-testid="STA-MENU-FILE">文件(&amp;F)</button>
+    <button data-testid="STA-MENU-VIEW">视图(&amp;V)</button>
+    <button data-testid="STA-MENU-TOOLS" data-disabled="true" title="占位控件，未实现">工具(&amp;T)</button>
+    <button data-testid="STA-MENU-HELP">帮助(&amp;H)</button>
+  </div>
+  <div class="toolbar">
+    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="STA-TB-EXPORT">导出报告</span>
+    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="STA-TB-REPLAY">回放</span>
+    <button class="tb-btn active" data-testid="STA-TB-VIEW-CHART">图表</button>
+    <button class="tb-btn" data-testid="STA-TB-VIEW-TABLE">表格</button>
+    <span style="flex:1"></span>
+    <span class="tb-label" data-testid="STA-TB-SESSION">当前会话: session-demo-001</span>
+  </div>
+  <div class="main-area">
+    <div class="nav-bar">
+      <div class="nav-logo" data-testid="STA-NAV-LOGO">UXO</div>
+      <div class="nav-spacer-1"></div>
+      <div class="nav-items">
+        <div class="nav-item" data-testid="STA-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
+        <div class="nav-item" data-testid="STA-NAV-02"><span class="nav-icon">◎</span><span>探测</span></div>
+        <div class="nav-item" data-testid="STA-NAV-03"><span class="nav-icon">◎</span><span>决策</span></div>
+        <div class="nav-item" data-testid="STA-NAV-04"><span class="nav-icon">◎</span><span>设备</span></div>
+        <div class="nav-item selected" data-testid="STA-NAV-05"><span class="nav-icon">◎</span><span>统计</span></div>
+        <div class="nav-item" data-testid="STA-NAV-06"><span class="nav-icon">◎</span><span>配置</span></div>
+      </div>
+      <div class="nav-spacer-2"></div>
+    </div>
+    <div class="left-panel">
+      <span class="lp-title">指标分类</span>
+      <div class="metric-nav" data-testid="STA-LP-METRIC-NAV">
+        <div class="metric-nav-item selected" data-metric="overview"><span>◎</span> 总览</div>
+        <div class="metric-nav-item" data-metric="targets"><span>◎</span> 目标统计</div>
+        <div class="metric-nav-item" data-metric="missions"><span>◎</span> 任务统计</div>
+        <div class="metric-nav-item" data-metric="devices"><span>◎</span> 设备统计</div>
+        <div class="metric-nav-item" data-metric="alerts"><span>◎</span> 告警统计</div>
+      </div>
+      <div class="session-info" data-testid="STA-LP-SESSION">
+        <div class="session-row"><span class="session-label">会话 ID</span><span class="session-value">session-demo-001</span></div>
+        <div class="session-row"><span class="session-label">开始时间</span><span class="session-value">14:30:00</span></div>
+        <div class="session-row"><span class="session-label">运行时长</span><span class="session-value">00:15:23</span></div>
+        <div class="session-row"><span class="session-label">数据来源</span><span class="session-value" style="color:var(--color-status-busy)">[模拟] 本地固定</span></div>
+      </div>
+    </div>
+    <div class="center-area">
+      <div class="center-header">
+        <span class="center-title">统计总览</span>
+        <span class="center-subtitle">[模拟] 当前会话指标</span>
+        <div class="view-toggle">
+          <button class="view-btn active" data-testid="STA-CE-VIEW-CHART">图表</button>
+          <button class="view-btn" data-testid="STA-CE-VIEW-TABLE">表格</button>
+        </div>
+      </div>
+      <div class="center-content" data-testid="STA-CE-CONTENT">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">探测目标</span>
+            <span class="kpi-value highlight" data-testid="STA-CE-KPI-TARGETS">5</span>
+            <span class="kpi-sub">[模拟] 3 已发现 / 1 已确认 / 1 处置中</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">执行任务</span>
+            <span class="kpi-value" data-testid="STA-CE-KPI-MISSIONS">1</span>
+            <span class="kpi-sub">[模拟] 0 待执行 / 1 处置中 / 0 已完成</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">在线设备</span>
+            <span class="kpi-value warn" data-testid="STA-CE-KPI-DEVICES">3/4</span>
+            <span class="kpi-sub">[模拟] 1 设备离线</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">告警数量</span>
+            <span class="kpi-value danger" data-testid="STA-CE-KPI-ALERTS">3</span>
+            <span class="kpi-sub">[模拟] 1 警告 / 2 信息</span>
+          </div>
+        </div>
+        <div class="chart-panel" data-testid="STA-CE-CHART">
+          <span class="chart-title">[模拟] 目标类型分布</span>
+          <div class="chart-container">
+            <div class="chart-y-axis"><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span></div>
+            <div class="chart-bar-group"><div class="chart-bar" style="height:40%;background:var(--color-chart-1)"><span class="chart-bar-label">2</span></div><span class="chart-x-label">反跑道雷</span></div>
+            <div class="chart-bar-group"><div class="chart-bar" style="height:20%;background:var(--color-chart-2)"><span class="chart-bar-label">1</span></div><span class="chart-x-label">航弹</span></div>
+            <div class="chart-bar-group"><div class="chart-bar" style="height:20%;background:var(--color-chart-3)"><span class="chart-bar-label">1</span></div><span class="chart-x-label">火箭弹</span></div>
+            <div class="chart-bar-group"><div class="chart-bar" style="height:20%;background:var(--color-chart-4)"><span class="chart-bar-label">1</span></div><span class="chart-x-label">集束弹</span></div>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--color-chart-1)"></div>反跑道雷</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--color-chart-2)"></div>航弹</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--color-chart-3)"></div>火箭弹</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--color-chart-4)"></div>集束弹</div>
+          </div>
+        </div>
+        <div class="chart-panel">
+          <span class="chart-title">[模拟] 威胁等级分布</span>
+          <div class="chart-container">
+            <div class="chart-y-axis"><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span><span>0</span></div>
+            <div class="chart-bar-group"><div class="chart-bar" style="height:40%;background:var(--color-threat-high)"><span class="chart-bar-label">2</span></div><span class="chart-x-label">高威胁</span></div>
+            <div class="chart-bar-group"><div class="chart-bar" style="height:40%;background:var(--color-threat-medium)"><span class="chart-bar-label">2</span></div><span class="chart-x-label">中威胁</span></div>
+            <div class="chart-bar-group"><div class="chart-bar" style="height:20%;background:var(--color-threat-low)"><span class="chart-bar-label">1</span></div><span class="chart-x-label">低威胁</span></div>
+          </div>
+        </div>
+        <div class="chart-panel" data-testid="STA-CE-TABLE" style="display:none">
+          <span class="chart-title">[模拟] 目标明细表</span>
+          <table class="data-table">
+            <thead><tr><th>目标 ID</th><th>类型</th><th>威胁</th><th>置信度</th><th>状态</th><th>探测源</th></tr></thead>
+            <tbody>
+              <tr><td>target-001</td><td>反跑道雷</td><td style="color:var(--color-threat-high)">高</td><td>86%</td><td>已发现</td><td>UAV-1</td></tr>
+              <tr><td>target-002</td><td>航弹</td><td style="color:var(--color-threat-high)">高</td><td>72%</td><td>已发现</td><td>UAV-2</td></tr>
+              <tr><td>target-003</td><td>火箭弹</td><td style="color:var(--color-threat-medium)">中</td><td>91%</td><td>已确认</td><td>GPR-1</td></tr>
+              <tr><td>target-004</td><td>集束弹</td><td style="color:var(--color-threat-low)">低</td><td>65%</td><td>已发现</td><td>UAV-1</td></tr>
+              <tr><td>target-005</td><td>反跑道雷</td><td style="color:var(--color-threat-medium)">中</td><td>78%</td><td>处置中</td><td>UAV-2</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="right-panel">
+      <div class="rp-section filter">
+        <div class="rp-section-header"><span class="rp-section-title">[模拟] 筛选</span></div>
+        <div class="rp-section-content">
+          <div>
+            <span style="color:var(--color-text-secondary);font-size:var(--font-size-caption);display:block;margin-bottom:6px">时间范围</span>
+            <div class="filter-chips" data-testid="STA-RP-FILTER-TIME">
+              <span class="chip active">当前会话</span>
+              <span class="chip" style="opacity:0.5;cursor:not-allowed" title="历史数据不可用">最近1小时</span>
+              <span class="chip" style="opacity:0.5;cursor:not-allowed" title="历史数据不可用">最近24小时</span>
+            </div>
+          </div>
+          <div>
+            <span style="color:var(--color-text-secondary);font-size:var(--font-size-caption);display:block;margin-bottom:6px">目标类型</span>
+            <div class="filter-chips" data-testid="STA-RP-FILTER-TYPE">
+              <span class="chip active">全部</span>
+              <span class="chip">反跑道雷</span>
+              <span class="chip">航弹</span>
+              <span class="chip">火箭弹</span>
+              <span class="chip">集束弹</span>
+            </div>
+          </div>
+          <div>
+            <span style="color:var(--color-text-secondary);font-size:var(--font-size-caption);display:block;margin-bottom:6px">威胁等级</span>
+            <div class="filter-chips" data-testid="STA-RP-FILTER-THREAT">
+              <span class="chip active">全部</span>
+              <span class="chip">高</span>
+              <span class="chip">中</span>
+              <span class="chip">低</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rp-section status">
+        <div class="rp-section-header"><span class="rp-section-title">状态示例</span></div>
+        <div class="rp-section-content">
+          <div class="status-example">
+            <span style="font-size:var(--font-size-caption);color:var(--color-text-primary);font-weight:bold">数据口径说明</span>
+            <div class="status-example-row"><span class="status-example-label">来源</span><span class="status-example-value">本地固定模拟场景</span></div>
+            <div class="status-example-row"><span class="status-example-label">范围</span><span class="status-example-value">当前会话内存数据</span></div>
+            <div class="status-example-row"><span class="status-example-label">持久化</span><span class="status-example-value" style="color:var(--color-threat-medium)">无（刷新即清空）</span></div>
+            <div class="status-note"><span class="sim-tag">[模拟]</span> 本页所有指标均为本地会话固定数据，不暗示历史数据库、导出或回放功能已实现。</div>
+          </div>
+          <div class="status-example">
+            <span style="font-size:var(--font-size-caption);color:var(--color-text-primary);font-weight:bold">空会话状态示例</span>
+            <div class="status-note">当会话无数据时，KPI 显示 "0" 并标注 "[模拟] 无数据"，图表显示空轴和 "暂无数据" 文字，不显示零值误导。</div>
+          </div>
+          <div class="status-example">
+            <span style="font-size:var(--font-size-caption);color:var(--color-text-primary);font-weight:bold">错误状态示例</span>
+            <div class="status-note">数据加载失败时，KPI 显示 "N/A"，图表区显示错误图标和 "数据加载失败（模拟）" 文字，不伪造历史结果。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="status-bar">
+    <span class="status-label" data-testid="STA-SB-DEVICE">设备: 3/4 在线</span>
+    <span class="status-separator"></span>
+    <span class="status-sim" data-testid="STA-SB-SIM">[模拟模式]</span>
+    <span class="status-separator"></span>
+    <div class="status-alarm" data-testid="STA-SB-ALARM">
+      <span class="status-alarm-item">模拟告警: 统计数据为本地会话固定</span>
+    </div>
+    <button class="emergency-btn" data-disabled="true" disabled title="危险占位：无设备停止效果，本原型禁用" data-testid="STA-SB-EMERGENCY">紧急停止</button>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const chartPanels=document.querySelectorAll('.chart-panel');
+  const chartView=chartPanels[0];const chartView2=chartPanels[1];const tableView=chartPanels[2];
+  const btnChart=document.querySelector('[data-testid="STA-TB-VIEW-CHART"]');
+  const btnTable=document.querySelector('[data-testid="STA-TB-VIEW-TABLE"]');
+  const ceBtnChart=document.querySelector('[data-testid="STA-CE-VIEW-CHART"]');
+  const ceBtnTable=document.querySelector('[data-testid="STA-CE-VIEW-TABLE"]');
+  function showChart(){chartView.style.display='flex';chartView2.style.display='flex';tableView.style.display='none';btnChart.classList.add('active');btnTable.classList.remove('active');ceBtnChart.classList.add('active');ceBtnTable.classList.remove('active')}
+  function showTable(){chartView.style.display='none';chartView2.style.display='none';tableView.style.display='flex';btnChart.classList.remove('active');btnTable.classList.add('active');ceBtnChart.classList.remove('active');ceBtnTable.classList.add('active')}
+  btnChart.addEventListener('click',showChart);btnTable.addEventListener('click',showTable);
+  ceBtnChart.addEventListener('click',showChart);ceBtnTable.addEventListener('click',showTable);
+  document.querySelectorAll('.metric-nav-item').forEach(i=>i.addEventListener('click',()=>{document.querySelectorAll('.metric-nav-item').forEach(x=>x.classList.remove('selected'));i.classList.add('selected')}));
+  document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));n.classList.add('selected')}));
+  document.querySelectorAll('.chip:not([style*="cursor:not-allowed"])').forEach(c=>c.addEventListener('click',()=>{const s=c.parentElement;c.querySelectorAll&&(s.querySelectorAll('.chip').forEach(x=>x.classList.remove('active')));c.classList.add('active')}));
+});
+</script>
+</body>
+</html>

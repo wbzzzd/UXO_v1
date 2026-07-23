@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<title>排弹抢修指挥系统 V1.0 - 设备页面（设计评审原型）</title>
+<style>
+:root{
+  --color-bg:#1E1E1E;--color-panel:#252526;--color-toolbar:#2D2D2D;--color-menu:#2D2D2D;
+  --color-primary:#4A7A4C;--color-primary-hover:#5A8A5C;--color-danger:#D32F2F;
+  --color-threat-high:#FF5252;--color-threat-medium:#FFB74D;--color-threat-low:#FFF176;
+  --color-status-online:#4CAF50;--color-status-offline:#888888;--color-status-busy:#FFB74D;--color-status-error:#FF5252;
+  --color-text-primary:#FFFFFF;--color-text-secondary:#AAAAAA;--color-text-disabled:#888888;
+  --color-border:#3C3C3C;--color-border-focus:#4A7A4C;
+  --color-selection:#2A3F54;--color-row-hover:#2A2A2A;
+  --font-family:"Noto Sans CJK SC","Microsoft YaHei","Source Han Sans SC","SimHei",sans-serif;
+  --font-size-title:16px;--font-size-body:14px;--font-size-caption:12px;
+  --size-nav-width:80px;--size-left-panel-width:360px;--size-right-panel-width:380px;
+  --size-status-bar-height:22px;--size-toolbar-height:32px;--size-menu-bar-height:30px;
+  --space-toolbar-gap:8px;--space-toolbar-pad:8px;
+  --radius-control:4px;--radius-scroll-handle:5px;--size-scrollbar:10px;--min-scroll-handle:30px;
+  --anim-short:150ms;--anim-easing:ease-in-out;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-family)}
+html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body)}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;font-size:inherit}
+button:disabled{cursor:not-allowed}
+::-webkit-scrollbar{width:var(--size-scrollbar);height:var(--size-scrollbar)}
+::-webkit-scrollbar-track{background:var(--color-toolbar)}
+::-webkit-scrollbar-thumb{background:var(--color-text-secondary);border-radius:var(--radius-scroll-handle);min-height:var(--min-scroll-handle)}
+::-webkit-scrollbar-thumb:hover{background:var(--color-text-primary)}
+.app{display:flex;flex-direction:column;width:1920px;height:1080px}
+.menu-bar{height:var(--size-menu-bar-height);background:var(--color-menu);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 4px}
+.menu-bar button{padding:6px 12px;font-size:var(--font-size-body);color:var(--color-text-primary);background:transparent}
+.menu-bar button:hover{background:var(--color-border)}
+.menu-bar button[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
+.menu-bar button[data-disabled="true"]:hover{background:transparent}
+.toolbar{height:var(--size-toolbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:var(--space-toolbar-gap);padding:0 var(--space-toolbar-pad)}
+.toolbar .tb-label{color:var(--color-text-secondary);font-size:var(--font-size-caption);padding:4px}
+.toolbar .tb-label[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
+.toolbar .tb-btn{padding:4px 8px;color:var(--color-text-secondary);font-size:var(--font-size-caption);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control)}
+.toolbar .tb-btn:hover{background:var(--color-border);color:var(--color-text-primary)}
+.main-area{flex:1;display:flex;overflow:hidden}
+.nav-bar{width:var(--size-nav-width);background:var(--color-bg);border-right:1px solid var(--color-border);display:flex;flex-direction:column;align-items:stretch}
+.nav-logo{height:40px;display:flex;align-items:center;justify-content:center;color:var(--color-primary);font-size:18px;font-weight:bold;letter-spacing:2px}
+.nav-spacer-1{height:16px}
+.nav-items{display:flex;flex-direction:column}
+.nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
+.nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
+.nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
+.nav-item .nav-icon{font-size:18px;line-height:1}
+.nav-spacer-2{flex:1}
+
+/* 左面板：设备列表 */
+.left-panel{width:var(--size-left-panel-width);background:var(--color-panel);padding:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.search-toolbar{background:var(--color-toolbar);border-radius:var(--radius-control);padding:8px 6px;display:flex;gap:8px;align-items:center}
+.search-input{flex:1;height:28px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 8px;color:var(--color-text-primary);font-size:var(--font-size-body)}
+.search-input:focus{outline:none;border-color:var(--color-border-focus)}
+.search-input::placeholder{color:var(--color-text-disabled)}
+.btn-icon{height:28px;padding:0 10px;font-size:var(--font-size-caption);background:var(--color-toolbar);color:var(--color-text-secondary);border:1px solid var(--color-border);border-radius:var(--radius-control)}
+.btn-icon:hover{background:var(--color-border);color:var(--color-text-primary)}
+
+.filter-group{background:var(--color-toolbar);border-radius:var(--radius-control);padding:8px 6px;display:flex;flex-direction:column;gap:6px}
+.filter-row{display:flex;align-items:center;gap:6px}
+.filter-label{width:52px;color:var(--color-text-secondary);font-size:var(--font-size-caption);flex-shrink:0}
+.filter-chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{padding:3px 8px;font-size:11px;background:var(--color-bg);color:var(--color-text-secondary);border:1px solid var(--color-border);border-radius:10px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing)}
+.chip:hover{background:var(--color-border);color:var(--color-text-primary)}
+.chip.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+
+.device-list{flex:1;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.device-card{background:var(--color-toolbar);border:1px solid var(--color-border);border-left:3px solid var(--color-border);border-radius:var(--radius-control);padding:12px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing)}
+.device-card:hover{background:#363636}
+.device-card.selected{background:var(--color-selection);border-left-color:var(--color-primary)}
+.device-card.unavailable{opacity:0.6}
+.device-card-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.device-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.device-dot.online{background:var(--color-status-online)}
+.device-dot.busy{background:var(--color-status-busy)}
+.device-dot.offline{background:var(--color-status-offline)}
+.device-name{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;flex:1}
+.device-type{font-size:11px;color:var(--color-text-secondary);padding:2px 6px;background:var(--color-bg);border-radius:3px}
+.device-card-body{display:flex;gap:16px;font-size:11px;color:var(--color-text-secondary)}
+.device-status-text{font-size:11px;font-weight:bold}
+.device-status-text.online{color:var(--color-status-online)}
+.device-status-text.busy{color:var(--color-status-busy)}
+.device-status-text.offline{color:var(--color-status-offline)}
+.device-battery{font-size:11px}
+.device-battery.high{color:var(--color-status-online)}
+.device-battery.mid{color:var(--color-status-busy)}
+.device-battery.low{color:var(--color-status-error)}
+
+/* 中心区：设备详情 */
+.center-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.center-header{height:40px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:12px}
+.center-title{font-size:var(--font-size-title);color:var(--color-text-primary);font-weight:bold}
+.center-subtitle{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
+.center-content{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail-card{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:16px;display:flex;flex-direction:column;gap:10px}
+.detail-card-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;border-bottom:1px solid var(--color-border);padding-bottom:6px}
+.detail-field{display:flex;flex-direction:column;gap:2px}
+.detail-label{color:var(--color-text-secondary);font-size:11px}
+.detail-value{color:var(--color-text-primary);font-size:var(--font-size-body)}
+.detail-value.highlight{color:var(--color-primary);font-weight:bold}
+.detail-value.warn{color:var(--color-threat-medium);font-weight:bold}
+.detail-value.danger{color:var(--color-danger);font-weight:bold}
+
+/* 可用性说明 */
+.availability-panel{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:16px;display:flex;flex-direction:column;gap:8px}
+.avail-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border)}
+.avail-row:last-child{border-bottom:none}
+.avail-label{width:100px;color:var(--color-text-secondary);font-size:var(--font-size-caption)}
+.avail-value{color:var(--color-text-primary);font-size:var(--font-size-caption);flex:1}
+.avail-status{padding:2px 8px;border-radius:3px;font-size:10px;font-weight:bold}
+.avail-status.ok{background:rgba(76,175,80,0.2);color:var(--color-status-online)}
+.avail-status.warn{background:rgba(255,183,77,0.2);color:var(--color-threat-medium)}
+.avail-status.block{background:rgba(255,82,82,0.2);color:var(--color-threat-high)}
+
+/* 右面板：模拟指派 */
+.right-panel{width:var(--size-right-panel-width);background:var(--color-panel);display:flex;flex-direction:column;overflow:hidden}
+.rp-section{display:flex;flex-direction:column;overflow:hidden}
+.rp-section-header{height:32px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;gap:8px}
+.rp-section-title{flex:1;font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
+.rp-section.assign{flex:3}
+.rp-section.recommend{flex:2}
+.rp-section-content{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+
+.assign-card{background:var(--color-toolbar);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:10px}
+.assign-row{display:flex;align-items:center;gap:8px;font-size:var(--font-size-caption)}
+.assign-label{width:80px;color:var(--color-text-secondary)}
+.assign-value{color:var(--color-text-primary)}
+.assign-btn{height:36px;padding:0 20px;font-size:var(--font-size-body);background:var(--color-primary);color:var(--color-text-primary);border:none;border-radius:var(--radius-control)}
+.assign-btn:hover:not(:disabled){background:var(--color-primary-hover)}
+.assign-btn:disabled{background:var(--color-border);color:var(--color-text-disabled)}
+.assign-note{color:var(--color-text-disabled);font-size:11px;line-height:1.5}
+
+.recommend-card{background:var(--color-toolbar);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:8px}
+.rec-row{display:flex;align-items:center;gap:8px;padding:4px 0}
+.rec-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.rec-dot.online{background:var(--color-status-online)}
+.rec-dot.busy{background:var(--color-status-busy)}
+.rec-dot.offline{background:var(--color-status-offline)}
+.rec-name{color:var(--color-text-primary);font-size:var(--font-size-caption);flex:1}
+.rec-reason{color:var(--color-text-secondary);font-size:11px}
+
+.status-bar{height:28px;background:var(--color-bg);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:16px}
+.status-label{color:var(--color-text-primary);font-size:var(--font-size-caption)}
+.status-sim{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+.status-separator{width:1px;height:18px;background:var(--color-border)}
+.status-alarm{flex:1;min-width:400px;height:18px;overflow:hidden;display:flex;align-items:center}
+.status-alarm-item{height:18px;color:var(--color-status-busy);font-size:var(--font-size-caption);background:var(--color-toolbar);padding:2px 8px;border-radius:var(--radius-control);margin-right:10px;white-space:nowrap}
+.emergency-btn{width:80px;height:20px;font-size:11px;font-weight:bold;background:var(--color-danger);color:var(--color-text-primary);border:none;border-radius:3px}
+.emergency-btn:disabled{background:var(--color-border);color:var(--color-text-disabled);cursor:not-allowed}
+.sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="menu-bar">
+    <button data-testid="DEV-MENU-FILE">文件(&amp;F)</button>
+    <button data-testid="DEV-MENU-VIEW">视图(&amp;V)</button>
+    <button data-testid="DEV-MENU-TOOLS" data-disabled="true" title="占位控件，未实现">工具(&amp;T)</button>
+    <button data-testid="DEV-MENU-HELP">帮助(&amp;H)</button>
+  </div>
+
+  <div class="toolbar">
+    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="DEV-TB-CONSOLE">设备控制台</span>
+    <button class="tb-btn" data-testid="DEV-TB-REFRESH" title="刷新模拟设备状态">刷新设备</button>
+    <span style="flex:1"></span>
+    <span class="tb-label" data-testid="DEV-TB-COUNT">模拟设备: 4</span>
+  </div>
+
+  <div class="main-area">
+    <div class="nav-bar">
+      <div class="nav-logo" data-testid="DEV-NAV-LOGO">UXO</div>
+      <div class="nav-spacer-1"></div>
+      <div class="nav-items">
+        <div class="nav-item" data-testid="DEV-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
+        <div class="nav-item" data-testid="DEV-NAV-02"><span class="nav-icon">◎</span><span>探测</span></div>
+        <div class="nav-item" data-testid="DEV-NAV-03"><span class="nav-icon">◎</span><span>决策</span></div>
+        <div class="nav-item selected" data-testid="DEV-NAV-04"><span class="nav-icon">◎</span><span>设备</span></div>
+        <div class="nav-item" data-testid="DEV-NAV-05"><span class="nav-icon">◎</span><span>统计</span></div>
+        <div class="nav-item" data-testid="DEV-NAV-06"><span class="nav-icon">◎</span><span>配置</span></div>
+      </div>
+      <div class="nav-spacer-2"></div>
+    </div>
+
+    <!-- 左面板：设备列表 -->
+    <div class="left-panel">
+      <div class="search-toolbar">
+        <input type="text" class="search-input" placeholder="搜索设备..." data-testid="DEV-LP-SEARCH">
+        <button class="btn-icon" data-testid="DEV-LP-REFRESH">刷新</button>
+      </div>
+      <div class="filter-group">
+        <div class="filter-row">
+          <span class="filter-label">类型</span>
+          <div class="filter-chips" data-testid="DEV-LP-FILTER-TYPE">
+            <span class="chip active" data-filter="type" data-value="all">全部</span>
+            <span class="chip" data-filter="type" data-value="UAV">无人机</span>
+            <span class="chip" data-filter="type" data-value="Robot">机器人</span>
+            <span class="chip" data-filter="type" data-value="GPR">探地雷达</span>
+          </div>
+        </div>
+        <div class="filter-row">
+          <span class="filter-label">状态</span>
+          <div class="filter-chips" data-testid="DEV-LP-FILTER-STATUS">
+            <span class="chip active" data-filter="status" data-value="all">全部</span>
+            <span class="chip" data-filter="status" data-value="online">在线</span>
+            <span class="chip" data-filter="status" data-value="busy">忙碌</span>
+            <span class="chip" data-filter="status" data-value="offline">离线</span>
+          </div>
+        </div>
+      </div>
+      <div class="device-list" data-testid="DEV-LP-DEVICE-LIST">
+        <div class="device-card selected" data-device="device-001">
+          <div class="device-card-header">
+            <div class="device-dot online"></div>
+            <span class="device-name">侦察无人机 Alpha</span>
+            <span class="device-type">UAV</span>
+          </div>
+          <div class="device-card-body">
+            <span class="device-status-text online">● 模拟在线</span>
+            <span class="device-battery high">⚡ 82%</span>
+            <span>信号: 良好</span>
+          </div>
+        </div>
+        <div class="device-card" data-device="device-002">
+          <div class="device-card-header">
+            <div class="device-dot busy"></div>
+            <span class="device-name">排爆机器人 Bravo</span>
+            <span class="device-type">Robot</span>
+          </div>
+          <div class="device-card-body">
+            <span class="device-status-text busy">● 模拟忙碌</span>
+            <span class="device-battery mid">⚡ 45%</span>
+            <span>任务: target-005</span>
+          </div>
+        </div>
+        <div class="device-card" data-device="device-003">
+          <div class="device-card-header">
+            <div class="device-dot online"></div>
+            <span class="device-name">排爆无人机 Charlie</span>
+            <span class="device-type">UAV</span>
+          </div>
+          <div class="device-card-body">
+            <span class="device-status-text online">● 模拟在线</span>
+            <span class="device-battery high">⚡ 91%</span>
+            <span>信号: 良好</span>
+          </div>
+        </div>
+        <div class="device-card unavailable" data-device="device-004">
+          <div class="device-card-header">
+            <div class="device-dot offline"></div>
+            <span class="device-name">探地雷达 Delta</span>
+            <span class="device-type">GPR</span>
+          </div>
+          <div class="device-card-body">
+            <span class="device-status-text offline">● 模拟离线</span>
+            <span class="device-battery" style="color:var(--color-text-disabled)">⚡ --</span>
+            <span>原因: 通信中断</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中心区：设备详情 -->
+    <div class="center-area">
+      <div class="center-header">
+        <span class="center-title">设备详情</span>
+        <span class="center-subtitle" data-testid="DEV-CE-DEVICE">device-001 · 侦察无人机 Alpha</span>
+      </div>
+      <div class="center-content">
+        <div class="detail-grid">
+          <div class="detail-card">
+            <span class="detail-card-title">基本信息</span>
+            <div class="detail-field"><span class="detail-label">设备 ID</span><span class="detail-value">device-001</span></div>
+            <div class="detail-field"><span class="detail-label">设备名称</span><span class="detail-value">侦察无人机 Alpha</span></div>
+            <div class="detail-field"><span class="detail-label">设备类型</span><span class="detail-value highlight">UAV 侦察无人机</span></div>
+            <div class="detail-field"><span class="detail-label">当前状态</span><span class="detail-value highlight">模拟在线</span></div>
+            <div class="detail-field"><span class="detail-label">归属单位</span><span class="detail-value">模拟侦察组</span></div>
+          </div>
+          <div class="detail-card">
+            <span class="detail-card-title">运行状态</span>
+            <div class="detail-field"><span class="detail-label">电量</span><span class="detail-value highlight">82%</span></div>
+            <div class="detail-field"><span class="detail-label">信号强度</span><span class="detail-value">良好（模拟）</span></div>
+            <div class="detail-field"><span class="detail-label">通信链路</span><span class="detail-value warn">[模拟] 本地模拟链路</span></div>
+            <div class="detail-field"><span class="detail-label">当前任务</span><span class="detail-value">无</span></div>
+            <div class="detail-field"><span class="detail-label">最后心跳</span><span class="detail-value">14:30:15</span></div>
+          </div>
+          <div class="detail-card">
+            <span class="detail-card-title">能力参数（模拟）</span>
+            <div class="detail-field"><span class="detail-label">载荷类型</span><span class="detail-value">可见光 + 红外</span></div>
+            <div class="detail-field"><span class="detail-label">最大航程</span><span class="detail-value">5km（模拟）</span></div>
+            <div class="detail-field"><span class="detail-label">续航时间</span><span class="detail-value">30min（模拟）</span></div>
+            <div class="detail-field"><span class="detail-label">支持处置</span><span class="detail-value">侦察、监视</span></div>
+          </div>
+          <div class="detail-card">
+            <span class="detail-card-title">维护信息（模拟）</span>
+            <div class="detail-field"><span class="detail-label">上次检修</span><span class="detail-value">2026-07-20</span></div>
+            <div class="detail-field"><span class="detail-label">下次检修</span><span class="detail-value">2026-08-20</span></div>
+            <div class="detail-field"><span class="detail-label">累计运行</span><span class="detail-value">128 小时</span></div>
+            <div class="detail-field"><span class="detail-label">故障记录</span><span class="detail-value" style="color:var(--color-status-online)">无</span></div>
+          </div>
+        </div>
+
+        <!-- 可用性说明 -->
+        <div class="availability-panel">
+          <span style="font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold">[模拟] 可用性检查</span>
+          <div class="avail-row">
+            <span class="avail-label">设备状态</span>
+            <span class="avail-value">在线，可接受指派</span>
+            <span class="avail-status ok">可用</span>
+          </div>
+          <div class="avail-row">
+            <span class="avail-label">电量充足</span>
+            <span class="avail-value">82%（>30% 阈值）</span>
+            <span class="avail-status ok">满足</span>
+          </div>
+          <div class="avail-row">
+            <span class="avail-label">通信正常</span>
+            <span class="avail-value">[模拟] 本地链路正常</span>
+            <span class="avail-status warn">占位</span>
+          </div>
+          <div class="avail-row">
+            <span class="avail-label">无占用任务</span>
+            <span class="avail-value">当前无执行中任务</span>
+            <span class="avail-status ok">满足</span>
+          </div>
+          <div class="avail-row">
+            <span class="avail-label">类型匹配</span>
+            <span class="avail-value">支持侦察任务类型</span>
+            <span class="avail-status ok">满足</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右面板：模拟指派 -->
+    <div class="right-panel">
+      <div class="rp-section assign">
+        <div class="rp-section-header">
+          <span class="rp-section-title">[模拟] 模拟指派</span>
+        </div>
+        <div class="rp-section-content">
+          <div class="assign-card" data-testid="DEV-RP-ASSIGN">
+            <div class="assign-row">
+              <span class="assign-label">选中设备</span>
+              <span class="assign-value" data-testid="DEV-RP-ASSIGN-DEVICE">device-001 侦察无人机 Alpha</span>
+            </div>
+            <div class="assign-row">
+              <span class="assign-label">设备状态</span>
+              <span class="assign-value" style="color:var(--color-status-online)" data-testid="DEV-RP-ASSIGN-STATUS">模拟在线 · 可用</span>
+            </div>
+            <div class="assign-row">
+              <span class="assign-label">关联目标</span>
+              <span class="assign-value" data-testid="DEV-RP-ASSIGN-TARGET">target-001（来自决策页草案）</span>
+            </div>
+            <div class="assign-row">
+              <span class="assign-label">任务类型</span>
+              <span class="assign-value">侦察确认（模拟）</span>
+            </div>
+            <button class="assign-btn" data-testid="DEV-RP-ASSIGN-BTN" title="选择此设备用于模拟指派">选择用于模拟指派</button>
+            <div class="assign-note">
+              <span class="sim-tag">[模拟]</span> 此操作仅记录原型指派状态，不发送真实控制命令、不操控设备、不执行真实任务。
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rp-section recommend">
+        <div class="rp-section-header">
+          <span class="rp-section-title">[模拟] 可用设备推荐</span>
+        </div>
+        <div class="rp-section-content" data-testid="DEV-RP-RECOMMEND">
+          <div class="recommend-card">
+            <div class="rec-row">
+              <div class="rec-dot online"></div>
+              <span class="rec-name">侦察无人机 Alpha</span>
+              <span class="rec-reason">类型匹配，电量充足</span>
+            </div>
+            <div class="rec-row">
+              <div class="rec-dot online"></div>
+              <span class="rec-name">排爆无人机 Charlie</span>
+              <span class="rec-reason">类型匹配，电量充足</span>
+            </div>
+            <div class="rec-row">
+              <div class="rec-dot busy"></div>
+              <span class="rec-name">排爆机器人 Bravo</span>
+              <span class="rec-reason" style="color:var(--color-threat-medium)">忙碌中，无法指派</span>
+            </div>
+            <div class="rec-row">
+              <div class="rec-dot offline"></div>
+              <span class="rec-name">探地雷达 Delta</span>
+              <span class="rec-reason" style="color:var(--color-status-error)">离线，无法指派</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-label" data-testid="DEV-SB-DEVICE">设备: 3/4 在线</span>
+    <span class="status-separator"></span>
+    <span class="status-sim" data-testid="DEV-SB-SIM">[模拟模式]</span>
+    <span class="status-separator"></span>
+    <div class="status-alarm" data-testid="DEV-SB-ALARM">
+      <span class="status-alarm-item">模拟告警: Delta 离线</span>
+    </div>
+    <button class="emergency-btn" data-disabled="true" disabled title="危险占位：无设备停止效果，本原型禁用" data-testid="DEV-SB-EMERGENCY">紧急停止</button>
+  </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const devices=[
+    {id:'device-001',name:'侦察无人机 Alpha',type:'UAV',status:'online',statusLabel:'模拟在线',battery:'82%',task:'无',available:true},
+    {id:'device-002',name:'排爆机器人 Bravo',type:'Robot',status:'busy',statusLabel:'模拟忙碌',battery:'45%',task:'target-005',available:false},
+    {id:'device-003',name:'排爆无人机 Charlie',type:'UAV',status:'online',statusLabel:'模拟在线',battery:'91%',task:'无',available:true},
+    {id:'device-004',name:'探地雷达 Delta',type:'GPR',status:'offline',statusLabel:'模拟离线',battery:'--',task:'--',available:false},
+  ];
+  let selectedDevice=devices[0];
+
+  // 设备选择
+  document.querySelectorAll('.device-card').forEach(c=>{
+    c.addEventListener('click',()=>{
+      document.querySelectorAll('.device-card').forEach(x=>x.classList.remove('selected'));
+      c.classList.add('selected');
+      selectedDevice=devices.find(d=>d.id===c.dataset.device);
+      updateDetail();
+    });
+  });
+
+  function updateDetail(){
+    document.querySelector('[data-testid="DEV-CE-DEVICE"]').textContent=`${selectedDevice.id} · ${selectedDevice.name}`;
+    document.querySelector('[data-testid="DEV-RP-ASSIGN-DEVICE"]').textContent=`${selectedDevice.id} ${selectedDevice.name}`;
+    const statusEl=document.querySelector('[data-testid="DEV-RP-ASSIGN-STATUS"]');
+    const btn=document.querySelector('[data-testid="DEV-RP-ASSIGN-BTN"]');
+    if(selectedDevice.available){
+      statusEl.textContent='模拟在线 · 可用';
+      statusEl.style.color='var(--color-status-online)';
+      btn.disabled=false;
+    }else{
+      statusEl.textContent=selectedDevice.statusLabel+' · 不可用';
+      statusEl.style.color='var(--color-status-error)';
+      btn.disabled=true;
+    }
+  }
+
+  // 筛选
+  const filters={type:'all',status:'all'};
+  document.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      const f=chip.dataset.filter,v=chip.dataset.value;
+      document.querySelectorAll(`.chip[data-filter="${f}"]`).forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      filters[f]=v;
+      applyFilters();
+    });
+  });
+  function applyFilters(){
+    document.querySelectorAll('.device-card').forEach(c=>{
+      const d=devices.find(x=>x.id===c.dataset.device);if(!d)return;
+      const typeOk=filters.type==='all'||d.type===filters.type;
+      const statusOk=filters.status==='all'||d.status===filters.status;
+      c.style.display=(typeOk&&statusOk)?'':'none';
+    });
+  }
+
+  // 搜索
+  document.querySelector('[data-testid="DEV-LP-SEARCH"]').addEventListener('input',e=>{
+    const q=e.target.value.toLowerCase();
+    document.querySelectorAll('.device-card').forEach(c=>{
+      const d=devices.find(x=>x.id===c.dataset.device);if(!d)return;
+      const match=!q||d.id.includes(q)||d.name.includes(q)||d.type.toLowerCase().includes(q);
+      c.style.display=match?'':'none';
+    });
+  });
+
+  // 指派按钮
+  document.querySelector('[data-testid="DEV-RP-ASSIGN-BTN"]').addEventListener('click',()=>{
+    if(selectedDevice.available){
+      alert('[模拟] 已选择 '+selectedDevice.name+' 用于模拟指派（原型状态记录，不发送真实命令）');
+    }
+  });
+
+  // 导航
+  document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));n.classList.add('selected')}));
+});
+</script>
+</body>
+</html>

@@ -34,6 +34,8 @@ Makefile*
 # Documentation builds
 *.pdf
 *.html
+# 放行 UI 原型 HTML（覆盖上面的 *.html 忽略规则）
+!docs/ui/prototypes/**/*.html
 
 # Temporary files
 *.tmp
@@ -60,3 +62,7 @@ logs/
 
 # Agent cross-session memory (runtime state)
 .workbuddy/
+
+# UI prototype npm dependencies (Playwright 等，本地安装不提交)
+docs/ui/prototypes/node_modules/
+docs/ui/prototypes/package-lock.json

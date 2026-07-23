@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, initial-scale=1">
+<title>排弹抢修指挥系统 V1.0 - 配置页面（设计评审原型）</title>
+<style>
+:root{
+  --color-bg:#1E1E1E;--color-panel:#252526;--color-toolbar:#2D2D2D;--color-menu:#2D2D2D;
+  --color-primary:#4A7A4C;--color-primary-hover:#5A8A5C;--color-danger:#D32F2F;
+  --color-threat-high:#FF5252;--color-threat-medium:#FFB74D;--color-threat-low:#FFF176;
+  --color-status-online:#4CAF50;--color-status-offline:#888888;--color-status-busy:#FFB74D;--color-status-error:#FF5252;
+  --color-text-primary:#FFFFFF;--color-text-secondary:#AAAAAA;--color-text-disabled:#888888;
+  --color-border:#3C3C3C;--color-border-focus:#4A7A4C;--color-selection:#2A3F54;--color-row-hover:#2A2A2A;
+  --font-family:"Noto Sans CJK SC","Microsoft YaHei","Source Han Sans SC","SimHei",sans-serif;
+  --font-size-title:16px;--font-size-body:14px;--font-size-caption:12px;
+  --size-nav-width:80px;--size-left-panel-width:260px;--size-right-panel-width:320px;
+  --size-toolbar-height:32px;--size-menu-bar-height:30px;
+  --space-toolbar-gap:8px;--space-toolbar-pad:8px;
+  --radius-control:4px;--size-scrollbar:10px;--min-scroll-handle:30px;
+  --anim-short:150ms;--anim-easing:ease-in-out;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-family)}
+html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body)}
+button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;font-size:inherit}
+button:disabled{cursor:not-allowed}
+::-webkit-scrollbar{width:var(--size-scrollbar);height:var(--size-scrollbar)}
+::-webkit-scrollbar-track{background:var(--color-toolbar)}
+::-webkit-scrollbar-thumb{background:var(--color-text-secondary);border-radius:var(--radius-control);min-height:var(--min-scroll-handle)}
+::-webkit-scrollbar-thumb:hover{background:var(--color-text-primary)}
+.app{display:flex;flex-direction:column;width:1920px;height:1080px}
+.menu-bar{height:var(--size-menu-bar-height);background:var(--color-menu);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 4px}
+.menu-bar button{padding:6px 12px;font-size:var(--font-size-body);color:var(--color-text-primary);background:transparent}
+.menu-bar button:hover{background:var(--color-border)}
+.menu-bar button[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
+.toolbar{height:var(--size-toolbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:var(--space-toolbar-gap);padding:0 var(--space-toolbar-pad)}
+.toolbar .tb-label{color:var(--color-text-secondary);font-size:var(--font-size-caption);padding:4px}
+.toolbar .tb-label[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
+.toolbar .tb-btn{padding:4px 8px;color:var(--color-text-secondary);font-size:var(--font-size-caption);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control)}
+.toolbar .tb-btn:hover{background:var(--color-border);color:var(--color-text-primary)}
+.toolbar .tb-btn.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.main-area{flex:1;display:flex;overflow:hidden}
+.nav-bar{width:var(--size-nav-width);background:var(--color-bg);border-right:1px solid var(--color-border);display:flex;flex-direction:column;align-items:stretch}
+.nav-logo{height:40px;display:flex;align-items:center;justify-content:center;color:var(--color-primary);font-size:18px;font-weight:bold;letter-spacing:2px}
+.nav-spacer-1{height:16px}
+.nav-items{display:flex;flex-direction:column}
+.nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
+.nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
+.nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
+.nav-item .nav-icon{font-size:18px;line-height:1}
+.nav-spacer-2{flex:1}
+.left-panel{width:var(--size-left-panel-width);background:var(--color-panel);padding:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.lp-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;padding:0 4px}
+.cfg-nav{display:flex;flex-direction:column;gap:4px}
+.cfg-nav-item{height:44px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:var(--radius-control);cursor:pointer;color:var(--color-text-secondary);font-size:var(--font-size-body);transition:all var(--anim-short) var(--anim-easing);border-left:3px solid transparent}
+.cfg-nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
+.cfg-nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
+.sys-info{background:var(--color-toolbar);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:6px}
+.sys-row{display:flex;justify-content:space-between;font-size:11px}
+.sys-label{color:var(--color-text-secondary)}
+.sys-value{color:var(--color-text-primary)}
+.center-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.center-header{height:40px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:12px}
+.center-title{font-size:var(--font-size-title);color:var(--color-text-primary);font-weight:bold}
+.center-subtitle{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
+.center-content{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+.cfg-section{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:8px 14px;display:flex;flex-direction:column;gap:4px}
+.cfg-section-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;border-bottom:1px solid var(--color-border);padding-bottom:8px}
+.cfg-section-note{color:var(--color-status-busy);font-size:11px;font-weight:bold}
+.cfg-row{display:grid;grid-template-columns:200px 1fr 220px;gap:16px;align-items:center;padding:3px 0}
+.cfg-label{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
+.cfg-value{color:var(--color-text-primary);font-size:var(--font-size-body)}
+.cfg-value.mono{font-family:Consolas,Monaco,monospace}
+.cfg-tag{display:inline-block;padding:2px 6px;font-size:11px;border-radius:3px;margin-left:8px}
+.cfg-tag.readonly{background:var(--color-border);color:var(--color-text-secondary)}
+.cfg-tag.pending{background:var(--color-selection);color:var(--color-primary)}
+.cfg-tag.disabled{background:var(--color-bg);color:var(--color-text-disabled);border:1px solid var(--color-border)}
+.toggle{width:36px;height:18px;background:var(--color-border);border-radius:9px;position:relative;cursor:not-allowed;opacity:0.5}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;background:var(--color-text-secondary);border-radius:50%}
+.toggle.on{background:var(--color-primary);opacity:1}
+.toggle.on::after{left:20px;background:#fff}
+.input-fake{padding:4px 8px;background:var(--color-bg);color:var(--color-text-disabled);border:1px solid var(--color-border);border-radius:var(--radius-control);font-size:var(--font-size-caption);font-family:Consolas,Monaco,monospace}
+.btn{padding:4px 12px;font-size:var(--font-size-caption);background:var(--color-bg);color:var(--color-text-secondary);border:1px solid var(--color-border);border-radius:var(--radius-control);cursor:pointer}
+.btn:hover:not(:disabled){background:var(--color-border);color:var(--color-text-primary)}
+.btn:disabled{color:var(--color-text-disabled);cursor:not-allowed}
+.btn-primary{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.btn-primary:disabled{background:var(--color-border);color:var(--color-text-disabled);border-color:var(--color-border);cursor:not-allowed}
+.right-panel{width:var(--size-right-panel-width);background:var(--color-panel);display:flex;flex-direction:column;overflow:hidden}
+.rp-section{display:flex;flex-direction:column;overflow:hidden}
+.rp-section-header{height:32px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;gap:8px}
+.rp-section-title{flex:1;font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
+.rp-section.safety{flex:1}
+.rp-section.history{flex:1}
+.rp-section-content{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.safety-item{background:var(--color-toolbar);border-radius:var(--radius-control);padding:10px;display:flex;flex-direction:column;gap:6px}
+.safety-title{color:var(--color-text-primary);font-size:var(--font-size-caption);font-weight:bold}
+.safety-desc{color:var(--color-text-secondary);font-size:11px;line-height:1.5}
+.safety-status{display:flex;align-items:center;gap:6px;font-size:11px}
+.safety-status .dot{width:8px;height:8px;border-radius:50%}
+.safety-status .dot.locked{background:var(--color-status-online)}
+.safety-status .dot.disabled{background:var(--color-text-disabled)}
+.safety-status .label{color:var(--color-text-secondary)}
+.history-item{background:var(--color-toolbar);border-radius:var(--radius-control);padding:10px;display:flex;flex-direction:column;gap:4px}
+.history-time{color:var(--color-text-secondary);font-size:10px}
+.history-action{color:var(--color-text-primary);font-size:var(--font-size-caption)}
+.history-user{color:var(--color-text-disabled);font-size:10px}
+.status-bar{height:28px;background:var(--color-bg);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:16px}
+.status-label{color:var(--color-text-primary);font-size:var(--font-size-caption)}
+.status-sim{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+.status-separator{width:1px;height:18px;background:var(--color-border)}
+.status-alarm{flex:1;min-width:400px;height:18px;overflow:hidden;display:flex;align-items:center}
+.status-alarm-item{height:18px;color:var(--color-status-busy);font-size:var(--font-size-caption);background:var(--color-toolbar);padding:2px 8px;border-radius:var(--radius-control);margin-right:10px;white-space:nowrap}
+.emergency-btn{width:80px;height:20px;font-size:11px;font-weight:bold;background:var(--color-danger);color:var(--color-text-primary);border:none;border-radius:3px}
+.emergency-btn:disabled{background:var(--color-border);color:var(--color-text-disabled);cursor:not-allowed}
+.sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="menu-bar">
+    <button data-testid="CFG-MENU-FILE">文件(&amp;F)</button>
+    <button data-testid="CFG-MENU-VIEW">视图(&amp;V)</button>
+    <button data-testid="CFG-MENU-TOOLS" data-disabled="true" title="占位控件，未实现">工具(&amp;T)</button>
+    <button data-testid="CFG-MENU-HELP">帮助(&amp;H)</button>
+  </div>
+  <div class="toolbar">
+    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="CFG-TB-SAVE">保存</span>
+    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="CFG-TB-RESET">恢复默认</span>
+    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="CFG-TB-IMPORT">导入配置</span>
+    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="CFG-TB-EXPORT">导出配置</span>
+    <span style="flex:1"></span>
+    <span class="tb-label" data-testid="CFG-TB-USER">当前用户: admin (演示)</span>
+  </div>
+  <div class="main-area">
+    <div class="nav-bar">
+      <div class="nav-logo" data-testid="CFG-NAV-LOGO">UXO</div>
+      <div class="nav-spacer-1"></div>
+      <div class="nav-items">
+        <div class="nav-item" data-testid="CFG-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
+        <div class="nav-item" data-testid="CFG-NAV-02"><span class="nav-icon">◎</span><span>探测</span></div>
+        <div class="nav-item" data-testid="CFG-NAV-03"><span class="nav-icon">◎</span><span>决策</span></div>
+        <div class="nav-item" data-testid="CFG-NAV-04"><span class="nav-icon">◎</span><span>设备</span></div>
+        <div class="nav-item" data-testid="CFG-NAV-05"><span class="nav-icon">◎</span><span>统计</span></div>
+        <div class="nav-item selected" data-testid="CFG-NAV-06"><span class="nav-icon">◎</span><span>配置</span></div>
+      </div>
+      <div class="nav-spacer-2"></div>
+    </div>
+    <div class="left-panel">
+      <span class="lp-title">配置分类</span>
+      <div class="cfg-nav" data-testid="CFG-LP-NAV">
+        <div class="cfg-nav-item selected" data-cfg="system"><span>◎</span> 系统信息</div>
+        <div class="cfg-nav-item" data-cfg="display"><span>◎</span> 界面显示</div>
+        <div class="cfg-nav-item" data-cfg="data"><span>◎</span> 数据存储</div>
+        <div class="cfg-nav-item" data-cfg="network"><span>◎</span> 网络通信</div>
+        <div class="cfg-nav-item" data-cfg="safety"><span>◎</span> 安全控制</div>
+        <div class="cfg-nav-item" data-cfg="about"><span>◎</span> 关于</div>
+      </div>
+      <div class="sys-info" data-testid="CFG-LP-SYS">
+        <div class="sys-row"><span class="sys-label">版本</span><span class="sys-value">V1.0.0 (原型)</span></div>
+        <div class="sys-row"><span class="sys-label">构建</span><span class="sys-value">2026-07-23</span></div>
+        <div class="sys-row"><span class="sys-label">模式</span><span class="sys-value" style="color:var(--color-status-busy)">[模拟]</span></div>
+      </div>
+    </div>
+    <div class="center-area">
+      <div class="center-header">
+        <span class="center-title">系统信息</span>
+        <span class="center-subtitle">[只读] 当前事实 · [临时] 本会话展示</span>
+      </div>
+      <div class="center-content" data-testid="CFG-CE-CONTENT">
+        <div class="cfg-section">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="cfg-section-title">系统事实（只读）</span>
+            <span class="cfg-section-note">[只读] 以下为当前构建事实，不可修改</span>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">产品名称</span>
+            <span class="cfg-value">UXOMissionControl 排弹抢修指挥系统</span>
+            <span class="cfg-tag readonly">只读</span>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">版本号</span>
+            <span class="cfg-value mono">V1.0.0</span>
+            <span class="cfg-tag readonly">只读</span>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">构建日期</span>
+            <span class="cfg-value mono">2026-07-23</span>
+            <span class="cfg-tag readonly">只读</span>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">运行模式</span>
+            <span class="cfg-value"><span class="sim-tag">[模拟模式]</span> 本地固定场景，无真实设备接入</span>
+            <span class="cfg-tag readonly">只读</span>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">已实现模块</span>
+            <span class="cfg-value">态势 / 探测 / 决策 / 设备 / 统计 / 配置（UI 原型）</span>
+            <span class="cfg-tag readonly">只读</span>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">未实现模块</span>
+            <span class="cfg-value" style="color:var(--color-text-disabled)">真实设备控制 / 排爆执行 / 外部通信 / 数据库写入</span>
+            <span class="cfg-tag disabled">禁用</span>
+          </div>
+        </div>
+        <div class="cfg-section">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="cfg-section-title">界面显示（临时，仅本会话）</span>
+            <span class="cfg-section-note">[临时] 修改仅当前会话生效，不持久化</span>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">主题</span>
+            <span class="cfg-value">深色（唯一可选）</span>
+            <span class="cfg-tag disabled">占位</span>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">语言</span>
+            <span class="cfg-value">简体中文（唯一可选）</span>
+            <span class="cfg-tag disabled">占位</span>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">地图底图</span>
+            <span class="cfg-value">离线栅格图（模拟）</span>
+            <span class="cfg-tag pending">临时可切换</span>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">坐标显示</span>
+            <span class="cfg-value">显示模拟坐标</span>
+            <div class="toggle on" data-testid="CFG-CE-TOGGLE-COORD" title="占位：本会话临时切换"></div>
+          </div>
+          <div class="cfg-row">
+            <span class="cfg-label">告警声音</span>
+            <span class="cfg-value">关闭（模拟）</span>
+            <div class="toggle" data-testid="CFG-CE-TOGGLE-ALARM" title="占位：本会话临时切换"></div>
+          </div>
+          <div class="cfg-row" style="grid-template-columns:200px 1fr">
+            <span class="cfg-label">刷新间隔</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="input-fake">3000 ms</span>
+              <button class="btn" data-disabled="true" disabled>占位</button>
+            </div>
+          </div>
+        </div>
+        <div class="cfg-section">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="cfg-section-title">数据存储（禁用）</span>
+            <span class="cfg-section-note">[禁用] V1.0 不实现持久化</span>
+          </div>
+          <div class="cfg-row" style="grid-template-columns:200px 1fr 80px">
+            <span class="cfg-label">禁用项</span>
+            <span class="cfg-value" style="color:var(--color-text-disabled)">本地数据库 · 日志文件 · 导出报告 · 配置持久化</span>
+            <span class="cfg-tag disabled">禁用</span>
+          </div>
+        </div>
+        <div class="cfg-section">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="cfg-section-title">网络通信（禁用）</span>
+            <span class="cfg-section-note">[禁用] V1.0 不实现外部通信</span>
+          </div>
+          <div class="cfg-row" style="grid-template-columns:200px 1fr 80px">
+            <span class="cfg-label">禁用项</span>
+            <span class="cfg-value" style="color:var(--color-text-disabled)">设备接入协议 · 远程指挥链路 · 数据上报</span>
+            <span class="cfg-tag disabled">禁用</span>
+          </div>
+        </div>
+        <div class="cfg-section">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="cfg-section-title">安全控制（锁定）</span>
+            <span class="cfg-section-note">[锁定] 危险动作默认禁用，需授权</span>
+          </div>
+          <div class="cfg-row" style="grid-template-columns:200px 1fr 80px">
+            <span class="cfg-label">锁定项</span>
+            <span class="cfg-value" style="color:var(--color-danger)">紧急停止 · 排爆执行 · 设备控制指令 · 数据库写入 · 外部通信</span>
+            <span class="cfg-tag disabled">锁定</span>
+          </div>
+        </div>
+        <div class="cfg-section">
+          <span class="cfg-section-title">关于</span>
+          <div class="cfg-row" style="grid-template-columns:120px 1fr 200px">
+            <span class="cfg-label">项目</span>
+            <span class="cfg-value">UXO_v1 排弹抢修指挥系统 · 文档: PRODUCT/ARCHITECTURE/UI/DEVELOPMENT.md</span>
+            <span class="cfg-value"><span class="sim-tag">[TARGET / Draft]</span></span>
+          </div>
+          <div class="cfg-row" style="grid-template-columns:120px 1fr 200px">
+            <span class="cfg-label">安全声明</span>
+            <span class="cfg-value" style="color:var(--color-text-secondary)">本原型不控制真实设备、不执行排爆动作、不进行外部通信、不写入数据库。</span>
+            <span class="cfg-tag readonly">只读</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:8px">
+          <button class="btn" data-disabled="true" disabled title="占位控件，未实现" data-testid="CFG-CE-BTN-CANCEL">放弃修改</button>
+          <button class="btn btn-primary" data-disabled="true" disabled title="占位控件，本会话临时展示，不持久化" data-testid="CFG-CE-BTN-APPLY">应用（仅本会话）</button>
+        </div>
+      </div>
+    </div>
+    <div class="right-panel">
+      <div class="rp-section safety">
+        <div class="rp-section-header"><span class="rp-section-title">安全边界</span></div>
+        <div class="rp-section-content">
+          <div class="safety-item">
+            <span class="safety-title">真实设备控制</span>
+            <span class="safety-desc">V1.0 不实现真实设备控制；原型所有设备状态为模拟。</span>
+            <div class="safety-status"><div class="dot disabled"></div><span class="label">已禁用</span></div>
+          </div>
+          <div class="safety-item">
+            <span class="safety-title">排爆动作执行</span>
+            <span class="safety-desc">V1.0 不实现任何排爆、引爆、拆除动作。</span>
+            <div class="safety-status"><div class="dot disabled"></div><span class="label">已禁用</span></div>
+          </div>
+          <div class="safety-item">
+            <span class="safety-title">外部通信</span>
+            <span class="safety-desc">V1.0 不与外部系统、网络或远程指挥通信。</span>
+            <div class="safety-status"><div class="dot disabled"></div><span class="label">已禁用</span></div>
+          </div>
+          <div class="safety-item">
+            <span class="safety-title">数据库写入</span>
+            <span class="safety-desc">V1.0 不持久化任何数据，会话结束即清空。</span>
+            <div class="safety-status"><div class="dot disabled"></div><span class="label">已禁用</span></div>
+          </div>
+          <div class="safety-item">
+            <span class="safety-title">紧急停止</span>
+            <span class="safety-desc">原型中为占位按钮，无设备停止效果，已锁定禁用。</span>
+            <div class="safety-status"><div class="dot disabled"></div><span class="label">已锁定</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="rp-section history">
+        <div class="rp-section-header"><span class="rp-section-title">变更记录（模拟）</span></div>
+        <div class="rp-section-content">
+          <div class="history-item">
+            <span class="history-time">14:30:00</span>
+            <span class="history-action">[模拟] 会话启动</span>
+            <span class="history-user">admin (演示)</span>
+          </div>
+          <div class="history-item">
+            <span class="history-time">14:30:05</span>
+            <span class="history-action">[模拟] 加载默认配置</span>
+            <span class="history-user">admin (演示)</span>
+          </div>
+          <div class="history-item">
+            <span class="history-time">14:31:12</span>
+            <span class="history-action">[模拟] 切换至配置页</span>
+            <span class="history-user">admin (演示)</span>
+          </div>
+          <div class="history-item" style="opacity:0.5">
+            <span class="history-time">--:--:--</span>
+            <span class="history-action" style="color:var(--color-text-disabled)">[禁用] 历史记录未持久化</span>
+            <span class="history-user">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="status-bar">
+    <span class="status-label" data-testid="CFG-SB-VERSION">版本: V1.0.0 (原型)</span>
+    <span class="status-separator"></span>
+    <span class="status-sim" data-testid="CFG-SB-SIM">[模拟模式]</span>
+    <span class="status-separator"></span>
+    <div class="status-alarm" data-testid="CFG-SB-ALARM">
+      <span class="status-alarm-item">模拟提示: 配置为只读事实 + 临时展示，不持久化</span>
+    </div>
+    <button class="emergency-btn" data-disabled="true" disabled title="危险占位：无设备停止效果，本原型禁用" data-testid="CFG-SB-EMERGENCY">紧急停止</button>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.cfg-nav-item').forEach(i=>i.addEventListener('click',()=>{document.querySelectorAll('.cfg-nav-item').forEach(x=>x.classList.remove('selected'));i.classList.add('selected')}));
+  document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));n.classList.add('selected')}));
+  document.querySelectorAll('.toggle').forEach(t=>t.addEventListener('click',()=>{t.classList.toggle('on')}));
+});
+</script>
+</body>
+</html>

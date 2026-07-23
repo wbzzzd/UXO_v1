@@ -1,0 +1,15 @@
+{
+  "name": "uxo-ui-prototypes",
+  "version": "1.0.0",
+  "description": "UXO 排弹抢修指挥系统六页 UI HTML 原型与 Playwright 截图工具",
+  "scripts": {
+    "screenshot": "node screenshot.js",
+    "screenshot:all": "node screenshot.js"
+  },
+  "keywords": ["uxo", "ui", "prototype", "playwright"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "playwright": "^1.61.1"
+  }
+}
