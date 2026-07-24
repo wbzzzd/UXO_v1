@@ -11,6 +11,8 @@
 
 NEXT 使用单一指挥席用户，所有模拟操作和结果必须明确标注“模拟”或“演示”。
 
+六页 TARGET UI 的详细设计规格、HTML 原型和权威截图在 [`docs/ui/`](ui/) 下，入口为 [`docs/ui/README.md`](ui/README.md)。本文档定义 UI 目标、CURRENT 状态与通用基线，`docs/ui/` 提供逐页逐控件的实现级规格。
+
 ## 2. TARGET UI 目标
 
 根据 SRS《排弹抢修指挥系统》v1.0 第 3.4.2 节“可视化呈现”、3.4.3 节“交互功能”、3.5 节“决策逻辑模块”、3.6 节“排爆处置模块”、3.7 节“插件模块”、7.2 节“界面需求” 和旧 UI 设计，指挥席客户端最终需要支持：
@@ -140,22 +142,23 @@ NEXT UI 来自 `PRODUCT.md` 的完整本地模拟指挥环需求，不从当前�
 | REQ-005 | 新模拟会话加载后，各面板呈现同一份可复现的本地场景；本需求不新增用户重置入口 |
 | REQ-006 | 用户能看到选择、指派、执行、完成和拒绝操作的完整本地日志 |
 
-## 7. TARGET 设计尚未完成的内容
+## 7. TARGET 设计完成度
 
-以下是 UI 设计必须继续补充的内容，不属于当前已实现事实：
+以下为 UI 设计必须覆盖的内容及其当前完成度。`docs/ui/` 已交付 TARGET/Draft 级别的设计规格、HTML 原型与权威截图，但仍属设计评审草案，在经用户评审前 `UI.md` 不能作为 NEXT 页面实现计划。
 
-- NEXT 的页面和导航信息架构。
-- 目标选择、设备选择和任务指派的页面布局与交互顺序。
-- 任务执行、失败、取消和完成状态的视觉反馈。
-- 空场景、无可用设备、非法指派和状态冲突的错误表现。
-- 当前占位菜单、工具栏和孤儿页面的保留、删除或重新设计决定。
-- 1280×720、1920×1080 和目标 4K 三屏环境的布局验收规则。
-
-在这些内容经用户评审前，`UI.md` 不能作为 NEXT 页面实现计划。
+| 设计内容 | 完成度 | 位置 |
+|----------|--------|------|
+| NEXT 的页面和导航信息架构 | 已交付 | [`docs/ui/pages/index.md`](ui/pages/index.md) 六页总览、[`docs/ui/application-shell.md`](ui/application-shell.md) 导航规格 |
+| 目标选择、设备选择和任务指派的页面布局与交互顺序 | 已交付 | [`docs/ui/pages/detection.md`](ui/pages/detection.md)、[`docs/ui/pages/devices.md`](ui/pages/devices.md)、[`docs/ui/pages/decision.md`](ui/pages/decision.md) 区域与交互流程章节 |
+| 任务执行、失败、取消和完成状态的视觉反馈 | 已交付 | 各页 `pages/<page>.md` 的"状态规则汇总"章节，定义正常/加载/空/错误/禁用五态 |
+| 空场景、无可用设备、非法指派和状态冲突的错误表现 | 已交付 | 各页"状态规则汇总"中空/错误/禁用态的表现与触发条件 |
+| 当前占位菜单、工具栏和孤儿页面的保留、删除或重新设计决定 | 部分交付 | [`docs/ui/application-shell.md`](ui/application-shell.md) 定义壳规格与禁用清单；个别孤儿页面（`TargetDetailPanel`、`DecisionView`、`DeviceControlView`）的去留待评审 |
+| 1280×720、1920×1080 和 4K 三屏环境的布局验收规则 | 部分交付 | [`docs/ui/design-system.md`](ui/design-system.md) 第 7 节有三视口规则，六页 1920×1080 截图已交付；1280×720 与 3840×2160 截图待补 |
+| 六页 HTML 原型与逐控件清单 | 已交付 | [`docs/ui/prototypes/`](ui/prototypes/) 六页可点击原型，[`docs/ui/pages/`](ui/pages/) 六页逐控件规格 |
 
 ## 8. 通用视觉基线
 
-旧 UI 设计中的颜色、字号和间距可作为来源资料；当前代码的 `GlobalStyle` 是实现事实。正式视觉规范需要在 NEXT 页面设计确认后统一整理。
+旧 UI 设计中的颜色、字号和间距可作为来源资料；当前代码的 `GlobalStyle` 是实现事实。六页 TARGET 设计的正式视觉规范已在 [`docs/ui/design-system.md`](ui/design-system.md) 中定义，包含颜色、字体、间距、动画 token 与组件原语、状态规则、三视口规则。
 
 当前最小约束：
 
