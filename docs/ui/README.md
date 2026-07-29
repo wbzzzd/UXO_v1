@@ -64,6 +64,21 @@
 
 每个文档化的 `<PREFIX>-*` ID 必须在 HTML 中作为 `data-testid` 出现，且与 Playwright 选择器一一对应；视觉值只能取自 `design-system.md` 的 token 表，不得硬编码新值。态势页已按此规则实现，作为各页 HTML 原型的参照样板。
 
+### 4.4 在线查看原型演示
+
+HTML 原型已通过 GitHub Pages 托管，无需 clone 仓库，点击下方链接即可在浏览器中交互演示：
+
+| 页面 | 在线演示 |
+|------|---------|
+| 态势 | https://wbzzzd.github.io/UXO_v1/ui/prototypes/situation/index.html |
+| 探测 | https://wbzzzd.github.io/UXO_v1/ui/prototypes/detection/index.html |
+| 决策 | https://wbzzzd.github.io/UXO_v1/ui/prototypes/decision/index.html |
+| 设备 | https://wbzzzd.github.io/UXO_v1/ui/prototypes/devices/index.html |
+| 统计 | https://wbzzzd.github.io/UXO_v1/ui/prototypes/statistics/index.html |
+| 配置 | https://wbzzzd.github.io/UXO_v1/ui/prototypes/configuration/index.html |
+
+静态截图见 `images/<page>/overview-1920x1080.png`，逐控件规格见 `pages/<page>.md`。本地开发时也可直接用浏览器打开 `prototypes/<page>/index.html`。
+
 ## 5. 安全边界
 
 本目录严格遵守 `AGENTS.md` 与 `PRODUCT.md` 第 10 节的强制安全边界：
