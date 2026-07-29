@@ -165,9 +165,9 @@ CURRENT 来源：
 | CURRENT 映射 | 未实现 |
 | 安全 | 模拟数据，只读展示 |
 
-#### 3.4.2 威胁等级分布柱状图
+#### 3.4.2 威胁等级分布柱状图 `STA-CE-CHART-THREAT`
 
-第二张图表面板，样式与第一张一致。此面板无独立 `data-testid`。
+第二张图表面板，样式与第一张一致。
 
 图表标题"[模拟] 威胁等级分布"（`--font-size-body`，加粗，`--color-text-primary`）。
 
@@ -183,7 +183,7 @@ Y 轴标注同第一张（5 至 0）。3 组柱：
 
 | 字段 | 值 |
 |------|----|
-| ID | 无（原型未分配 `data-testid`） |
+| ID | `STA-CE-CHART-THREAT` |
 | 类型 | div 容器（柱状图，只读） |
 | 位置 | 中心内容区，目标类型分布图下方 |
 | 用途 | 展示模拟目标按威胁等级分布的柱状图 |
@@ -195,8 +195,6 @@ Y 轴标注同第一张（5 至 0）。3 组柱：
 | 原型行为 | 固定显示 3 组柱；不随筛选器或指标分类导航变化 |
 | CURRENT 映射 | 未实现 |
 | 安全 | 模拟数据，只读展示 |
-
-> 注：此面板缺少 `data-testid`，无法通过 Playwright 定位器直接选取。TARGET 实现时应补齐 `data-testid`（建议 `STA-CE-CHART-THREAT`）并在本文登记。
 
 ### 3.5 目标明细表 `STA-CE-TABLE`
 
@@ -517,6 +515,7 @@ Y 轴标注同第一张（5 至 0）。3 组柱：
 | `STA-CE-KPI-DEVICES` | KPI：在线设备 | 中心区 |
 | `STA-CE-KPI-ALERTS` | KPI：告警数量 | 中心区 |
 | `STA-CE-CHART` | 目标类型分布柱状图 | 中心区 |
+| `STA-CE-CHART-THREAT` | 威胁等级分布柱状图 | 中心区 |
 | `STA-CE-TABLE` | 目标明细表 | 中心区 |
 | `STA-RP-FILTER-TIME` | 时间范围筛选器 | 右面板 |
 | `STA-RP-FILTER-TYPE` | 目标类型筛选器 | 右面板 |

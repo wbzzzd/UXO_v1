@@ -2,525 +2,765 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1920, initial-scale=1">
-<title>排弹抢修指挥系统 V1.0 - 决策页面（设计评审原型）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOS决策系统 - 排弹抢修指挥系统</title>
 <style>
 :root{
   --color-bg:#1E1E1E;--color-panel:#252526;--color-toolbar:#2D2D2D;--color-menu:#2D2D2D;
-  --color-primary:#4A7A4C;--color-primary-hover:#5A8A5C;--color-danger:#D32F2F;--color-danger-hover:#B71C1C;
+  --color-primary:#4A7A4C;--color-primary-hover:#5A8A5C;--color-danger:#D32F2F;
   --color-threat-high:#FF5252;--color-threat-medium:#FFB74D;--color-threat-low:#FFF176;
-  --color-status-online:#4CAF50;--color-status-offline:#888888;--color-status-busy:#FFB74D;--color-status-error:#FF5252;
+  --color-status-online:#4CAF50;--color-status-offline:#888888;--color-status-busy:#FFB74D;
   --color-text-primary:#FFFFFF;--color-text-secondary:#AAAAAA;--color-text-disabled:#888888;
   --color-border:#3C3C3C;--color-border-focus:#4A7A4C;
   --color-selection:#2A3F54;--color-row-hover:#2A2A2A;
-  --font-family:"Noto Sans CJK SC","Microsoft YaHei","Source Han Sans SC","SimHei",sans-serif;
+  --color-runway:#3D3D3D;--color-ground:#2D4A2D;
+  --font-family:"Microsoft YaHei","Source Han Sans SC","SimHei",sans-serif;
   --font-size-title:16px;--font-size-body:14px;--font-size-caption:12px;
-  --font-weight-title:bold;--font-weight-body:normal;
-  --size-nav-width:80px;--size-left-panel-width:320px;--size-right-panel-width:380px;
+  --size-nav-width:80px;--size-left-panel-width:260px;--size-right-panel-width:380px;
   --size-status-bar-height:22px;--size-toolbar-height:32px;--size-menu-bar-height:30px;
-  --space-toolbar-gap:8px;--space-toolbar-pad:8px;
-  --radius-control:4px;--radius-scroll-handle:5px;--size-scrollbar:10px;--min-scroll-handle:30px;
-  --anim-short:150ms;--anim-normal:200ms;--anim-easing:ease-in-out;
+  --radius-control:4px;--anim-short:150ms;--anim-easing:ease-in-out;
 }
-*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-family)}
-html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body)}
-button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;font-size:inherit}
-button:disabled{cursor:not-allowed}
-::-webkit-scrollbar{width:var(--size-scrollbar);height:var(--size-scrollbar)}
-::-webkit-scrollbar-track{background:var(--color-toolbar)}
-::-webkit-scrollbar-thumb{background:var(--color-text-secondary);border-radius:var(--radius-scroll-handle);min-height:var(--min-scroll-handle)}
-::-webkit-scrollbar-thumb:hover{background:var(--color-text-primary)}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-family:var(--font-family);font-size:var(--font-size-body);user-select:none;}
+.app{width:1920px;height:1080px;display:flex;flex-direction:column;overflow:hidden;}
 
-.app{display:flex;flex-direction:column;width:1920px;height:1080px}
-.menu-bar{height:var(--size-menu-bar-height);background:var(--color-menu);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 4px}
-.menu-bar button{padding:6px 12px;font-size:var(--font-size-body);color:var(--color-text-primary);background:transparent}
-.menu-bar button:hover{background:var(--color-border)}
-.menu-bar button[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
-.menu-bar button[data-disabled="true"]:hover{background:transparent}
-.toolbar{height:var(--size-toolbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:var(--space-toolbar-gap);padding:0 var(--space-toolbar-pad)}
-.toolbar .tb-label{color:var(--color-text-secondary);font-size:var(--font-size-caption);padding:4px}
-.toolbar .tb-label[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
-.toolbar .tb-btn{padding:4px 8px;color:var(--color-text-secondary);font-size:var(--font-size-caption);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control)}
-.toolbar .tb-btn:hover{background:var(--color-border);color:var(--color-text-primary)}
-.main-area{flex:1;display:flex;overflow:hidden}
-.nav-bar{width:var(--size-nav-width);background:var(--color-bg);border-right:1px solid var(--color-border);display:flex;flex-direction:column;align-items:stretch}
-.nav-logo{height:40px;display:flex;align-items:center;justify-content:center;color:var(--color-primary);font-size:18px;font-weight:bold;letter-spacing:2px}
-.nav-spacer-1{height:16px}
-.nav-items{display:flex;flex-direction:column}
-.nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
-.nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
-.nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
-.nav-item .nav-icon{font-size:18px;line-height:1}
-.nav-spacer-2{flex:1}
+/* ===== 菜单栏 ===== */
+.menu-bar{height:var(--size-menu-bar-height);background:var(--color-menu);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;flex-shrink:0;}
+.menu-item{padding:0 12px;height:100%;display:flex;align-items:center;cursor:pointer;font-size:var(--font-size-body);color:var(--color-text-primary);transition:background var(--anim-short) var(--anim-easing);}
+.menu-item:hover{background:rgba(255,255,255,0.08);}
+.menu-item span{font-size:10px;color:var(--color-text-secondary);margin-left:2px;}
 
-/* 左面板：目标列表 */
-.left-panel{width:var(--size-left-panel-width);background:var(--color-panel);padding:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
-.lp-header{height:32px;display:flex;align-items:center;padding:0 4px}
-.lp-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
-.target-list{flex:1;overflow:auto;display:flex;flex-direction:column;gap:4px}
-.target-card{background:var(--color-toolbar);border:1px solid var(--color-border);border-left:3px solid transparent;border-radius:var(--radius-control);padding:10px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing)}
-.target-card:hover{background:#363636}
-.target-card.selected{background:var(--color-selection);border-left-color:var(--color-primary)}
-.target-card-row1{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.target-card-id{font-size:var(--font-size-caption);color:var(--color-text-secondary);font-family:monospace}
-.target-card-type{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;flex:1}
-.threat-badge{padding:2px 8px;border-radius:3px;font-size:10px;font-weight:bold}
-.threat-badge.high{background:rgba(255,82,82,0.2);color:var(--color-threat-high)}
-.threat-badge.medium{background:rgba(255,183,77,0.2);color:var(--color-threat-medium)}
-.threat-badge.low{background:rgba(255,241,118,0.2);color:var(--color-threat-low)}
-.target-card-row2{display:flex;gap:12px;font-size:11px;color:var(--color-text-secondary)}
-.target-card-status{font-size:11px}
-.target-card-status.detected{color:var(--color-threat-medium)}
-.target-card-status.confirmed{color:var(--color-primary)}
-.target-card-status.disposing{color:var(--color-threat-high)}
+/* ===== MOS工具栏 ===== */
+.toolbar{height:40px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;}
+.toolbar-group{display:flex;align-items:center;gap:8px;}
+.toolbar-divider{width:1px;height:24px;background:var(--color-border);margin:0 8px;}
+.toolbar-spacer{flex:1;}
+.btn{padding:4px 14px;height:28px;border:none;border-radius:var(--radius-control);font-size:13px;font-family:var(--font-family);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all var(--anim-short) var(--anim-easing);color:var(--color-text-primary);background:transparent;white-space:nowrap;}
+.btn-secondary{background:#3A3A3A;border:1px solid var(--color-border);}
+.btn-secondary:hover{background:#454545;}
+.btn-primary{background:var(--color-primary);color:#fff;}
+.btn-primary:hover{background:var(--color-primary-hover);}
+.btn-plan{padding:4px 12px;background:#3A3A3A;border:1px solid var(--color-border);font-size:12px;}
+.btn-plan:hover{background:#454545;}
+.btn-plan.active{background:var(--color-selection);border-color:#5B9BD5;color:#BBDDFF;font-weight:bold;}
+.btn-disabled{background:#2A2A2A;color:var(--color-text-disabled);cursor:not-allowed;opacity:0.5;}
+.btn-disabled:hover{background:#2A2A2A;}
 
-/* 中心区 */
-.center-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.center-header{height:40px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:12px}
-.center-title{font-size:var(--font-size-title);color:var(--color-text-primary);font-weight:bold}
-.center-subtitle{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
-.center-content{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+/* ===== 主体区域 ===== */
+.main-body{flex:1;display:flex;overflow:hidden;}
 
-/* 决策依据 */
-.basis-panel{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:16px;display:flex;flex-direction:column;gap:12px}
-.basis-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;flex:1}
-.basis-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.basis-item{display:flex;flex-direction:column;gap:4px}
-.basis-label{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
-.basis-value{color:var(--color-text-primary);font-size:var(--font-size-body)}
-.basis-value.highlight{color:var(--color-primary);font-weight:bold}
-.basis-value.danger{color:var(--color-danger);font-weight:bold}
+/* ===== 导航栏（与其他页面一致） ===== */
+.nav-bar{width:var(--size-nav-width);background:var(--color-bg);border-right:1px solid var(--color-border);display:flex;flex-direction:column;align-items:stretch;flex-shrink:0;}
+.nav-logo{height:40px;display:flex;align-items:center;justify-content:center;color:var(--color-primary);font-size:18px;font-weight:bold;letter-spacing:2px;}
+.nav-spacer-1{height:16px;}
+.nav-items{display:flex;flex-direction:column;}
+.nav-btn{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing);}
+.nav-btn:hover{background:var(--color-row-hover);color:var(--color-text-primary);}
+.nav-btn.active{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold;}
+.nav-icon{font-size:18px;line-height:1;}
+.nav-spacer-2{flex:1;}
 
-/* 候选方案比较 */
-.plans-header{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
-.plans-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.plan-card{background:var(--color-panel);border:2px solid var(--color-border);border-radius:var(--radius-control);padding:16px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing)}
-.plan-card:hover{border-color:var(--color-text-secondary)}
-.plan-card.selected{border-color:var(--color-primary);background:rgba(74,122,76,0.08)}
-.plan-header{display:flex;align-items:center;gap:8px}
-.plan-name{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;flex:1}
-.plan-radio{width:16px;height:16px;border-radius:50%;border:2px solid var(--color-text-secondary);flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.plan-card.selected .plan-radio{border-color:var(--color-primary)}
-.plan-card.selected .plan-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:var(--color-primary)}
-.plan-desc{color:var(--color-text-secondary);font-size:var(--font-size-caption);line-height:1.5}
-.plan-metrics{display:flex;flex-direction:column;gap:6px}
-.plan-metric{display:flex;align-items:center;gap:8px;font-size:11px}
-.plan-metric-label{width:64px;color:var(--color-text-secondary)}
-.plan-metric-bar{flex:1;height:6px;background:var(--color-border);border-radius:3px;overflow:hidden}
-.plan-metric-fill{height:100%;border-radius:3px}
-.plan-metric-fill.high{background:var(--color-threat-high)}
-.plan-metric-fill.medium{background:var(--color-threat-medium)}
-.plan-metric-fill.low{background:var(--color-status-online)}
-.plan-metric-value{width:40px;text-align:right;color:var(--color-text-primary)}
+/* ===== 左面板 ===== */
+.left-panel{width:var(--size-left-panel-width);background:var(--color-panel);border-right:1px solid var(--color-border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+.panel-header{height:36px;display:flex;align-items:center;padding:0 12px;font-size:var(--font-size-caption);color:var(--color-text-secondary);border-bottom:1px solid var(--color-border);background:var(--color-toolbar);flex-shrink:0;gap:6px;}
+.panel-header .sim-tag{color:var(--color-status-busy);font-size:10px;border:1px solid var(--color-status-busy);padding:0 4px;border-radius:3px;}
+.target-list{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px;}
+.target-card{background:#2D2D2D;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:10px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing);position:relative;}
+.target-card:hover{background:var(--color-row-hover);border-color:#555;}
+.target-card.active{border-color:#5B9BD5;background:var(--color-selection);box-shadow:0 0 0 1px #5B9BD5;}
+.tc-row1{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.tc-id{font-family:"Consolas","Courier New",monospace;font-size:12px;color:var(--color-text-secondary);}
+.tc-type{font-weight:bold;font-size:13px;color:var(--color-text-primary);flex:1;}
+.threat-badge{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:bold;white-space:nowrap;}
+.threat-high{background:rgba(255,82,82,0.2);color:var(--color-threat-high);border:1px solid var(--color-threat-high);}
+.threat-medium{background:rgba(255,183,77,0.2);color:var(--color-threat-medium);border:1px solid var(--color-threat-medium);}
+.tc-row2{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);gap:8px;}
+.tc-status{display:flex;align-items:center;gap:4px;}
+.tc-status.repaired{color:#888;}
+.tc-coord{font-family:"Consolas","Courier New",monospace;font-size:11px;}
+.tc-row3{font-size:11px;color:var(--color-text-secondary);margin-top:4px;font-family:"Consolas","Courier New",monospace;}
 
-/* 资源约束 */
-.constraints-panel{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:16px;display:flex;flex-direction:column;gap:8px}
-.constraint-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--color-border)}
-.constraint-row:last-child{border-bottom:none}
-.constraint-label{width:120px;color:var(--color-text-secondary);font-size:var(--font-size-caption)}
-.constraint-value{color:var(--color-text-primary);font-size:var(--font-size-body);flex:1}
-.constraint-status{padding:2px 8px;border-radius:3px;font-size:10px;font-weight:bold}
-.constraint-status.ok{background:rgba(76,175,80,0.2);color:var(--color-status-online)}
-.constraint-status.warn{background:rgba(255,183,77,0.2);color:var(--color-threat-medium)}
-.constraint-status.block{background:rgba(255,82,82,0.2);color:var(--color-threat-high)}
+/* ===== 中心区 ===== */
+.center-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.center-top{flex:1;display:flex;flex-direction:column;padding:8px;gap:6px;overflow:hidden;min-height:0;}
+.center-bottom{padding:0 8px 8px 8px;flex-shrink:0;}
 
-/* 右面板：决策草案 */
-.right-panel{width:var(--size-right-panel-width);background:var(--color-panel);display:flex;flex-direction:column;overflow:hidden}
-.rp-section{display:flex;flex-direction:column;overflow:hidden}
-.rp-section-header{height:32px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;gap:8px}
-.rp-section-title{flex:1;font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
-.rp-section.draft{flex:3}
-.rp-section.risk{flex:2}
-.rp-section-content{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+/* 跑道俯视图 */
+.runway-section{flex:1;display:flex;flex-direction:column;gap:4px;min-height:0;overflow:hidden;}
+.runway-header{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.runway-title{font-size:13px;font-weight:bold;color:var(--color-text-primary);}
+.runway-title .sim{color:var(--color-status-busy);font-size:10px;margin-left:6px;}
+.scale-bar{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--color-text-secondary);}
+.scale-line{width:60px;height:2px;background:var(--color-text-secondary);position:relative;}
+.scale-line::before,.scale-line::after{content:'';position:absolute;width:1px;height:6px;background:var(--color-text-secondary);top:-2px;}
+.scale-line::before{left:0;}
+.scale-line::after{right:0;}
 
-/* 决策草案状态 */
-.draft-status{background:var(--color-toolbar);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:8px}
-.draft-status-row{display:flex;align-items:center;gap:8px;font-size:var(--font-size-caption)}
-.draft-status-label{color:var(--color-text-secondary)}
-.draft-status-value{color:var(--color-text-primary);font-weight:bold}
-.draft-status-value.selected{color:var(--color-primary)}
-.draft-action-row{display:flex;gap:8px;margin-top:4px}
-.draft-btn{height:36px;flex:1;padding:0 12px;font-size:var(--font-size-caption);background:var(--color-primary);color:var(--color-text-primary);border:none;border-radius:var(--radius-control)}
-.draft-btn:hover:not(:disabled){background:var(--color-primary-hover)}
-.draft-btn:disabled{background:var(--color-border);color:var(--color-text-disabled)}
-.draft-btn.secondary{background:transparent;color:var(--color-text-secondary);border:1px solid var(--color-border)}
-.draft-btn.secondary:hover{background:var(--color-border)}
-.draft-note{color:var(--color-text-disabled);font-size:11px;line-height:1.5}
+.runway-container{flex:1;position:relative;background:#1a2a1a;border:1px solid var(--color-border);border-radius:var(--radius-control);overflow:hidden;min-height:0;display:flex;align-items:center;justify-content:center;padding:20px 40px;}
+.runway{position:relative;width:100%;height:200px;background:var(--color-runway);border:1px solid #555;border-radius:2px;}
+/* 跑道中心线 */
+.runway::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:repeating-linear-gradient(90deg,#777 0,#777 20px,transparent 20px,transparent 40px);transform:translateY(-50%);}
+/* 跑道刻度 */
+.runway-ticks{position:absolute;top:0;bottom:0;left:0;right:0;pointer-events:none;}
+.runway-tick{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.06);}
+.runway-tick-label{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--color-text-disabled);font-family:"Consolas",monospace;}
 
-/* 风险评估 */
-.risk-card{background:var(--color-toolbar);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:8px}
-.risk-row{display:flex;align-items:center;gap:8px}
-.risk-label{width:80px;color:var(--color-text-secondary);font-size:var(--font-size-caption)}
-.risk-value{color:var(--color-text-primary);font-size:var(--font-size-caption);flex:1}
-.risk-bar{flex:1;height:8px;background:var(--color-border);border-radius:4px;overflow:hidden}
-.risk-fill{height:100%;border-radius:4px}
-.risk-fill.high{background:var(--color-threat-high)}
-.risk-fill.medium{background:var(--color-threat-medium)}
-.risk-fill.low{background:var(--color-status-online)}
+/* 目标圆圈 */
+.target-circle{position:absolute;top:50%;transform:translate(-50%,-50%);border-radius:50%;cursor:pointer;transition:all 200ms var(--anim-easing);z-index:5;}
+.target-circle.crater{background:rgba(255,82,82,0.3);border:2px solid var(--color-threat-high);}
+.target-circle.uxo{background:rgba(255,235,59,0.25);border:2px solid #FFEB3B;}
+.target-circle.repaired{background:transparent;border:2px dashed #888;}
+.target-circle:hover{box-shadow:0 0 8px rgba(255,255,255,0.4);}
+.target-circle.active{box-shadow:0 0 16px currentColor;border-width:3px;z-index:6;animation:pulse 1.2s infinite;}
+.target-circle.crater.active{color:var(--color-threat-high);}
+.target-circle.uxo.active{color:#FFEB3B;}
+.target-circle.repaired.active{color:#888;}
+@keyframes pulse{0%,100%{box-shadow:0 0 12px currentColor;}50%{box-shadow:0 0 24px currentColor;}}
+.target-label{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:var(--color-text-primary);background:rgba(0,0,0,0.7);padding:1px 5px;border-radius:3px;pointer-events:none;font-family:"Consolas",monospace;}
+.target-circle.repaired .check{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:16px;color:#888;font-weight:bold;}
 
-.status-bar{height:28px;background:var(--color-bg);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:16px}
-.status-label{color:var(--color-text-primary);font-size:var(--font-size-caption)}
-.status-sim{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
-.status-separator{width:1px;height:18px;background:var(--color-border)}
-.status-alarm{flex:1;min-width:400px;height:18px;overflow:hidden;display:flex;align-items:center}
-.status-alarm-item{height:18px;color:var(--color-status-busy);font-size:var(--font-size-caption);background:var(--color-toolbar);padding:2px 8px;border-radius:var(--radius-control);margin-right:10px;white-space:nowrap}
-.emergency-btn{width:80px;height:20px;font-size:11px;font-weight:bold;background:var(--color-danger);color:var(--color-text-primary);border:none;border-radius:3px}
-.emergency-btn:disabled{background:var(--color-border);color:var(--color-text-disabled);cursor:not-allowed}
-.sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+/* MOS矩形 */
+.mos-rect{position:absolute;top:50%;transform:translateY(-50%);border-radius:2px;cursor:pointer;transition:all 200ms var(--anim-easing);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:4px;z-index:3;}
+.mos-rect .rect-label{font-size:9px;white-space:nowrap;padding:1px 4px;border-radius:2px;background:rgba(0,0,0,0.6);font-family:"Consolas",monospace;pointer-events:none;}
+.mos-rect.plan1{border:2px dashed var(--color-threat-medium);background:rgba(255,183,77,0.08);}
+.mos-rect.plan2{border:2px solid var(--color-status-online);background:rgba(76,175,80,0.15);z-index:4;}
+.mos-rect.plan3{border:2px dashed #98cbff;background:rgba(152,203,255,0.08);}
+.mos-rect.plan1.active{border-width:3px;box-shadow:0 0 12px var(--color-threat-medium);z-index:7;}
+.mos-rect.plan2.active{border-width:3px;box-shadow:0 0 12px var(--color-status-online);z-index:7;}
+.mos-rect.plan3.active{border-width:3px;box-shadow:0 0 12px #98cbff;z-index:7;}
+
+/* 图例 */
+.runway-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--color-text-secondary);flex-shrink:0;}
+.legend-item{display:flex;align-items:center;gap:4px;}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.legend-dot.crater{background:rgba(255,82,82,0.3);border:1px solid var(--color-threat-high);}
+.legend-dot.uxo{background:rgba(255,235,59,0.25);border:1px solid #FFEB3B;}
+.legend-dot.repaired{background:transparent;border:1px dashed #888;}
+.legend-rect{width:16px;height:10px;border-radius:2px;flex-shrink:0;}
+.legend-rect.plan1{border:1px dashed var(--color-threat-medium);background:rgba(255,183,77,0.08);}
+.legend-rect.plan2{border:1px solid var(--color-status-online);background:rgba(76,175,80,0.15);}
+.legend-rect.plan3{border:1px dashed #98cbff;background:rgba(152,203,255,0.08);}
+
+/* 缩放控件 */
+.zoom-control{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto;}
+.zoom-btn{width:24px;height:24px;border:1px solid var(--color-border);background:var(--color-toolbar);color:var(--color-text-primary);border-radius:var(--radius-control);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.zoom-btn:hover{background:#454545;}
+.zoom-level{font-size:11px;color:var(--color-text-secondary);min-width:30px;text-align:center;font-family:"Consolas",monospace;}
+
+/* ===== 算法参数栏（MOSPlanParams） ===== */
+.center-bottom{padding:0 8px 8px 8px;flex-shrink:0;max-height:240px;overflow-y:auto;}
+.params-panel{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.params-header{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.params-title{font-size:13px;font-weight:bold;color:var(--color-text-primary);}
+.params-title .sim{color:var(--color-status-busy);font-size:10px;margin-left:4px;}
+.params-reset{font-size:11px;color:var(--color-text-secondary);cursor:pointer;padding:2px 8px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-toolbar);}
+.params-reset:hover{background:var(--color-border);color:var(--color-text-primary);}
+.params-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.param-field{display:flex;flex-direction:column;gap:3px;}
+.param-label{font-size:11px;color:var(--color-text-secondary);}
+.param-input{height:26px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 8px;color:var(--color-text-primary);font-size:13px;font-family:"Consolas",monospace;}
+.param-input:focus{outline:none;border-color:var(--color-border-focus);}
+.param-readonly{height:26px;display:flex;align-items:center;padding:0 8px;background:var(--color-toolbar);border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-text-primary);font-size:13px;font-family:"Consolas",monospace;}
+.param-readonly.green{color:var(--color-status-online);}
+.param-readonly.orange{color:var(--color-status-busy);}
+.params-footer{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;font-size:11px;}
+.params-status{display:flex;align-items:center;gap:6px;}
+.params-status .pass{color:var(--color-status-online);font-weight:bold;}
+.params-status .fail{color:var(--color-threat-high);font-weight:bold;}
+.params-replan{padding:4px 14px;height:28px;border:none;border-radius:var(--radius-control);font-size:12px;font-family:var(--font-family);cursor:pointer;background:var(--color-primary);color:#fff;display:flex;align-items:center;gap:4px;}
+.params-replan:hover{background:var(--color-primary-hover);}
+
+/* ===== 右面板 ===== */
+.right-panel{width:var(--size-right-panel-width);background:var(--color-panel);border-left:1px solid var(--color-border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.rp-section{border-bottom:1px solid var(--color-border);padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+.rp-section-title{font-size:12px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.rp-section-title .sim{color:var(--color-status-busy);font-size:10px;border:1px solid var(--color-status-busy);padding:0 4px;border-radius:3px;}
+
+/* 候选方案卡片 */
+.plan-card{background:#2D2D2D;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:8px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing);display:flex;gap:8px;}
+.plan-card:hover{background:var(--color-row-hover);}
+.plan-card.active{border-color:#5B9BD5;background:rgba(91,155,213,0.1);box-shadow:0 0 0 1px #5B9BD5;}
+.plan-thumb{width:48px;height:24px;background:#1a2a1a;border:1px solid var(--color-border);border-radius:2px;position:relative;flex-shrink:0;margin-top:2px;}
+.plan-thumb-runway{position:absolute;left:2px;right:2px;top:50%;transform:translateY(-50%);height:8px;background:var(--color-runway);border-radius:1px;}
+.plan-thumb-mos{position:absolute;top:50%;transform:translateY(-50%);border-radius:1px;}
+.pc-content{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;}
+.pc-row1{display:flex;align-items:center;gap:6px;}
+.pc-name{font-size:12px;font-weight:bold;color:var(--color-text-primary);}
+.pc-badge{font-size:10px;padding:1px 6px;border-radius:3px;white-space:nowrap;}
+.pc-badge-yellow{background:rgba(255,183,77,0.2);color:var(--color-threat-medium);border:1px solid var(--color-threat-medium);}
+.pc-badge-blue{background:rgba(91,155,213,0.2);color:#98cbff;border:1px solid #5B9BD5;}
+.pc-badge-gray{background:rgba(136,136,136,0.2);color:#aaa;border:1px solid #666;}
+.pc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 8px;font-size:11px;}
+.pc-grid-item{display:flex;flex-direction:column;gap:1px;}
+.pc-grid-label{color:var(--color-text-secondary);font-size:10px;}
+.pc-grid-value{color:var(--color-text-primary);font-size:11px;}
+.pc-grid-value.green{color:var(--color-status-online);}
+.pc-grid-value.orange{color:var(--color-status-busy);}
+.pc-grid-value.red{color:var(--color-threat-high);}
+
+/* 选定详情摘要 */
+.detail-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.detail-card{background:#2D2D2D;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;}
+.detail-card-value{font-size:22px;font-weight:bold;color:var(--color-text-primary);line-height:1;}
+.detail-card-value.orange{color:var(--color-status-busy);}
+.detail-card-unit{font-size:10px;color:var(--color-text-secondary);}
+
+/* 修复优先级列表 */
+.priority-table{width:100%;border-collapse:collapse;font-size:11px;}
+.priority-table th{text-align:left;padding:4px 6px;color:var(--color-text-secondary);font-weight:normal;font-size:10px;border-bottom:1px solid var(--color-border);}
+.priority-table td{padding:5px 6px;border-bottom:1px solid rgba(60,60,60,0.5);}
+.priority-num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:bold;}
+.priority-num.green{background:rgba(76,175,80,0.2);color:var(--color-status-online);border:1px solid var(--color-status-online);}
+.priority-num.orange{background:rgba(255,183,77,0.2);color:var(--color-status-busy);border:1px solid var(--color-status-busy);}
+.priority-num.gray{background:rgba(136,136,136,0.2);color:#888;border:1px solid #666;}
+.type-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle;}
+.type-dot.red{background:var(--color-threat-high);}
+.type-dot.yellow{background:#FFEB3B;}
+
+/* 决策草案 */
+.draft-content{display:flex;flex-direction:column;gap:6px;}
+.draft-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+.draft-label{color:var(--color-text-secondary);min-width:80px;}
+.draft-value{color:var(--color-text-primary);font-weight:bold;}
+.draft-value.warn{color:var(--color-status-busy);}
+.draft-btns{display:flex;gap:8px;margin-top:4px;}
+.draft-note{font-size:10px;color:var(--color-text-secondary);margin-top:4px;font-style:italic;}
+
+/* ===== 状态栏 ===== */
+.status-bar{height:var(--size-status-bar-height);background:var(--color-bg);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 12px;font-size:11px;color:var(--color-text-secondary);flex-shrink:0;gap:16px;}
+.status-item{display:flex;align-items:center;gap:4px;}
+.status-dot{width:8px;height:8px;border-radius:50%;}
+.status-dot.online{background:var(--color-status-online);box-shadow:0 0 4px var(--color-status-online);}
+.sim-badge{background:rgba(255,183,77,0.2);color:var(--color-status-busy);padding:1px 6px;border-radius:3px;font-size:10px;border:1px solid var(--color-status-busy);}
+.status-alert{flex:1;display:flex;align-items:center;gap:6px;color:var(--color-threat-medium);overflow:hidden;}
+.status-alert-text{white-space:nowrap;animation:scroll-alert 12s linear infinite;}
+@keyframes scroll-alert{0%{transform:translateX(100%);}100%{transform:translateX(-100%);}}
+.status-right{display:flex;align-items:center;gap:6px;}
+.status-right .threat-tag{color:var(--color-threat-high);font-weight:bold;}
+
+/* 滚动条 */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#555;border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:#666;}
 </style>
 </head>
 <body>
 <div class="app">
 
+  <!-- 菜单栏 -->
   <div class="menu-bar">
-    <button data-testid="DEC-MENU-FILE">文件(&amp;F)</button>
-    <button data-testid="DEC-MENU-VIEW">视图(&amp;V)</button>
-    <button data-testid="DEC-MENU-TOOLS" data-disabled="true" title="占位控件，未实现">工具(&amp;T)</button>
-    <button data-testid="DEC-MENU-HELP">帮助(&amp;H)</button>
+    <div class="menu-item" data-testid="DEC-MENU-FILE">文件<span>(F)</span></div>
+    <div class="menu-item" data-testid="DEC-MENU-VIEW">视图<span>(V)</span></div>
+    <div class="menu-item" data-testid="DEC-MENU-TOOLS">工具<span>(T)</span></div>
+    <div class="menu-item" data-testid="DEC-MENU-HELP">帮助<span>(H)</span></div>
   </div>
 
+  <!-- MOS工具栏 -->
   <div class="toolbar">
-    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="DEC-TB-EXPORT">导出决策</span>
-    <button class="tb-btn" data-testid="DEC-TB-REFRESH" title="刷新模拟决策数据">刷新决策</button>
-    <span style="flex:1"></span>
-    <span class="tb-label" data-testid="DEC-TB-STATUS">决策状态: 草案选择中</span>
+    <div class="toolbar-group">
+      <button class="btn btn-secondary" data-testid="DEC-TB-PARAMS">⚙ 参数设置</button>
+      <button class="btn btn-primary" data-testid="DEC-TB-REPLAN">↻ 重新规划</button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="toolbar-group">
+      <button class="btn btn-plan" data-plan="1" data-testid="DEC-TB-PLAN-1">方案1·不修复</button>
+      <button class="btn btn-plan active" data-plan="2" data-testid="DEC-TB-PLAN-2">方案2·部分修复 ▾</button>
+      <button class="btn btn-plan" data-plan="3" data-testid="DEC-TB-PLAN-3">方案3·修复更多</button>
+    </div>
+    <div class="toolbar-spacer"></div>
+    <div class="toolbar-group">
+      <button class="btn btn-disabled" data-testid="DEC-TB-EXTEND">扩展 (P1)</button>
+      <button class="btn btn-secondary" data-testid="DEC-TB-EXPORT">⬇ 导出报告</button>
+    </div>
   </div>
 
-  <div class="main-area">
+  <!-- 主体区域 -->
+  <div class="main-body">
+
+    <!-- 导航栏 -->
     <div class="nav-bar">
       <div class="nav-logo" data-testid="DEC-NAV-LOGO">UXO</div>
       <div class="nav-spacer-1"></div>
       <div class="nav-items">
-        <div class="nav-item" data-testid="DEC-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
-        <div class="nav-item" data-testid="DEC-NAV-02"><span class="nav-icon">◎</span><span>探测</span></div>
-        <div class="nav-item selected" data-testid="DEC-NAV-03"><span class="nav-icon">◎</span><span>决策</span></div>
-        <div class="nav-item" data-testid="DEC-NAV-04"><span class="nav-icon">◎</span><span>设备</span></div>
-        <div class="nav-item" data-testid="DEC-NAV-05"><span class="nav-icon">◎</span><span>统计</span></div>
-        <div class="nav-item" data-testid="DEC-NAV-06"><span class="nav-icon">◎</span><span>配置</span></div>
+        <div class="nav-btn" data-testid="DEC-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
+        <div class="nav-btn" data-testid="DEC-NAV-02"><span class="nav-icon">◎</span><span>探测</span></div>
+        <div class="nav-btn active" data-testid="DEC-NAV-03"><span class="nav-icon">◎</span><span>决策</span></div>
+        <div class="nav-btn" data-testid="DEC-NAV-04"><span class="nav-icon">◎</span><span>设备</span></div>
+        <div class="nav-btn" data-testid="DEC-NAV-05"><span class="nav-icon">◎</span><span>统计</span></div>
+        <div class="nav-btn" data-testid="DEC-NAV-06"><span class="nav-icon">◎</span><span>配置</span></div>
       </div>
       <div class="nav-spacer-2"></div>
     </div>
 
-    <!-- 左面板：目标列表 -->
+    <!-- 左面板 -->
     <div class="left-panel">
-      <div class="lp-header"><span class="lp-title">[模拟] 待决策目标</span></div>
-      <div class="target-list" data-testid="DEC-LP-TARGET-LIST">
-        <div class="target-card selected" data-target="target-001">
-          <div class="target-card-row1">
-            <span class="target-card-id">target-001</span>
-            <span class="target-card-type">反跑道雷</span>
-            <span class="threat-badge high">高</span>
-          </div>
-          <div class="target-card-row2">
-            <span>置信度: 86%</span>
-            <span>状态: </span><span class="target-card-status detected">已发现</span>
-          </div>
-        </div>
-        <div class="target-card" data-target="target-002">
-          <div class="target-card-row1">
-            <span class="target-card-id">target-002</span>
-            <span class="target-card-type">航弹</span>
-            <span class="threat-badge high">高</span>
-          </div>
-          <div class="target-card-row2">
-            <span>置信度: 72%</span>
-            <span>状态: </span><span class="target-card-status detected">已发现</span>
-          </div>
-        </div>
-        <div class="target-card" data-target="target-003">
-          <div class="target-card-row1">
-            <span class="target-card-id">target-003</span>
-            <span class="target-card-type">火箭弹</span>
-            <span class="threat-badge medium">中</span>
-          </div>
-          <div class="target-card-row2">
-            <span>置信度: 91%</span>
-            <span>状态: </span><span class="target-card-status confirmed">已确认</span>
-          </div>
-        </div>
-        <div class="target-card" data-target="target-004">
-          <div class="target-card-row1">
-            <span class="target-card-id">target-004</span>
-            <span class="target-card-type">集束弹</span>
-            <span class="threat-badge low">低</span>
-          </div>
-          <div class="target-card-row2">
-            <span>置信度: 65%</span>
-            <span>状态: </span><span class="target-card-status detected">已发现</span>
-          </div>
-        </div>
+      <div class="panel-header"><span class="sim-tag">模拟</span>损毁目标列表</div>
+      <div class="target-list" id="targetList" data-testid="DEC-LP-TARGET-LIST">
+        <!-- JS动态生成 -->
       </div>
     </div>
 
-    <!-- 中心区：决策依据+候选方案+资源约束 -->
+    <!-- 中心区 -->
     <div class="center-area">
-      <div class="center-header">
-        <span class="center-title">决策支持</span>
-        <span class="center-subtitle" data-testid="DEC-CE-TARGET">target-001 · 反跑道雷 · 高威胁</span>
+      <!-- 上部：跑道俯视图 60% -->
+      <div class="center-top">
+        <div class="runway-section" data-testid="DEC-CE-RUNWAY">
+          <div class="runway-header">
+            <div class="runway-title">跑道 3000m × 50m<span class="sim">[模拟]</span></div>
+            <div class="scale-bar">
+              <span>0</span>
+              <div class="scale-line"></div>
+              <span>500m</span>
+            </div>
+          </div>
+          <div class="runway-container">
+            <div class="runway" id="runway">
+              <!-- 刻度线 -->
+              <div class="runway-ticks">
+                <div class="runway-tick" style="left:0%"></div>
+                <div class="runway-tick" style="left:16.67%"></div>
+                <div class="runway-tick" style="left:33.33%"></div>
+                <div class="runway-tick" style="left:50%"></div>
+                <div class="runway-tick" style="left:66.67%"></div>
+                <div class="runway-tick" style="left:83.33%"></div>
+                <div class="runway-tick" style="left:100%"></div>
+              </div>
+
+              <!-- 目标圆圈 -->
+              <!-- 弹坑-001: 坐标1200m -> 40%位置, Ø8m -> 半径约20px -->
+              <div class="target-circle crater" data-target="0" style="left:40%;width:40px;height:40px;">
+                <div class="target-label">弹坑-001 Ø8m</div>
+              </div>
+              <!-- UXO-003: 坐标1500m -> 50%位置, 影响45m -> 半径约30px -->
+              <div class="target-circle uxo" data-target="1" style="left:50%;width:60px;height:60px;">
+                <div class="target-label">UXO-003 45m</div>
+              </div>
+              <!-- 弹坑-005: 坐标800m -> 27%位置, Ø6m, 已修复 -->
+              <div class="target-circle repaired" data-target="2" style="left:27%;width:36px;height:36px;">
+                <span class="check">✓</span>
+                <div class="target-label">弹坑-005 已修复</div>
+              </div>
+              <!-- UXO-007: 坐标2200m -> 73%位置, 影响30m -> 半径约22px -->
+              <div class="target-circle uxo" data-target="3" style="left:73%;width:44px;height:44px;">
+                <div class="target-label">UXO-007 30m</div>
+              </div>
+
+              <!-- MOS矩形 -->
+              <!-- 方案1: 460×15m, 位置偏左 -->
+              <div class="mos-rect plan1" data-plan-rect="1" style="left:14%;width:15.3%;height:60px;">
+                <span class="rect-label" style="color:var(--color-threat-medium);">方案1 460×15 6900m²</span>
+              </div>
+              <!-- 方案2: 520×18m, 位置中间偏右 -->
+              <div class="mos-rect plan2 active" data-plan-rect="2" style="left:39%;width:17.3%;height:72px;">
+                <span class="rect-label" style="color:var(--color-status-online);">方案2 520×18 9360m² · 当前</span>
+              </div>
+              <!-- 方案3: 650×20m, 位置最右 -->
+              <div class="mos-rect plan3" data-plan-rect="3" style="left:60%;width:21.7%;height:80px;">
+                <span class="rect-label" style="color:#98cbff;">方案3 650×20 13000m²</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+            <div class="runway-legend">
+              <div class="legend-item"><div class="legend-dot crater"></div>弹坑</div>
+              <div class="legend-item"><div class="legend-dot uxo"></div>UXO</div>
+              <div class="legend-item"><div class="legend-dot repaired"></div>已修复</div>
+              <div class="legend-item"><div class="legend-rect plan1"></div>方案1</div>
+              <div class="legend-item"><div class="legend-rect plan2"></div>方案2</div>
+              <div class="legend-item"><div class="legend-rect plan3"></div>方案3</div>
+            </div>
+            <div class="zoom-control">
+              <button class="zoom-btn">+</button>
+              <span class="zoom-level">1×</span>
+              <button class="zoom-btn">−</button>
+              <button class="zoom-btn" style="font-size:11px;">复位</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="center-content">
-        <!-- 决策依据 -->
-        <div class="basis-panel">
-          <span class="basis-title">[模拟] 决策依据</span>
-          <div class="basis-grid">
-            <div class="basis-item">
-              <span class="basis-label">目标类型</span>
-              <span class="basis-value" style="color:var(--color-threat-high)">反跑道雷</span>
-            </div>
-            <div class="basis-item">
-              <span class="basis-label">威胁等级</span>
-              <span class="basis-value danger">高</span>
-            </div>
-            <div class="basis-item">
-              <span class="basis-label">识别置信度</span>
-              <span class="basis-value highlight">86%</span>
-            </div>
-            <div class="basis-item">
-              <span class="basis-label">位置环境</span>
-              <span class="basis-value">跑道区域</span>
-            </div>
-            <div class="basis-item">
-              <span class="basis-label">周边人员</span>
-              <span class="basis-value">无（已疏散）</span>
-            </div>
-            <div class="basis-item">
-              <span class="basis-label">天气条件</span>
-              <span class="basis-value">晴（模拟）</span>
-            </div>
-          </div>
-        </div>
 
-        <!-- 候选方案比较 -->
-        <div>
-          <div class="plans-header">[模拟] 候选处置方案比较</div>
-          <div class="plans-grid" data-testid="DEC-CE-PLANS" style="margin-top:12px">
-            <div class="plan-card selected" data-plan="聚能引爆" data-testid="DEC-CE-PLAN-1">
-              <div class="plan-header">
-                <div class="plan-radio"></div>
-                <span class="plan-name">聚能引爆</span>
-              </div>
-              <div class="plan-desc">使用聚能装药在安全距离引爆目标，适用于金属外壳反跑道雷。需要排爆机器人接近目标。</div>
-              <div class="plan-metrics">
-                <div class="plan-metric">
-                  <span class="plan-metric-label">成功率</span>
-                  <div class="plan-metric-bar"><div class="plan-metric-fill low" style="width:92%"></div></div>
-                  <span class="plan-metric-value">92%</span>
-                </div>
-                <div class="plan-metric">
-                  <span class="plan-metric-label">风险</span>
-                  <div class="plan-metric-bar"><div class="plan-metric-fill high" style="width:70%"></div></div>
-                  <span class="plan-metric-value">高</span>
-                </div>
-                <div class="plan-metric">
-                  <span class="plan-metric-label">耗时</span>
-                  <div class="plan-metric-bar"><div class="plan-metric-fill medium" style="width:50%"></div></div>
-                  <span class="plan-metric-value">45min</span>
-                </div>
-              </div>
+      <!-- 下部：算法参数栏（MOSPlanParams） -->
+      <div class="center-bottom">
+        <div class="params-panel" data-testid="DEC-CE-PARAMS">
+          <div class="params-header">
+            <div class="params-title">算法参数<span class="sim">[模拟]</span></div>
+            <button class="params-reset">恢复默认值</button>
+          </div>
+          <div class="params-grid">
+            <div class="param-field">
+              <span class="param-label">跑道长度 (m)</span>
+              <input class="param-input" type="text" value="3000">
             </div>
-            <div class="plan-card" data-plan="人工拆除" data-testid="DEC-CE-PLAN-2">
-              <div class="plan-header">
-                <div class="plan-radio"></div>
-                <span class="plan-name">人工拆除</span>
-              </div>
-              <div class="plan-desc">由排爆人员近距离拆除引信。适用于需要保留证据的目标。风险最高。</div>
-              <div class="plan-metrics">
-                <div class="plan-metric">
-                  <span class="plan-metric-label">成功率</span>
-                  <div class="plan-metric-bar"><div class="plan-metric-fill medium" style="width:78%"></div></div>
-                  <span class="plan-metric-value">78%</span>
-                </div>
-                <div class="plan-metric">
-                  <span class="plan-metric-label">风险</span>
-                  <div class="plan-metric-bar"><div class="plan-metric-fill high" style="width:95%"></div></div>
-                  <span class="plan-metric-value">极高</span>
-                </div>
-                <div class="plan-metric">
-                  <span class="plan-metric-label">耗时</span>
-                  <div class="plan-metric-bar"><div class="plan-metric-fill high" style="width:90%"></div></div>
-                  <span class="plan-metric-value">120min</span>
-                </div>
-              </div>
+            <div class="param-field">
+              <span class="param-label">跑道宽度 (m)</span>
+              <input class="param-input" type="text" value="50">
             </div>
-            <div class="plan-card" data-plan="就地封存" data-testid="DEC-CE-PLAN-3">
-              <div class="plan-header">
-                <div class="plan-radio"></div>
-                <span class="plan-name">就地封存</span>
-              </div>
-              <div class="plan-desc">对目标进行标记和封存，等待后续处置。适用于资源不足或环境不允许立即处置的情况。</div>
-              <div class="plan-metrics">
-                <div class="plan-metric">
-                  <span class="plan-metric-label">成功率</span>
-                  <div class="plan-metric-bar"><div class="plan-metric-fill low" style="width:95%"></div></div>
-                  <span class="plan-metric-value">95%</span>
-                </div>
-                <div class="plan-metric">
-                  <span class="plan-metric-label">风险</span>
-                  <div class="plan-metric-bar"><div class="plan-metric-fill low" style="width:20%"></div></div>
-                  <span class="plan-metric-value">低</span>
-                </div>
-                <div class="plan-metric">
-                  <span class="plan-metric-label">耗时</span>
-                  <div class="plan-metric-bar"><div class="plan-metric-fill low" style="width:15%"></div></div>
-                  <span class="plan-metric-value">15min</span>
-                </div>
-              </div>
+            <div class="param-field">
+              <span class="param-label">最小起降长度 (m)</span>
+              <input class="param-input" type="text" value="460">
+            </div>
+            <div class="param-field">
+              <span class="param-label">最小起降宽度 (m)</span>
+              <input class="param-input" type="text" value="15">
+            </div>
+            <div class="param-field">
+              <span class="param-label">安全系数 K</span>
+              <input class="param-input" type="text" value="1.2">
+            </div>
+            <div class="param-field">
+              <span class="param-label">扫描步长 (m)</span>
+              <input class="param-input" type="text" value="1">
+            </div>
+            <div class="param-field">
+              <span class="param-label">回填速率 (m³/h)</span>
+              <input class="param-input" type="text" value="50">
+            </div>
+            <div class="param-field">
+              <span class="param-label">UXO 工时 (h/个)</span>
+              <input class="param-input" type="text" value="8">
+            </div>
+            <div class="param-field">
+              <span class="param-label">扩展系数</span>
+              <input class="param-input" type="text" value="1.5">
+            </div>
+            <div class="param-field">
+              <span class="param-label">方案档位数</span>
+              <input class="param-input" type="text" value="3">
+            </div>
+            <div class="param-field">
+              <span class="param-label">损毁点总数</span>
+              <div class="param-readonly">4</div>
+            </div>
+            <div class="param-field">
+              <span class="param-label">已修复数</span>
+              <div class="param-readonly green">1</div>
             </div>
           </div>
-        </div>
-
-        <!-- 资源约束 -->
-        <div class="constraints-panel">
-          <span style="font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold">[模拟] 资源约束检查</span>
-          <div class="constraint-row">
-            <span class="constraint-label">可用设备</span>
-            <span class="constraint-value">排爆机器人 Robot-1（在线）</span>
-            <span class="constraint-status ok">满足</span>
-          </div>
-          <div class="constraint-row">
-            <span class="constraint-label">人员就位</span>
-            <span class="constraint-value">模拟排爆组（待命）</span>
-            <span class="constraint-status ok">满足</span>
-          </div>
-          <div class="constraint-row">
-            <span class="constraint-label">安全距离</span>
-            <span class="constraint-value">已疏散，半径 500m 无人员</span>
-            <span class="constraint-status ok">满足</span>
-          </div>
-          <div class="constraint-row">
-            <span class="constraint-label">通信链路</span>
-            <span class="constraint-value">[模拟] 本地模拟链路</span>
-            <span class="constraint-status warn">占位</span>
-          </div>
-          <div class="constraint-row">
-            <span class="constraint-label">天气许可</span>
-            <span class="constraint-value">晴，风力 3 级（模拟）</span>
-            <span class="constraint-status ok">满足</span>
+          <div class="params-footer">
+            <div class="params-status">
+              <span>面积单调递增校验:</span>
+              <span class="pass">✓ 通过 (6900 → 9360 → 13000)</span>
+            </div>
+            <button class="params-replan">↻ 重新规划</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 右面板：决策草案+风险评估 -->
+    <!-- 右面板 -->
     <div class="right-panel">
-      <div class="rp-section draft">
-        <div class="rp-section-header">
-          <span class="rp-section-title">[模拟] 决策草案</span>
+
+      <!-- ② 候选方案卡片 -->
+      <div class="rp-section" data-testid="DEC-RP-PLANS">
+        <div class="rp-section-title"><span class="sim">模拟</span>候选起降方案</div>
+        <!-- 方案1 -->
+        <div class="plan-card" data-plan-card="1" data-testid="DEC-RP-PLAN-1">
+          <div class="plan-thumb">
+            <div class="plan-thumb-runway"></div>
+            <div class="plan-thumb-mos" style="left:20%;width:15%;height:8px;border:1px dashed var(--color-threat-medium);background:rgba(255,183,77,0.1);"></div>
+          </div>
+          <div class="pc-content">
+            <div class="pc-row1">
+              <span class="pc-name">方案1·不修复</span>
+              <span class="pc-badge pc-badge-yellow">紧急可用</span>
+            </div>
+            <div class="pc-grid">
+              <div class="pc-grid-item"><span class="pc-grid-label">面积</span><span class="pc-grid-value">6900m²</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">尺寸</span><span class="pc-grid-value">460×15m</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">修复</span><span class="pc-grid-value green">0h</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">损毁</span><span class="pc-grid-value">0个</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">难度</span><span class="pc-grid-value green">无</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">安全</span><span class="pc-grid-value">8m</span></div>
+            </div>
+          </div>
         </div>
-        <div class="rp-section-content">
-          <div class="draft-status" data-testid="DEC-RP-DRAFT">
-            <div class="draft-status-row">
-              <span class="draft-status-label">当前目标:</span>
-              <span class="draft-status-value" data-testid="DEC-RP-DRAFT-TARGET">target-001</span>
+        <!-- 方案2 -->
+        <div class="plan-card active" data-plan-card="2" data-testid="DEC-RP-PLAN-2">
+          <div class="plan-thumb">
+            <div class="plan-thumb-runway"></div>
+            <div class="plan-thumb-mos" style="left:35%;width:20%;height:10px;border:1px solid var(--color-status-online);background:rgba(76,175,80,0.2);"></div>
+          </div>
+          <div class="pc-content">
+            <div class="pc-row1">
+              <span class="pc-name">方案2·部分修复</span>
+              <span class="pc-badge pc-badge-blue">推荐方案</span>
             </div>
-            <div class="draft-status-row">
-              <span class="draft-status-label">选中方案:</span>
-              <span class="draft-status-value selected" data-testid="DEC-RP-DRAFT-PLAN">聚能引爆</span>
+            <div class="pc-grid">
+              <div class="pc-grid-item"><span class="pc-grid-label">面积</span><span class="pc-grid-value">9360m²</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">尺寸</span><span class="pc-grid-value">520×18m</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">修复</span><span class="pc-grid-value orange">12h</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">损毁</span><span class="pc-grid-value">3个</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">难度</span><span class="pc-grid-value orange">中等</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">安全</span><span class="pc-grid-value">23m</span></div>
             </div>
-            <div class="draft-status-row">
-              <span class="draft-status-label">草案状态:</span>
-              <span class="draft-status-value" data-testid="DEC-RP-DRAFT-STATUS">待确认</span>
+          </div>
+        </div>
+        <!-- 方案3 -->
+        <div class="plan-card" data-plan-card="3" data-testid="DEC-RP-PLAN-3">
+          <div class="plan-thumb">
+            <div class="plan-thumb-runway"></div>
+            <div class="plan-thumb-mos" style="left:50%;width:25%;height:12px;border:1px dashed #98cbff;background:rgba(152,203,255,0.1);"></div>
+          </div>
+          <div class="pc-content">
+            <div class="pc-row1">
+              <span class="pc-name">方案3·修复更多</span>
+              <span class="pc-badge pc-badge-gray">最大工程量</span>
             </div>
-            <div class="draft-action-row">
-              <button class="draft-btn" data-testid="DEC-RP-DRAFT-CONFIRM" title="确认草案选择（仅原型状态）">确认草案</button>
-              <button class="draft-btn secondary" data-testid="DEC-RP-DRAFT-RESET" title="重置草案">重置</button>
-            </div>
-            <div class="draft-note">
-              <span class="sim-tag">[模拟]</span> 此处仅记录草案选择状态，不执行真实处置、不下发任务、不控制设备。确认后需到设备页面进行模拟指派。
+            <div class="pc-grid">
+              <div class="pc-grid-item"><span class="pc-grid-label">面积</span><span class="pc-grid-value">13000m²</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">尺寸</span><span class="pc-grid-value">650×20m</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">修复</span><span class="pc-grid-value red">28h</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">损毁</span><span class="pc-grid-value">7个</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">难度</span><span class="pc-grid-value red">高</span></div>
+              <div class="pc-grid-item"><span class="pc-grid-label">安全</span><span class="pc-grid-value">35m</span></div>
             </div>
           </div>
         </div>
       </div>
-      <div class="rp-section risk">
-        <div class="rp-section-header">
-          <span class="rp-section-title">[模拟] 风险评估</span>
-        </div>
-        <div class="rp-section-content" data-testid="DEC-RP-RISK">
-          <div class="risk-card">
-            <div class="risk-row">
-              <span class="risk-label">人员风险</span>
-              <div class="risk-bar"><div class="risk-fill high" style="width:70%"></div></div>
-              <span class="risk-value">高</span>
-            </div>
-            <div class="risk-row">
-              <span class="risk-label">设备风险</span>
-              <div class="risk-bar"><div class="risk-fill medium" style="width:40%"></div></div>
-              <span class="risk-value">中</span>
-            </div>
-            <div class="risk-row">
-              <span class="risk-label">环境风险</span>
-              <div class="risk-bar"><div class="risk-fill low" style="width:15%"></div></div>
-              <span class="risk-value">低</span>
-            </div>
-            <div class="risk-row">
-              <span class="risk-label">综合风险</span>
-              <div class="risk-bar"><div class="risk-fill high" style="width:65%"></div></div>
-              <span class="risk-value" style="color:var(--color-threat-high);font-weight:bold">高</span>
-            </div>
-            <div class="sim-tag" style="font-size:11px;margin-top:4px">[模拟数据，不替代真实威胁评估]</div>
+
+      <!-- ③ 选定详情摘要 -->
+      <div class="rp-section" data-testid="DEC-RP-DETAIL">
+        <div class="rp-section-title">选定详情摘要</div>
+        <div class="detail-cards">
+          <div class="detail-card">
+            <div class="detail-card-value" id="detailArea">9360</div>
+            <div class="detail-card-unit">m² 可用面积</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-value orange" id="detailTime">12h</div>
+            <div class="detail-card-unit">修复耗时</div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-value" id="detailCount">3</div>
+            <div class="detail-card-unit">损毁目标</div>
           </div>
         </div>
       </div>
+
+      <!-- ④ 修复优先级列表 -->
+      <div class="rp-section" data-testid="DEC-RP-PRIORITY">
+        <div class="rp-section-title"><span class="sim">模拟</span>修复优先级</div>
+        <table class="priority-table">
+          <thead>
+            <tr><th>#</th><th>类型</th><th>任务</th><th>工程量</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="priority-num green">①</span></td>
+              <td><span class="type-dot red"></span>弹坑</td>
+              <td>弹坑-001 回填32m³</td>
+              <td>4h·中等</td>
+            </tr>
+            <tr>
+              <td><span class="priority-num orange">②</span></td>
+              <td><span class="type-dot yellow"></span>UXO</td>
+              <td>UXO-003 排除</td>
+              <td>6h·高</td>
+            </tr>
+            <tr>
+              <td><span class="priority-num gray">③</span></td>
+              <td><span class="type-dot red"></span>弹坑</td>
+              <td>弹坑-005 回填15m³</td>
+              <td>2h·低</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ⑤ 决策草案+确认 -->
+      <div class="rp-section" style="border-bottom:none;" data-testid="DEC-RP-DRAFT">
+        <div class="rp-section-title"><span class="sim">模拟</span>决策草案</div>
+        <div class="draft-content">
+          <div class="draft-row">
+            <span class="draft-label">选中方案:</span>
+            <span class="draft-value" id="draftPlan">方案2·部分修复</span>
+          </div>
+          <div class="draft-row">
+            <span class="draft-label">起降带:</span>
+            <span class="draft-value">520×18m · 9360m²</span>
+          </div>
+          <div class="draft-row">
+            <span class="draft-label">修复工期:</span>
+            <span class="draft-value warn">12h · 3个损毁点</span>
+          </div>
+          <div class="draft-row">
+            <span class="draft-label">草案状态:</span>
+            <span class="draft-value warn">待确认</span>
+          </div>
+          <div class="draft-btns">
+            <button class="btn btn-primary" style="flex:1;justify-content:center;" data-testid="DEC-RP-DRAFT-CONFIRM">✓ 确认选定方案</button>
+            <button class="btn btn-secondary" data-testid="DEC-RP-DRAFT-EXPORT">⬇ 导出报告</button>
+          </div>
+          <div class="draft-note">[模拟] 仅记录草案状态，不执行真实处置</div>
+        </div>
+      </div>
+
     </div>
   </div>
 
+  <!-- 状态栏 -->
   <div class="status-bar">
-    <span class="status-label" data-testid="DEC-SB-DEVICE">设备: 2/2 在线</span>
-    <span class="status-separator"></span>
-    <span class="status-sim" data-testid="DEC-SB-SIM">[模拟模式]</span>
-    <span class="status-separator"></span>
-    <div class="status-alarm" data-testid="DEC-SB-ALARM">
-      <span class="status-alarm-item">模拟告警: target-001 待决策</span>
+    <div class="status-item" data-testid="DEC-SB-DEVICE">
+      <div class="status-dot online"></div>
+      <span>设备: 2/2 在线</span>
     </div>
-    <button class="emergency-btn" data-disabled="true" disabled title="危险占位：无设备停止效果，本原型禁用" data-testid="DEC-SB-EMERGENCY">紧急停止</button>
+    <div class="sim-badge" data-testid="DEC-SB-SIM">模拟模式</div>
+    <div class="status-alert" data-testid="DEC-SB-ALARM">
+      <span class="status-alert-text">⚠ 模拟告警: 弹坑-001 待决策 · UXO-003 高威胁未处置 · 方案2待确认</span>
+    </div>
+    <div class="status-right" data-testid="DEC-SB-TARGET">
+      <span>当前决策目标:</span>
+      <span style="color:var(--color-text-primary);" id="statusTarget">弹坑-001</span>
+      <span class="threat-tag">· 高威胁</span>
+    </div>
   </div>
 
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded',()=>{
-  let selectedPlan='聚能引爆';
-  let draftConfirmed=false;
+// ===== 数据 =====
+const targets = [
+  {id:'弹坑-001', type:'弹坑', threat:'high', threatText:'高', status:'已发现', coord:'1200,25', size:'Ø8m'},
+  {id:'UXO-003', type:'未爆弹', threat:'high', threatText:'高', status:'已发现', coord:'1500,30', size:'影响45m'},
+  {id:'弹坑-005', type:'弹坑', threat:'medium', threatText:'中', status:'已修复', coord:'800,15', size:'Ø6m'},
+  {id:'UXO-007', type:'未爆弹', threat:'medium', threatText:'中', status:'已发现', coord:'2200,35', size:'影响30m'},
+];
 
-  // 目标选择
-  document.querySelectorAll('.target-card').forEach(c=>{
-    c.addEventListener('click',()=>{
-      document.querySelectorAll('.target-card').forEach(x=>x.classList.remove('selected'));
-      c.classList.add('selected');
-      const id=c.dataset.target;
-      document.querySelector('[data-testid="DEC-CE-TARGET"]').textContent=`${id} · ${c.querySelector('.target-card-type').textContent} · ${c.querySelector('.threat-badge').textContent}威胁`;
-      document.querySelector('[data-testid="DEC-RP-DRAFT-TARGET"]').textContent=id;
-      draftConfirmed=false;
-      document.querySelector('[data-testid="DEC-RP-DRAFT-STATUS"]').textContent='待确认';
-    });
+const plans = [
+  {id:1, name:'方案1·不修复', area:'6900', time:'0h', count:'0'},
+  {id:2, name:'方案2·部分修复', area:'9360', time:'12h', count:'3'},
+  {id:3, name:'方案3·修复更多', area:'13000', time:'28h', count:'7'},
+];
+
+let selectedTarget = 0;
+let selectedPlan = 2;
+
+// ===== 渲染目标列表 =====
+function renderTargets() {
+  const list = document.getElementById('targetList');
+  list.innerHTML = '';
+  targets.forEach((t, i) => {
+    const isRepaired = t.status === '已修复';
+    const card = document.createElement('div');
+    card.className = 'target-card' + (i === selectedTarget ? ' active' : '');
+    card.dataset.target = i;
+    card.innerHTML = `
+      <div class="tc-row1">
+        <span class="tc-id">${t.id}</span>
+        <span class="tc-type">${t.type}</span>
+        <span class="threat-badge threat-${t.threat}">${t.threatText}</span>
+      </div>
+      <div class="tc-row2">
+        <span class="tc-status${isRepaired ? ' repaired' : ''}">${isRepaired ? '✓ ' : ''}${t.status}</span>
+        <span class="tc-coord">坐标:${t.coord}</span>
+      </div>
+      <div class="tc-row3">${t.size}</div>
+    `;
+    card.addEventListener('click', () => selectTarget(i));
+    list.appendChild(card);
   });
+}
 
-  // 方案选择
-  document.querySelectorAll('.plan-card').forEach(p=>{
-    p.addEventListener('click',()=>{
-      document.querySelectorAll('.plan-card').forEach(x=>x.classList.remove('selected'));
-      p.classList.add('selected');
-      selectedPlan=p.dataset.plan;
-      document.querySelector('[data-testid="DEC-RP-DRAFT-PLAN"]').textContent=selectedPlan;
-      if(draftConfirmed){document.querySelector('[data-testid="DEC-RP-DRAFT-STATUS"]').textContent='待确认';draftConfirmed=false}
-    });
+// ===== 选择目标 =====
+function selectTarget(index) {
+  selectedTarget = index;
+  // 更新卡片高亮
+  document.querySelectorAll('.target-card').forEach((c, i) => {
+    c.classList.toggle('active', i === index);
   });
-
-  // 确认草案
-  document.querySelector('[data-testid="DEC-RP-DRAFT-CONFIRM"]').addEventListener('click',()=>{
-    draftConfirmed=true;
-    document.querySelector('[data-testid="DEC-RP-DRAFT-STATUS"]').textContent='已确认（草案）';
+  // 更新跑道圆圈高亮
+  document.querySelectorAll('.target-circle').forEach((c, i) => {
+    c.classList.toggle('active', i === index);
   });
+  // 更新状态栏
+  const t = targets[index];
+  document.getElementById('statusTarget').textContent = t.id;
+  const statusRight = document.querySelector('.status-right .threat-tag');
+  statusRight.textContent = '· ' + t.threatText + '威胁';
+}
 
-  // 重置
-  document.querySelector('[data-testid="DEC-RP-DRAFT-RESET"]').addEventListener('click',()=>{
-    draftConfirmed=false;
-    document.querySelector('[data-testid="DEC-RP-DRAFT-STATUS"]').textContent='待确认';
+// ===== 选择方案 =====
+function selectPlan(planId) {
+  selectedPlan = planId;
+  // 更新工具栏按钮
+  document.querySelectorAll('.btn-plan').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.plan) === planId);
   });
+  // 更新右面板卡片
+  document.querySelectorAll('.plan-card').forEach(card => {
+    card.classList.toggle('active', parseInt(card.dataset.planCard) === planId);
+  });
+  // 更新跑道MOS矩形
+  document.querySelectorAll('.mos-rect').forEach(rect => {
+    rect.classList.toggle('active', parseInt(rect.dataset.planRect) === planId);
+  });
+  // 更新选定详情
+  const p = plans[planId - 1];
+  document.getElementById('detailArea').textContent = p.area;
+  document.getElementById('detailTime').textContent = p.time;
+  const timeEl = document.getElementById('detailTime');
+  if (planId === 1) { timeEl.className = 'detail-card-value'; }
+  else if (planId === 2) { timeEl.className = 'detail-card-value orange'; }
+  else { timeEl.className = 'detail-card-value'; timeEl.style.color = 'var(--color-threat-high)'; }
+  if (planId !== 3) timeEl.style.color = '';
+  document.getElementById('detailCount').textContent = p.count;
+  // 更新草案
+  document.getElementById('draftPlan').textContent = p.name;
+}
 
-  // 导航
-  document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));n.classList.add('selected')}));
+// ===== 事件绑定 =====
+// 跑道圆圈点击
+document.querySelectorAll('.target-circle').forEach((c, i) => {
+  c.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectTarget(i);
+  });
 });
+
+// 方案卡片点击
+document.querySelectorAll('.plan-card').forEach(card => {
+  card.addEventListener('click', () => {
+    selectPlan(parseInt(card.dataset.planCard));
+  });
+});
+
+// 工具栏方案按钮点击
+document.querySelectorAll('.btn-plan').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectPlan(parseInt(btn.dataset.plan));
+  });
+});
+
+// 导航栏点击
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// 缩放控件（模拟）
+let zoomLevel = 1;
+document.querySelectorAll('.zoom-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.textContent.trim();
+    if (text === '+') zoomLevel = Math.min(zoomLevel + 0.25, 3);
+    else if (text === '−') zoomLevel = Math.max(zoomLevel - 0.25, 0.5);
+    else if (text === '复位') zoomLevel = 1;
+    document.querySelector('.zoom-level').textContent = zoomLevel + '×';
+  });
+});
+
+// 菜单项点击（模拟）
+document.querySelectorAll('.menu-item').forEach(item => {
+  item.addEventListener('click', () => {
+    // 模拟菜单，不执行实际操作
+  });
+});
+
+// ===== 初始化 =====
+renderTargets();
 </script>
 </body>
 </html>

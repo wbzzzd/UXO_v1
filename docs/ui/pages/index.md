@@ -57,21 +57,22 @@
 
 ## 3. 决策页 Decision (DEC)
 
-**定位**：决策与方案管理页（导航 `DEC-NAV-03`）。一屏呈现：左侧目标列表（带威胁/状态标记）；中心决策依据 Tab 与候选方案比较；右侧资源约束检查、决策草案编辑、风险评估。所有数据为本地固定模拟场景。
+**定位**：MOS 起降带规划工作区（导航 `DEC-NAV-03`）。一屏呈现：左侧损毁目标列表（弹坑/UXO，带威胁/状态标记）；中心上方跑道 3000m×50m 俯视图（叠加弹坑/UXO/MOS 矩形），中心下方算法参数表单（MOSPlanParams）；右侧候选起降方案卡片 + 选定详情 + 修复优先级 + 决策草案。所有数据为本地固定模拟场景。功能依据：`docs/dev/architecture-uxo-recognition-and-mos.md`。
 
 **关键区域**：
 
 | 区域 | 位置 | 内容 |
 |------|------|------|
-| A 左面板 | 260px | 目标列表（4 个模拟目标，带威胁/状态标记） |
-| B 中心 | 弹性 | 决策依据 Tab（情报/资源/约束）、候选方案比较（3 个模拟方案） |
-| C 右面板 | 320px | 资源约束检查、决策草案编辑、风险评估 |
+| A 左面板 | 260px | 损毁目标列表（4 个模拟目标：弹坑/UXO，带威胁/状态/坐标/尺寸） |
+| B 中心上 | flex:1 | 跑道俯视图（3000×50m 跑道 + 4 个目标圆圈 + 3 个 MOS 矩形 + 图例 + 缩放） |
+| B' 中心下 | 固定高度 | 算法参数栏（MOSPlanParams，10 个可编辑输入 + 2 个只读 + 校验状态 + 重新规划） |
+| C 右面板 | 380px | 候选方案卡片×3 + 选定详情摘要 + 修复优先级列表 + 决策草案 |
 
-**控件 ID 前缀**：`DEC-`，包括 `DEC-LP-TARGET-*`、`DEC-CE-EVIDENCE`、`DEC-CE-COMPARE`、`DEC-RP-DRAFT`、`DEC-RP-RISK` 等。
+**控件 ID 前缀**：`DEC-`，包括 `DEC-LP-TARGET-LIST`、`DEC-CE-RUNWAY`、`DEC-CE-PARAMS`、`DEC-RP-PLANS`、`DEC-RP-DETAIL`、`DEC-RP-PRIORITY`、`DEC-RP-DRAFT` 等。
 
-**HTML 原型**：[`../prototypes/decision/index.html`](../prototypes/decision/index.html)（单文件，4 个模拟目标 + 3 个候选方案）。
+**HTML 原型**：[`../prototypes/decision/index.html`](../prototypes/decision/index.html)（单文件，4 个模拟损毁点 + 3 档起降方案）。
 
-**详细清单**：[`decision.md`](decision.md)（488 行，逐控件规格）。
+**详细清单**：[`decision.md`](decision.md)（逐控件规格）。
 
 ## 4. 设备页 Devices (DEV)
 

@@ -346,6 +346,38 @@ button:disabled{cursor:not-allowed}
               </tr>
             </tbody>
           </table>
+          <!-- 任务表（默认隐藏） -->
+          <table class="data-table" data-testid="SIT-LP-MISSION-TABLE" style="display:none">
+            <thead>
+              <tr><th style="width:48px">优先级</th><th>任务编号</th><th>执行设备</th><th>状态</th></tr>
+            </thead>
+            <tbody>
+              <tr class="selected">
+                <td style="color:var(--color-threat-high)">P0</td>
+                <td>mission-demo-001</td>
+                <td>UAV-1</td>
+                <td>已批准</td>
+              </tr>
+            </tbody>
+          </table>
+          <!-- 设备表（默认隐藏） -->
+          <table class="data-table" data-testid="SIT-LP-DEVICE-TABLE" style="display:none">
+            <thead>
+              <tr><th>设备名称</th><th style="width:60px">状态</th><th style="width:48px">电量</th></tr>
+            </thead>
+            <tbody>
+              <tr class="selected">
+                <td>UAV-1 侦察无人机</td>
+                <td style="color:var(--color-status-online)">在线</td>
+                <td style="color:var(--color-status-online)">95%</td>
+              </tr>
+              <tr>
+                <td>Robot-1 排爆机器人</td>
+                <td style="color:var(--color-status-online)">在线</td>
+                <td style="color:var(--color-status-online)">88%</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -402,6 +434,11 @@ button:disabled{cursor:not-allowed}
               <button class="vsp-layout-btn active" data-testid="SIT-VSP-LAYOUT-4">4</button>
               <span class="vsp-spacer"></span>
               <button class="vsp-fullscreen-btn" data-testid="SIT-VSP-FULLSCREEN">全屏</button>
+            </div>
+            <!-- 全屏单格视图（默认隐藏） -->
+            <div class="vsp-fullscreen-view" data-testid="SIT-VSP-FULLSCREEN-VIEW">
+              <button class="vsp-exit-btn" data-testid="SIT-VSP-EXIT">退出全屏</button>
+              <div class="vsp-fullscreen-content"></div>
             </div>
           </div>
         </div>
@@ -597,12 +634,22 @@ document.addEventListener('DOMContentLoaded',()=>{
   // 搜索过滤
   const search=document.querySelector('[data-testid="SIT-LP-SEARCH"]');
   search.addEventListener('input',e=>{const q=e.target.value.toLowerCase();if(targetRow)targetRow.style.display=(!q||'反跑道雷target-demo-001'.includes(q))?'':'none'});
-  // 标签切换
-  document.querySelectorAll('.tab-bar .tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.tab-bar .tab').forEach(x=>x.classList.remove('selected'));t.classList.add('selected')})});
+  // 标签切换（同步显示对应表，隐藏其余）
+  const tabTableMap={'SIT-LP-PAGE-TARGET':'SIT-LP-TARGET-TABLE','SIT-LP-PAGE-MISSION':'SIT-LP-MISSION-TABLE','SIT-LP-PAGE-DEVICE':'SIT-LP-DEVICE-TABLE'};
+  document.querySelectorAll('.tab-bar .tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.tab-bar .tab').forEach(x=>x.classList.remove('selected'));t.classList.add('selected');const showId=tabTableMap[t.dataset.testid];document.querySelectorAll('.tab-content .data-table').forEach(tbl=>tbl.style.display=tbl.dataset.testid===showId?'':'none')})});
   // 状态子标签切换
   document.querySelectorAll('.status-tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.status-tab').forEach(x=>x.classList.remove('selected'));t.classList.add('selected')})});
   // 视频分屏切换
   document.querySelectorAll('.vsp-layout-btn').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.vsp-layout-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');const n=parseInt(b.textContent);const grid=document.querySelector('.vsp-grid');grid.className='vsp-grid layout-'+n;grid.querySelectorAll('.vsp-cell').forEach((c,i)=>c.style.display=i<n?'flex':'none')})});
+  // 单格全屏：点击 cell 上的"全"按钮或控制栏"全屏"按钮
+  const fsView=document.querySelector('.vsp-fullscreen-view');
+  const fsContent=fsView.querySelector('.vsp-fullscreen-content');
+  const fsExit=document.querySelector('[data-testid="SIT-VSP-EXIT"]');
+  function enterFullscreen(cellIndex){const srcCell=document.querySelector('[data-testid="SIT-VSP-CELL-'+cellIndex+'"]');if(!srcCell)return;const clone=srcCell.cloneNode(true);clone.style.display='flex';clone.style.height='100%';fsContent.innerHTML='';fsContent.appendChild(clone);fsView.classList.add('visible')}
+  function exitFullscreen(){fsView.classList.remove('visible');fsContent.innerHTML=''}
+  document.querySelectorAll('[data-testid^="SIT-VSP-CELL-"][data-testid$="-FULLSCREEN"]').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();const cellId=btn.closest('.vsp-cell').dataset.testid;const idx=cellId.replace('SIT-VSP-CELL-','').replace(/-FULLSCREEN$/,'');enterFullscreen(parseInt(idx))})});
+  document.querySelector('[data-testid="SIT-VSP-FULLSCREEN"]').addEventListener('click',()=>enterFullscreen(0));
+  fsExit.addEventListener('click',exitFullscreen);
   // 目标行点击
   if(targetRow)targetRow.addEventListener('click',()=>{document.querySelectorAll('.data-table tbody tr').forEach(r=>r.classList.remove('selected'));targetRow.classList.add('selected')});
   // 导航切换（仅高亮）
