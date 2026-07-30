@@ -8,7 +8,7 @@
 | **撰写人** | 架构师 高见远（Gao） |
 | **项目** | UXO_v1 排弹抢修指挥系统 |
 | **阶段** | MVP（模拟/占位阶段） |
-| **输入** | PRD-INC-UXO-001（产品经理 许清楚）、DDR-008、architecture-boundaries.md |
+| **输入** | PRD-INC-UXO-001（产品经理 许清楚）、DDR-008、../archive/development/architecture-boundaries.md |
 | **技术栈** | Qt 5 / CMake / C++17 桌面客户端 `UXOMissionControl` |
 
 ---
@@ -37,7 +37,7 @@
 
 ### 1.1 总体架构策略
 
-两个功能遵循现有架构边界（`architecture-boundaries.md`）：
+两个功能遵循现有架构边界（`../archive/development/architecture-boundaries.md`）：
 
 - **Core 层**：放稳定的数据模型、服务接口和纯逻辑算法，不依赖 UI 控件。
 - **MainWindow 层**：只负责界面组合、用户交互和展示状态。
@@ -47,7 +47,7 @@ MVP 模拟策略落地方式：
 - 识别服务通过 `IRecognitionService` 抽象接口隔离，`MockRecognitionService` 实现该接口，由 `MainWindow` 构造函数注入。
 - MOS 规划通过 `IMOSPlanner` 抽象接口隔离，`MOSPlanner` 实现该接口，同样由 `MainWindow` 持有。
 - 所有模拟数据在 `DemoScenarioProvider::create()` 中生成，识别字段在场景创建后由 `MainWindow` 调用识别服务填充。
-- 所有模拟类名含 `Mock` 前缀，UI 文案标注"模拟"，符合 `simulation-policy.md`。
+- 所有模拟类名含 `Mock` 前缀，UI 文案标注"模拟"，符合 `../archive/development/simulation-policy.md`。
 
 ### 1.2 功能一：未爆弹识别（UXR）实现思路
 
