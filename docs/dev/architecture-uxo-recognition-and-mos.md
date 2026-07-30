@@ -3,12 +3,13 @@
 | 字段 | 值 |
 |------|-----|
 | **文档编号** | SDD-INC-UXO-001 |
+| **状态** | Draft（来源资料，不直接指导实现；需求与坐标/算法契约以 [prd-mos.md](prd-mos.md) V2.1 为准，UI 入口与逐控件契约由 [docs/ui/pages/decision.md](../ui/pages/decision.md) 持有） |
 | **版本** | V1.0 |
 | **日期** | 2026-07-08 |
 | **撰写人** | 架构师 高见远（Gao） |
 | **项目** | UXO_v1 排弹抢修指挥系统 |
 | **阶段** | MVP（模拟/占位阶段） |
-| **输入** | PRD-INC-UXO-001（产品经理 许清楚）、DDR-008、../archive/development/architecture-boundaries.md |
+| **输入** | [prd-mos.md](prd-mos.md)（MOS PRD，Draft）、[prd-uxr.md](prd-uxr.md)（UXR PRD，Draft）、DDR-008、[ARCHITECTURE.md](../ARCHITECTURE.md) |
 | **技术栈** | Qt 5 / CMake / C++17 桌面客户端 `UXOMissionControl` |
 
 > **状态：Draft / Pre-MOS v2 / 历史设计输入**
@@ -41,7 +42,7 @@
 
 ### 1.1 总体架构策略
 
-两个功能参考现有架构边界（`../archive/development/architecture-boundaries.md`，归档资料非权威，仅供历史参照）：
+两个功能遵循现有架构边界（以 [`../ARCHITECTURE.md`](../ARCHITECTURE.md) 为当前权威）：
 
 - **Core 层**：放稳定的数据模型、服务接口和纯逻辑算法，不依赖 UI 控件。
 - **MainWindow 层**：只负责界面组合、用户交互和展示状态。
@@ -51,7 +52,7 @@ MVP 模拟策略落地方式：
 - 识别服务通过 `IRecognitionService` 抽象接口隔离，`MockRecognitionService` 实现该接口，由 `MainWindow` 构造函数注入。
 - MOS 规划通过 `IMOSPlanner` 抽象接口隔离，`MOSPlanner` 实现该接口，同样由 `MainWindow` 持有。
 - 所有模拟数据在 `DemoScenarioProvider::create()` 中生成，识别字段在场景创建后由 `MainWindow` 调用识别服务填充。
-- 所有模拟类名含 `Mock` 前缀，UI 文案标注"模拟"，参考 `../archive/development/simulation-policy.md`（归档资料非权威）。
+- 所有模拟类名含 `Mock` 前缀，UI 文案标注"模拟"，安全边界以 [`../../AGENTS.md`](../../AGENTS.md) 为准。
 
 ### 1.2 功能一：未爆弹识别（UXR）实现思路
 
@@ -86,30 +87,32 @@ MVP 模拟策略落地方式：
 |--------|------|
 | 数据模型 | 新建 `include/Core/MOS/MOSDataModels.h`，定义 `RunwayModel`/`DamagePoint`/`MOSResult`/`MOSPlanParams`，全部为 POD 结构体 |
 | 规划算法 | `IMOSPlanner` 纯虚接口 + `MOSPlanner` 实现。算法采用"Y 轴离散化 + X 轴扫描线"方法（见下方详述） |
-| 安全距离 | 提供 `computeSafetyDistance(YieldEstimate, K)` 自由函数，W 取 `nominalYield + uncertainty`（保守上界） |
+| 安全距离 | 提供 `computeSafetyDistance(YieldEstimate, K)` 自由函数，W 取模拟 TNT 当量的保守上界 `nominalYield + uncertainty` |
 | 2D 可视化 | `MOSView` 继承 `QWidget`，重写 `paintEvent`，用 `QPainter` 绘制跑道/弹坑/安全区/MOS 矩形；支持鼠标滚轮缩放和拖拽平移 |
 | 参数配置 | `MOSConfigPanel` 提供机型选择 + L_min/W_min/K/扩展系数输入，参数变更触发重规划 |
 | 场景数据 | `DemoScenarioProvider` 扩展，输出模拟跑道和 5 个损毁点（3 弹坑 + 2 未爆弹）；亦支持从 `config/mos-demo-scenario.json` 加载 |
 
 **MOS 规划算法详述（Y 轴离散化 + X 轴扫描线）**：
 
+> **与 [prd-mos.md](prd-mos.md) 对齐**：坐标系原点为跑道一端中心，x∈[0,3000]；MOS 搜索限定在 50m 道面带 y∈[-25,25]（500m 损毁分布核心区 y∈[-250,250] 仅用于障碍物分布，不参与搜索）。P0 仅轴对齐（平行）搜索，不支持斜向（斜向列为 P1 MOS-016）；同一输入结果确定可复现，面积相等的候选按确定性规则打破并列（先按 y 起点升序、再按 x 起点升序）。
+
 ```
-输入：RunwayModel [0,L]×[0,W]，DamagePoint 集合（含影响圆），MOSPlanParams
+输入：RunwayModel x∈[0,3000]，道面搜索带 y∈[-25,25]，DamagePoint 集合（含影响圆），MOSPlanParams
 输出：MOSResult（最大可用矩形，或"无可用区域"）
 
-1. 将宽度方向 [0,W] 离散化为 1m 步长（500 个采样点）
+1. 将道面搜索带 y∈[-25,25] 以 1m 步长离散化为 50 个采样点
 2. 对每个 Y 采样点 y0：
    a. 收集所有与 y=y0 水平线相交的影响圆，计算每个圆在该行的 X 遮挡区间 [xL, xR]
    b. 将遮挡区间按 xL 排序，合并重叠区间
    c. 在合并后的遮挡区间之间找最大 X 间隙 gap
    d. 若 gap >= minLength，记录候选矩形 (x_start, y0, gap, 合理宽度)
-3. 在所有候选中选取面积最大者作为 MOS 结果
+3. 在所有候选中选取面积最大者作为 MOS 结果；面积相等时按 y 起点升序、再按 x 起点升序打破并列
 4. 若无满足约束的候选，返回 valid=false 并附原因
 ```
 
-复杂度：O(W_steps × N × log N)，W_steps≈500，N=损毁点数（≤20），单次规划 <1ms，满足交互需求。
+复杂度：O(W_steps × N × log N)，W_steps=50，N=损毁点数（≤20），单次规划 <1ms，满足交互需求。
 
-**注意**：上述算法对 Y 轴离散化采样，在 1m 步长下精度足够（MOS 宽度要求 ≥15m）。若需更高精度可减小步长。此为 MVP 占位算法，未来可替换为更精确的连续优化方法。
+**注意**：上述算法对 Y 轴离散化采样，在 1m 步长下精度足够（MOS 宽度要求 ≥15m）。若需更高精度可减小步长。此为 MVP 占位算法，未来可替换为更精确的连续优化方法。500m 核心区（y∈[-250,250]）是损毁点分布范围，不是搜索范围；MOS 搜索只在 50m 道面带内进行。
 
 ### 1.4 是否需要引入新依赖
 
@@ -655,11 +658,13 @@ sequenceDiagram
 | A2 | `recognitionSources` 用 `QVector<SensorContribution>` 还是 `QVector<SensorSource>` | **`QVector<SensorContribution>`**（P0 UI 已需展示贡献百分比） | PRD 建议 `QVector<SensorSource>`（P1 需破坏性变更） |
 | A3 | 识别服务注入位置 | **MainWindow 构造函数注入**（简单直接） | 服务定位器模式（过度设计） |
 | A4 | MOS 状态归属 | **MainWindow 成员变量**（MVP 简单） | 独立 MOSWorkflow 类（P1 再拆） |
-| A5 | MOSView 集成方式 | **NavigationWidget 新增"MOS规划"页**，切换中心区域 | 独立窗口 / DockWidget |
+| A5 | MOSView 集成方式 | **早期来源方案：NavigationWidget 新增"MOS规划"页**；当前 UI 入口以 `docs/ui/pages/decision.md` 为准 | 独立窗口 / DockWidget |
 
 ---
 
 # Part B：任务分解
+
+> **本部分为非权威历史来源**：以下人天估算、任务分解与里程碑排期是本文档早期设想，不作为实现计划依据。权威优先级分期以 [prd-mos.md](prd-mos.md) P0/P1/P2 分配为准（P0 = MOS-001/002/003/005/006/007/015；P1 = MOS-004/008/009/010/011/012/016；P2 = MOS-013/014）。下方 T05 原表"对应需求 MOS-003（2D 可视化）、MOS-004（参数配置）"已修正为 MOS-005/006/007/015，MOS-004 移至 P1。原排期保留仅作历史对照，不作为实现依据。
 
 ## 6. 依赖包列表
 
@@ -755,13 +760,13 @@ sequenceDiagram
 **工作内容**：
 1. 定义 `IMOSPlanner` 纯虚接口，声明 `plan()` 方法
 2. 实现 `MOSPlanner`：
-   - Y 轴离散化（1m 步长）+ X 轴扫描线算法
+   - Y 轴离散化（1m 步长，50m 道面带 y∈[-25,25] 上 50 个采样点）+ X 轴扫描线算法；P0 仅轴对齐搜索，不支持斜向（斜向列为 P1 MOS-016）；面积相等候选按确定性规则打破并列（先 y 起点升序、再 x 起点升序）
    - `computeBlockedXIntervals()`：计算每个 Y 采样点的 X 遮挡区间
    - `mergeIntervals()`：合并重叠遮挡区间
    - `findMaxGap()`：在遮挡区间之间找最大 X 间隙
    - 安全距离计算：UXO 类损毁点 impactRadius = K × (nominalYield + uncertainty)^(1/3)
    - 无法找到满足约束的 MOS 时返回 `valid=false` 并附原因
-3. 创建 `config/mos-demo-scenario.json`：模拟跑道 3000×500m + 5 个损毁点（3 弹坑 + 2 未爆弹），标注"模拟数据"
+3. 创建 `config/mos-demo-scenario.json`：模拟跑道 x∈[0,3000]、损毁点分布在 500m 核心区（y∈[-250,250]），MOS 搜索限定在 50m 道面带（y∈[-25,25]）内；含 5 个损毁点（3 弹坑 + 2 未爆弹），标注"模拟数据"。该 JSON 为本地模拟场景 fixture，不是运行态持久化
 4. 算法为纯本地计算，无外部依赖
 
 ---
@@ -775,7 +780,7 @@ sequenceDiagram
 | **依赖** | T01、T04 |
 | **优先级** | P0 |
 | **预估** | 5 人天 |
-| **对应需求** | MOS-003（2D 可视化）、MOS-004（参数配置） |
+| **对应需求** | MOS-005（修复时间/难度估算）、MOS-006（参数配置）、MOS-007（2D 可视化）、MOS-015（模拟损毁分布生成器）。注：MOS-004（修复优先级排序）已移至 P1，P0 每档修复哪些障碍物由人工指定或简单规则；UI 入口与逐控件契约由 [docs/ui/pages/decision.md](../ui/pages/decision.md) 持有 |
 
 **工作内容**：
 1. 实现 `MOSView`（QWidget 自绘）：
@@ -803,10 +808,10 @@ sequenceDiagram
 | T02 | UXR 识别服务层 | 5 | 6 | T01 | UXR-002, UXR-005 |
 | T03 | UXR UI + 确认回路 + 适配 | 8 | 6 | T01, T02 | UXR-003, UXR-004 |
 | T04 | MOS 规划算法层 | 4 | 7 | T01 | MOS-001, MOS-002 |
-| T05 | MOS UI 可视化 + 集成 | 6 | 5 | T01, T04 | MOS-003, MOS-004 |
+| T05 | MOS UI 可视化 + 集成 | 6 | 5 | T01, T04 | MOS-005, MOS-006, MOS-007, MOS-015 |
 | **合计** | | **27** | **27** | | **P0 全覆盖** |
 
-> PM 估算 P0 合计 27 人天（UXR 15 + MOS 12），本架构分解合计 27 人天，一致。
+> PM 估算 P0 合计 27 人天（UXR 15 + MOS 12），本架构分解合计 27 人天，一致。注：MOS-004（修复优先级排序）已移至 P1，T05 对应需求以明细为准（MOS-005/006/007/015）。
 
 ---
 
@@ -834,8 +839,8 @@ sequenceDiagram
 | 场景 | 坐标系 | 原点 | 单位 |
 |------|--------|------|------|
 | MOS 跑道模型 | 本地跑道坐标系 | 跑道一端中心点 | 米 (m) |
-| MOS X 轴 | 沿跑道长度方向 | — | 米 |
-| MOS Y 轴 | 沿跑道宽度方向 | — | 米 |
+| MOS X 轴 | 沿跑道长度方向，x∈[0,3000] | — | 米 |
+| MOS Y 轴 | 沿跑道宽度方向，带符号；50m 道面搜索带 y∈[-25,25]，500m 损毁分布核心区 y∈[-250,250] | — | 米 |
 | TargetInfo.position | 现有经纬度坐标 | WGS84 | 度 |
 | 损毁点→TargetInfo 关联 | DamagePoint.source 标注来源 TargetInfo.id | — | — |
 
@@ -856,6 +861,8 @@ sequenceDiagram
 - `MockRecognitionService::recognize()` 必须是**确定性**的：同一 `TargetInfo` 输入始终产生同一输出。
 - 确定性实现方式：以 `target.id` 的哈希值为种子，决定降级链分支和当量扰动范围。
 - 降级链概率分布（80%/15%/5%）可通过构造函数参数配置，但默认值固定。
+- MOS 规划（MOS-002/MOS-003）同一输入结果确定可复现；面积相等的候选按确定性规则打破并列（先按 y 起点升序、再按 x 起点升序）；P0 仅轴对齐搜索，不支持斜向（斜向列为 P1 MOS-016）。
+- 模拟损毁分布生成器（MOS-015）按可配置随机种子确定性生成，同一种子与输入产生同一分布；生成的数据标注"模拟随机生成"，结果可保存为模拟场景 fixture JSON（本地输入，不写运行态数据库）。
 
 ### 8.6 日志约定
 
@@ -910,7 +917,7 @@ graph TD
 | 编号 | 风险 | 概率 | 影响 | 缓解措施 |
 |:---:|------|:---:|:---:|---------|
 | R1 | **MOS 算法边界情况**：Y 轴离散化可能在损毁圆切线处遗漏极窄可用区域，导致漏报可用 MOS | 中 | 中 | 1) 步长取 1m（远小于 MOS 最小宽度 15m）；2) 算法返回"无可用区域"时附原因供人工判断；3) P1 可增加连续优化精化 |
-| R2 | **Qt 2D 绘图性能**：MOSView 在高频参数调整时可能触发频繁重绘 | 低 | 低 | 1) 参数变更后单次 `update()` 触发重绘，非定时刷新；2) 跑道尺寸固定（3000×500m），绘图为静态矢量，性能无瓶颈；3) 缩放/平移使用双缓冲 |
+| R2 | **Qt 2D 绘图性能**：MOSView 在高频参数调整时可能触发频繁重绘 | 低 | 低 | 1) 参数变更后单次 `update()` 触发重绘，非定时刷新；2) 跑道 x∈[0,3000]、500m 核心区（y∈[-250,250]）为损毁点分布范围，MOS 搜索只在 50m 道面带（y∈[-25,25]）内进行，绘图为静态矢量，性能无瓶颈；3) 缩放/平移使用双缓冲 |
 | R3 | **TargetInfo 扩展兼容性**：新增字段可能影响现有序列化或测试 | 低 | 中 | 1) 新字段全部有默认值，现有构造函数不变；2) 当前代码无 TargetInfo 序列化逻辑（纯内存对象）；3) 现有测试（startup_visible_test、demo_scenario_test）不涉及新字段 |
 | R4 | **确定性随机实现偏差**：`MockRecognitionService` 的哈希降级链分布可能偏离 80/15/5 目标 | 低 | 低 | 1) 使用 `qHash(target.id)` 作为种子，分布均匀；2) 降级链概率可配置，演示时可调整；3) MVP 阶段精度要求不高，关键是确定性 |
 
@@ -949,4 +956,4 @@ graph TD
 
 **文档结束**
 
-> 本架构设计基于 PRD-INC-UXO-001、DDR-008 和现有代码结构，覆盖 UXR 和 MOS 两个功能的 P0 需求。所有模拟/占位实现均明确标注，接口边界清晰，为未来真实接入预留替换路径。任务分解为 5 个有序任务，总计 27 人天，与 PM 估算一致。
+> 本架构设计为 Draft/来源资料，基于 [prd-mos.md](prd-mos.md)、[prd-uxr.md](prd-uxr.md)、DDR-008 和现有代码结构，覆盖 UXR 和 MOS 两个功能的 P0 需求。所有 MOS 规划基于本地模拟损毁数据，不接入真实传感器、不执行真实排弹或抢修动作；模拟场景 fixture JSON（如 `mos-demo-scenario.json`）为本地模拟输入，不是运行态持久化。所有模拟/占位实现均明确标注，接口边界清晰，为未来真实接入预留替换路径。Part B 任务分解与排期为非权威历史来源，不作为实现计划依据。
