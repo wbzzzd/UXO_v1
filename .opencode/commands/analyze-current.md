@@ -9,12 +9,13 @@ agent: plan
 
 - `AGENTS.md`
 - `docs/OMO_ADAPTATION_PLAN.md`
-- `docs/dev/current-state.md`
+- `docs/ARCHITECTURE.md`
+- `docs/DEVELOPMENT.md`
 - `CMakeLists.txt`
 - `src/App/main.cpp`
 - `src/App/Application.cpp`
 - `README.md`
-- `PROJECT_STRUCTURE.md`
+- `docs/README.md`
 
 输出：
 

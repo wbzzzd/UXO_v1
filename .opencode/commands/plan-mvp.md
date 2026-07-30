@@ -8,9 +8,9 @@ agent: plan
 必须依据：
 
 - `AGENTS.md`
-- `docs/dev/current-state.md`
-- `docs/dev/mvp-scope.md`
-- `docs/dev/simulation-policy.md`
+- `docs/PRODUCT.md`
+- `docs/ARCHITECTURE.md`
+- `docs/DEVELOPMENT.md`
 - 当前源码和 CMake 文件
 
 计划必须包含：

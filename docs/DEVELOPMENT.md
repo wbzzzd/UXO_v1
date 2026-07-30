@@ -157,7 +157,7 @@ Agent 默认只加载 `AGENTS.md`，按任务读取相关文档：
 | 构建、测试、发布 | 本文档 |
 | 已批准功能 | 对应 `features/<feature>.md` 及其明确引用章节 |
 
-`docs/archive/`、`docs/research/`、旧 SRS/SDD/UI 和 `docs/dev/` 只在追溯来源或核验依据时按需读取。
+`docs/archive/`（含 `development/` 已归档工程快照）、`docs/research/`、旧 SRS/SDD/UI 和 `docs/dev/`（仅保留 Draft 输入，由 `docs/dev/README.md` 索引）只在追溯来源或核验依据时按需读取。
 
 ## 10. 发布状态
 
