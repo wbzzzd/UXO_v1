@@ -98,3 +98,11 @@ add_test(NAME simulation_workflow_ui COMMAND UXOMissionControlSimulationWorkflow
 set_tests_properties(simulation_workflow_ui PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
 )
+
+# 巡检员：随机点击 + 自洽性检查，独立进程循环运行。
+# 默认关闭，不影响主程序和现有测试构建。需显式开启：
+#   cmake -DBUILD_AUTO_INSPECT=ON ...
+option(BUILD_AUTO_INSPECT "Build the auto inspector (random UI clicking + consistency checks)" OFF)
+if(BUILD_AUTO_INSPECT)
+    add_subdirectory(tests/auto_inspect)
+endif()
