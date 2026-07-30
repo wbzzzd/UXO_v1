@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共10条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共13条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -13,6 +13,9 @@
 //   R8 日志格式一致：非占位行含 "->" 或 "操作被拒绝" 或 "已选择目标"
 //   R9 面板目标ID存在于目标表
 //   R10 点击目标行N后，面板显示该行的目标ID
+//   R11 切换标签页后，QTabWidget 的 currentIndex 必须等于目标索引
+//   R12 刷新按钮不应丢失已选目标（panelTargetId 和 panelStatus 保持）
+//   R13 相机操作不应改变模拟状态机或日志
 
 #include "MainWindow/MainWindow.h"
 
@@ -28,6 +31,7 @@
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QHash>
 #include <QRandomGenerator>
 #include <QTableWidget>
 #include <QTableWidgetItem>
@@ -161,6 +165,24 @@ int getLogLineCount(MainWindow &window)
     return text.split(QLatin1Char('\n'), Qt::SkipEmptyParts).size();
 }
 
+// 按文本查找子控件中的 QPushButton（相机/刷新按钮无 objectName，只能按文本回退）
+QPushButton *findButtonByText(MainWindow &window, const QString &text)
+{
+    const auto buttons = window.findChildren<QPushButton *>();
+    for (auto *btn : buttons) {
+        if (btn->text().contains(text)) {
+            return btn;
+        }
+    }
+    return nullptr;
+}
+
+// 查找主窗口内的 QTabWidget（LeftPanelWidget 的 目标/任务/设备 标签页）
+QTabWidget *findTabWidget(MainWindow &window)
+{
+    return window.findChild<QTabWidget *>();
+}
+
 // ===== 检查规则 =====
 
 struct Issue {
@@ -176,11 +198,20 @@ struct Snapshot {
     QString panelStatus;
     QString panelTargetId;
     int logLineCount = 0;
+    int tabIndex = -1;
 };
 
 Snapshot captureSnapshot(MainWindow &window)
 {
-    return {getPanelStatus(window), getPanelTargetId(window), getLogLineCount(window)};
+    Snapshot s;
+    s.panelStatus = getPanelStatus(window);
+    s.panelTargetId = getPanelTargetId(window);
+    s.logLineCount = getLogLineCount(window);
+    auto *tabs = findTabWidget(window);
+    if (tabs != nullptr) {
+        s.tabIndex = tabs->currentIndex();
+    }
+    return s;
 }
 
 // R1：三处状态显示必须一致（仅在选择目标后适用）
@@ -491,6 +522,76 @@ void checkTargetRowClickConsistency(MainWindow &window, int clickedRow, const QS
     }
 }
 
+// R11：切换标签页后，QTabWidget 的 currentIndex 必须等于目标索引
+void checkTabSwitchConsistency(MainWindow &window, int expectedTab,
+                                const QString &action, const QString &screenshotDir,
+                                int issueIdx, std::vector<Issue> &issues)
+{
+    if (expectedTab < 0) {
+        return;
+    }
+    auto *tabs = findTabWidget(window);
+    if (tabs == nullptr) {
+        return;
+    }
+    if (tabs->currentIndex() != expectedTab) {
+        Issue issue;
+        issue.type = QStringLiteral("inconsistency");
+        issue.rule = QStringLiteral("R11 切换标签页后当前索引必须匹配");
+        issue.action = action;
+        issue.details = QStringLiteral("期望=%1 实际=%2").arg(expectedTab).arg(tabs->currentIndex());
+        issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+        captureScreenshot(window, screenshotDir, issue.screenshot);
+        issues.push_back(issue);
+    }
+}
+
+// R12：刷新按钮不应丢失已选目标（panelTargetId 和 panelStatus 必须保持）
+void checkRefreshPreservesSelection(MainWindow &window, const Snapshot &pre,
+                                     const QString &action, const QString &screenshotDir,
+                                     int issueIdx, std::vector<Issue> &issues)
+{
+    if (!action.contains(QStringLiteral("刷新"))) {
+        return;
+    }
+    const Snapshot post = captureSnapshot(window);
+    if (pre.panelTargetId != post.panelTargetId || pre.panelStatus != post.panelStatus) {
+        Issue issue;
+        issue.type = QStringLiteral("state_loss");
+        issue.rule = QStringLiteral("R12 刷新后不应丢失已选目标");
+        issue.action = action;
+        issue.details = QStringLiteral("刷新前 target=%1 status=%2 | 刷新后 target=%3 status=%4")
+                            .arg(pre.panelTargetId, pre.panelStatus, post.panelTargetId, post.panelStatus);
+        issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+        captureScreenshot(window, screenshotDir, issue.screenshot);
+        issues.push_back(issue);
+    }
+}
+
+// R13：相机操作不应改变模拟状态机（panelStatus 和日志行数不变）
+void checkCameraDoesNotCorruptState(MainWindow &window, const Snapshot &pre,
+                                     const QString &action, const QString &screenshotDir,
+                                     int issueIdx, std::vector<Issue> &issues)
+{
+    if (!action.contains(QStringLiteral("俯")) && !action.contains(QStringLiteral("侧"))
+        && !action.contains(QStringLiteral("3D")) && !action.contains(QStringLiteral("相机复位"))) {
+        return;
+    }
+    const Snapshot post = captureSnapshot(window);
+    if (pre.panelStatus != post.panelStatus || pre.logLineCount != post.logLineCount) {
+        Issue issue;
+        issue.type = QStringLiteral("side_effect");
+        issue.rule = QStringLiteral("R13 相机操作不应改变模拟状态或日志");
+        issue.action = action;
+        issue.details = QStringLiteral("操作前 status=%1 log=%2 | 操作后 status=%3 log=%4")
+                            .arg(pre.panelStatus).arg(pre.logLineCount)
+                            .arg(post.panelStatus).arg(post.logLineCount);
+        issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+        captureScreenshot(window, screenshotDir, issue.screenshot);
+        issues.push_back(issue);
+    }
+}
+
 // ===== 动作执行 =====
 
 enum class ActionKind {
@@ -498,6 +599,12 @@ enum class ActionKind {
     Confirm,
     Start,
     Complete,
+    CameraTop,
+    CameraSide,
+    Camera3D,
+    CameraReset,
+    TabSwitch,
+    Refresh,
 };
 
 struct ActionResult {
@@ -505,6 +612,7 @@ struct ActionResult {
     bool executed;
     ActionKind kind = ActionKind::TargetRow;
     int clickedRow = -1; // 仅 TargetRow 有效
+    int tabTarget = -1;  // 仅 TabSwitch 有效
 };
 
 // 点击目标表第 row 行（选中目标）
@@ -541,35 +649,155 @@ ActionResult clickButton(MainWindow &window, const char *objectName,
     return {QStringLiteral("点击 %1 按钮").arg(displayName), true, kind};
 }
 
+// 点击无 objectName 的按钮（相机/刷新），按文本查找
+ActionResult clickButtonByText(MainWindow &window, const QString &text,
+                                const QString &displayName, ActionKind kind)
+{
+    auto *btn = findButtonByText(window, text);
+    if (btn == nullptr) {
+        return {QStringLiteral("找不到按钮 %1").arg(displayName), false, kind};
+    }
+    QTest::mouseClick(btn, Qt::LeftButton);
+    return {QStringLiteral("点击 %1 按钮").arg(displayName), true, kind};
+}
+
+// 切换到指定标签页（0=目标, 1=任务, 2=设备）
+ActionResult clickTab(MainWindow &window, int tabIndex)
+{
+    auto *tabs = findTabWidget(window);
+    if (tabs == nullptr || tabIndex >= tabs->count()) {
+        return {QStringLiteral("找不到标签页或索引越界"), false, ActionKind::TabSwitch, -1, tabIndex};
+    }
+    tabs->setCurrentIndex(tabIndex);
+    return {QStringLiteral("切换到标签页 %1").arg(tabs->tabText(tabIndex)), true, ActionKind::TabSwitch, -1, tabIndex};
+}
+
+QString actionKindToString(ActionKind kind)
+{
+    switch (kind) {
+    case ActionKind::TargetRow:
+        return QStringLiteral("target_row");
+    case ActionKind::Confirm:
+        return QStringLiteral("confirm");
+    case ActionKind::Start:
+        return QStringLiteral("start");
+    case ActionKind::Complete:
+        return QStringLiteral("complete");
+    case ActionKind::CameraTop:
+        return QStringLiteral("camera_top");
+    case ActionKind::CameraSide:
+        return QStringLiteral("camera_side");
+    case ActionKind::Camera3D:
+        return QStringLiteral("camera_3d");
+    case ActionKind::CameraReset:
+        return QStringLiteral("camera_reset");
+    case ActionKind::TabSwitch:
+        return QStringLiteral("tab_switch");
+    case ActionKind::Refresh:
+        return QStringLiteral("refresh");
+    }
+    return QStringLiteral("unknown");
+}
+
+// 覆盖率追踪：记录 (状态, 动作) 对的探索次数，跨轮次持久化
+using CoverageMap = QHash<QString, int>;
+
+QString coverageKey(const QString &status, ActionKind kind)
+{
+    return status + QLatin1Char(':') + actionKindToString(kind);
+}
+
+void loadCoverage(const QString &path, CoverageMap &map)
+{
+    if (path.isEmpty()) {
+        return;
+    }
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly)) {
+        return;
+    }
+    const QJsonObject obj = QJsonDocument::fromJson(f.readAll()).object();
+    for (auto it = obj.begin(); it != obj.end(); ++it) {
+        map.insert(it.key(), it.value().toInt());
+    }
+}
+
+void saveCoverage(const QString &path, const CoverageMap &map)
+{
+    if (path.isEmpty()) {
+        return;
+    }
+    QFileInfo fi(path);
+    QDir().mkpath(fi.absolutePath());
+    QJsonObject obj;
+    for (auto it = map.begin(); it != map.end(); ++it) {
+        obj.insert(it.key(), it.value());
+    }
+    QFile f(path);
+    if (f.open(QIODevice::WriteOnly)) {
+        f.write(QJsonDocument(obj).toJson(QJsonDocument::Indented));
+    }
+}
+
 // 加权随机选择并执行动作。启用按钮高权重（多点击有效控件），
 // 禁用按钮低权重（偶尔验证它们确实无反应），目标行中权重。
-ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng)
+// 相机/标签页/刷新为新增动作，中低权重避免喧宾夺主。
+// 覆盖率感知：未探索的 (状态,动作) 对权重 ×3，引导探索新路径。
+ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
+                                   CoverageMap *coverage = nullptr)
 {
     auto *confirm = findWidget<QPushButton>(window, "simulationConfirmButton");
     auto *start = findWidget<QPushButton>(window, "simulationStartButton");
     auto *complete = findWidget<QPushButton>(window, "simulationCompleteButton");
+    const QString currentStatus = getPanelStatus(window);
 
     struct Candidate {
         ActionKind kind;
-        int weight;
+        int baseWeight;
     };
     const QVector<Candidate> cands = {
         {ActionKind::TargetRow, 5},
         {ActionKind::Confirm, (confirm != nullptr && confirm->isEnabled()) ? 10 : 1},
         {ActionKind::Start, (start != nullptr && start->isEnabled()) ? 10 : 1},
         {ActionKind::Complete, (complete != nullptr && complete->isEnabled()) ? 10 : 1},
+        {ActionKind::CameraTop, 2},
+        {ActionKind::CameraSide, 2},
+        {ActionKind::Camera3D, 2},
+        {ActionKind::CameraReset, 2},
+        {ActionKind::TabSwitch, 3},
+        {ActionKind::Refresh, 2},
     };
 
-    int total = 0;
+    struct Weighted {
+        ActionKind kind;
+        int weight;
+    };
+    QVector<Weighted> weighted;
+    weighted.reserve(cands.size());
     for (const auto &c : cands) {
-        total += c.weight;
+        int w = c.baseWeight;
+        if (coverage != nullptr) {
+            const QString key = coverageKey(currentStatus, c.kind);
+            const int count = coverage->value(key, 0);
+            if (count == 0) {
+                w *= 3; // 未探索路径优先
+            } else if (count > 3) {
+                w = qMax(1, w / 2); // 过度探索的路径降权
+            }
+        }
+        weighted.append({c.kind, w});
+    }
+
+    int total = 0;
+    for (const auto &w : weighted) {
+        total += w.weight;
     }
     int r = rng.bounded(total);
     ActionKind chosen = ActionKind::TargetRow;
-    for (const auto &c : cands) {
-        r -= c.weight;
+    for (const auto &w : weighted) {
+        r -= w.weight;
         if (r < 0) {
-            chosen = c.kind;
+            chosen = w.kind;
             break;
         }
     }
@@ -583,6 +811,18 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng)
         return clickButton(window, "simulationStartButton", QStringLiteral("模拟处置"), chosen);
     case ActionKind::Complete:
         return clickButton(window, "simulationCompleteButton", QStringLiteral("模拟完成"), chosen);
+    case ActionKind::CameraTop:
+        return clickButtonByText(window, QStringLiteral("俯"), QStringLiteral("俯视"), chosen);
+    case ActionKind::CameraSide:
+        return clickButtonByText(window, QStringLiteral("侧"), QStringLiteral("侧视"), chosen);
+    case ActionKind::Camera3D:
+        return clickButtonByText(window, QStringLiteral("3D"), QStringLiteral("3D视角"), chosen);
+    case ActionKind::CameraReset:
+        return clickButtonByText(window, QStringLiteral("复位"), QStringLiteral("相机复位"), chosen);
+    case ActionKind::TabSwitch:
+        return clickTab(window, rng.bounded(3)); // 3 个标签页随机选一个
+    case ActionKind::Refresh:
+        return clickButtonByText(window, QStringLiteral("刷新"), QStringLiteral("刷新"), chosen);
     }
     return {QStringLiteral("未知动作"), false};
 }
@@ -602,22 +842,6 @@ void writeStateFile(const QString &path, const QString &description)
     }
 }
 
-// 把 ActionKind 序列化为字符串，写入报告便于聚合分析
-QString actionKindToString(ActionKind kind)
-{
-    switch (kind) {
-    case ActionKind::TargetRow:
-        return QStringLiteral("target_row");
-    case ActionKind::Confirm:
-        return QStringLiteral("confirm");
-    case ActionKind::Start:
-        return QStringLiteral("start");
-    case ActionKind::Complete:
-        return QStringLiteral("complete");
-    }
-    return QStringLiteral("unknown");
-}
-
 // ===== 主程序 =====
 
 int main(int argc, char *argv[])
@@ -628,9 +852,11 @@ int main(int argc, char *argv[])
     QString reportPath;
     QString statePath;
     QString screenshotDir;
+    QString coveragePath;
     int seed = static_cast<int>(QDateTime::currentDateTime().toMSecsSinceEpoch());
     int maxActions = 20;
     bool selfTest = false;
+    bool verbose = false;
 
     for (int i = 1; i < argc; ++i) {
         const QString arg = QString::fromLatin1(argv[i]);
@@ -640,14 +866,26 @@ int main(int argc, char *argv[])
             statePath = QString::fromLocal8Bit(argv[++i]);
         } else if (arg == QStringLiteral("--screenshots") && i + 1 < argc) {
             screenshotDir = QString::fromLocal8Bit(argv[++i]);
+        } else if (arg == QStringLiteral("--coverage") && i + 1 < argc) {
+            coveragePath = QString::fromLocal8Bit(argv[++i]);
         } else if (arg == QStringLiteral("--seed") && i + 1 < argc) {
             seed = QString::fromLocal8Bit(argv[++i]).toInt();
         } else if (arg == QStringLiteral("--max-actions") && i + 1 < argc) {
             maxActions = QString::fromLocal8Bit(argv[++i]).toInt();
         } else if (arg == QStringLiteral("--self-test")) {
             selfTest = true;
+        } else if (arg == QStringLiteral("--verbose")) {
+            verbose = true;
         }
     }
+
+    // verbose 模式用于崩溃复现：每步执行前打印进度（无缓冲），崩溃时最后一行即崩溃点。
+    auto verboseLog = [&](const QString &msg) {
+        if (verbose) {
+            fprintf(stderr, "%s\n", msg.toUtf8().constData());
+            fflush(stderr);
+        }
+    };
 
     // 创建主窗口（离屏模式由外层 QT_QPA_PLATFORM 环境变量控制）
     auto window = std::make_unique<MainWindow>();
@@ -679,9 +917,11 @@ int main(int argc, char *argv[])
 
     QRandomGenerator rng(seed);
     QJsonArray actionLog;
+    CoverageMap coverage;
+    loadCoverage(coveragePath, coverage);
 
     // 统一执行：动作前快照 -> 动作 -> 动作后检查
-    auto runChecks = [&](const QString &action, const Snapshot &pre, int clickedRow) {
+    auto runChecks = [&](const QString &action, const Snapshot &pre, int clickedRow, int tabTarget) {
         QCoreApplication::processEvents(QEventLoop::AllEvents);
         QTest::qWait(50);
 
@@ -700,6 +940,8 @@ int main(int argc, char *argv[])
                                  static_cast<int>(issues.size()), issues);
         checkTargetRowClickConsistency(*window, clickedRow, action, screenshotDir,
                                        static_cast<int>(issues.size()), issues);
+        checkTabSwitchConsistency(*window, tabTarget, action, screenshotDir,
+                                  static_cast<int>(issues.size()), issues);
         // 依赖前置快照的规则
         checkTransitionLegality(*window, pre, action, screenshotDir,
                                 static_cast<int>(issues.size()), issues);
@@ -707,6 +949,10 @@ int main(int argc, char *argv[])
                                       static_cast<int>(issues.size()), issues);
         checkLogLineCountDelta(*window, pre, action, screenshotDir,
                                static_cast<int>(issues.size()), issues);
+        checkRefreshPreservesSelection(*window, pre, action, screenshotDir,
+                                       static_cast<int>(issues.size()), issues);
+        checkCameraDoesNotCorruptState(*window, pre, action, screenshotDir,
+                                       static_cast<int>(issues.size()), issues);
     };
 
     // 初始状态检查（无前置动作）
@@ -718,14 +964,21 @@ int main(int argc, char *argv[])
         entry["kind"] = QStringLiteral("init");
         entry["executed"] = true;
         actionLog.append(entry);
-        runChecks(QStringLiteral("初始状态"), emptyPre, -1);
+        runChecks(QStringLiteral("初始状态"), emptyPre, -1, -1);
     }
 
     // 加权随机点击循环
     for (int step = 1; step <= maxActions; ++step) {
         const Snapshot pre = captureSnapshot(*window);
-        const ActionResult result = pickAndExecuteAction(*window, rng);
+        verboseLog(QStringLiteral("REPLAY step=%1 starting pre=[status:%2 target:%3 loglines:%4 tab:%5]")
+                       .arg(step).arg(pre.panelStatus, pre.panelTargetId).arg(pre.logLineCount).arg(pre.tabIndex));
+        const ActionResult result = pickAndExecuteAction(*window, rng, &coverage);
+        if (result.executed) {
+            coverage[coverageKey(pre.panelStatus, result.kind)]++;
+        }
         writeStateFile(statePath, result.description);
+        verboseLog(QStringLiteral("REPLAY step=%1 done action=%2")
+                       .arg(step).arg(result.description));
 
         QJsonObject entry;
         entry["step"] = step;
@@ -734,8 +987,10 @@ int main(int argc, char *argv[])
         entry["executed"] = result.executed;
         actionLog.append(entry);
 
-        runChecks(result.description, pre, result.clickedRow);
+        runChecks(result.description, pre, result.clickedRow, result.tabTarget);
     }
+
+    saveCoverage(coveragePath, coverage);
 
     // 写 JSON 报告
     QJsonObject report;
@@ -759,6 +1014,11 @@ int main(int argc, char *argv[])
     report["action_log"] = actionLog;
 
     if (!reportPath.isEmpty()) {
+        const QFileInfo reportInfo(reportPath);
+        const QString parentDir = reportInfo.absolutePath();
+        if (!parentDir.isEmpty()) {
+            QDir().mkpath(parentDir);
+        }
         QFile f(reportPath);
         if (f.open(QIODevice::WriteOnly)) {
             f.write(QJsonDocument(report).toJson(QJsonDocument::Indented));
