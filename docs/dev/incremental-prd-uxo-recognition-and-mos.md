@@ -17,7 +17,7 @@
 
 - **项目名称**：UXO_v1 排弹抢修指挥系统
 - **技术栈**：Qt 5 / CMake / C++17 桌面客户端，目标程序 `UXOMissionControl`
-- **MVP 约束**：仅允许本地模拟、只读分析、接口占位；禁止接真实设备/真实 AI/真实数据库写入（见 `docs/dev/simulation-policy.md`、`AGENTS.md` 安全边界）
+- **MVP 约束**：仅允许本地模拟、只读分析、接口占位；禁止接真实设备/真实 AI/真实数据库写入（见 `docs/archive/development/simulation-policy.md`、`AGENTS.md` 安全边界）
 - **原始需求复述**：为 UXO_v1 规划两个从零开始的新功能——(1) 最小应急起降带（MOS）规划，跑道受损后自动规划满足紧急起降最小尺寸的可用区域；(2) 未爆弹识别，在 MVP 阶段以模拟识别服务 + 数据结构 + UI 展示 + 人工确认回路的方式落地，为未来真实 AI 接入留好接口边界。
 
 ---
@@ -484,7 +484,7 @@ struct MOSPlanResult {
 
 - 所有识别结果由本地模拟服务生成，标注"模拟识别结果"，不连接真实 AI 推理引擎
 - 所有 MOS 规划基于本地模拟损毁数据，标注"模拟规划结果"，不接入真实传感器
-- `MockRecognitionService` 类名含 `Mock` 前缀，符合 `simulation-policy.md` 命名建议
+- `MockRecognitionService` 类名含 `Mock` 前缀，符合 `../archive/development/simulation-policy.md` 命名建议
 - `IRecognitionService` 接口为未来真实接入预留边界，注释明确标注"尚未接入"
 - 所有模拟数据不写入真实数据库，仅存在于内存或本地 JSON 配置
 - 当量估算数据结构遵循 DDR-008 降级链设计，安全距离公式参数可配置

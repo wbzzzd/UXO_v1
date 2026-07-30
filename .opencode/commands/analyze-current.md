@@ -8,7 +8,6 @@ agent: plan
 必须读取：
 
 - `AGENTS.md`
-- `docs/OMO_ADAPTATION_PLAN.md`
 - `docs/ARCHITECTURE.md`
 - `docs/DEVELOPMENT.md`
 - `CMakeLists.txt`

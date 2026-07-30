@@ -11,6 +11,10 @@
 | **输入** | PRD-INC-UXO-001（产品经理 许清楚）、DDR-008、../archive/development/architecture-boundaries.md |
 | **技术栈** | Qt 5 / CMake / C++17 桌面客户端 `UXOMissionControl` |
 
+> **状态：Draft / Pre-MOS v2 / 历史设计输入**
+>
+> 本文档为历史架构草稿，不能指导实现。合并 PRD [`incremental-prd-uxo-recognition-and-mos.md`](incremental-prd-uxo-recognition-and-mos.md) 后续已引入 MOS v2 多方案递进需求；本文档的单方案映射、27 人天估算与 P0 覆盖声明均已过时。当前权威以核心基线（`docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/UI.md`、`docs/DEVELOPMENT.md`）与已获批的 `docs/features/<feature>.md` 为准；归档资料非权威，仅供历史参照。
+
 ---
 
 ## 目录
@@ -37,7 +41,7 @@
 
 ### 1.1 总体架构策略
 
-两个功能遵循现有架构边界（`../archive/development/architecture-boundaries.md`）：
+两个功能参考现有架构边界（`../archive/development/architecture-boundaries.md`，归档资料非权威，仅供历史参照）：
 
 - **Core 层**：放稳定的数据模型、服务接口和纯逻辑算法，不依赖 UI 控件。
 - **MainWindow 层**：只负责界面组合、用户交互和展示状态。
@@ -47,7 +51,7 @@ MVP 模拟策略落地方式：
 - 识别服务通过 `IRecognitionService` 抽象接口隔离，`MockRecognitionService` 实现该接口，由 `MainWindow` 构造函数注入。
 - MOS 规划通过 `IMOSPlanner` 抽象接口隔离，`MOSPlanner` 实现该接口，同样由 `MainWindow` 持有。
 - 所有模拟数据在 `DemoScenarioProvider::create()` 中生成，识别字段在场景创建后由 `MainWindow` 调用识别服务填充。
-- 所有模拟类名含 `Mock` 前缀，UI 文案标注"模拟"，符合 `../archive/development/simulation-policy.md`。
+- 所有模拟类名含 `Mock` 前缀，UI 文案标注"模拟"，参考 `../archive/development/simulation-policy.md`（归档资料非权威）。
 
 ### 1.2 功能一：未爆弹识别（UXR）实现思路
 

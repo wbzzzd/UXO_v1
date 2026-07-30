@@ -5,6 +5,11 @@ agent: plan
 
 请为 UXO_v1 生成 MVP 工作计划。只输出计划，不修改文件。
 
+前置条件：
+
+- 只有当 `docs/PRODUCT.md` 中存在状态为 `Approved` 的 `REQ-NNN`，且对应 `docs/features/<feature>.md` 自身状态为 `Approved` 时，才可生成可执行的 MVP 实施计划。
+- 若上述前提未满足，停止并输出不可执行的发现/差距报告（列出缺失的 `Approved` 需求或功能设计），不得输出实施任务。
+
 必须依据：
 
 - `AGENTS.md`
