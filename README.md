@@ -21,9 +21,9 @@
 
 ## 来源资料
 
-- [SRS 软件需求规格说明书](./SRS排弹抢修指挥系统_v1.0.md)
-- [SDD 软件设计说明书](./SDD排弹抢修指挥系统_v1.0.md)
-- [前端 UI 详细设计文档](./docs/前端UI详细设计文档.md)
+原始上游需求与设计资料已集中迁入 [`docs/sources/`](./docs/sources/README.md)，仅作溯源与证据引用，不代表 CURRENT 实现事实或 Approved 需求。
+
+- [来源资料索引](./docs/sources/README.md)
 - [研究资料](./docs/research/)
 - [历史文档归档说明](./docs/archive/README.md)
 
