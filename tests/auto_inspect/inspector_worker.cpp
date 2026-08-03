@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共26条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共27条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -29,6 +29,7 @@
 //   R24 模态对话框弹出时标题应非空（捕获 tr() 缺失或编码异常）
 //   R25 对话框关闭后不应残留模态状态（activeModalWidget 应为 null）
 //   R26 超长/对抗性输入过滤响应应 <=500ms（主线程不应被同步过滤长时间阻塞）
+//   R27 标签页切换后当前页 currentWidget 应非空且可见（捕获页面损坏/空页/隐藏页 bug）
 
 #include "MainWindow/MainWindow.h"
 
@@ -1094,6 +1095,35 @@ void checkSearchRobustTiming(qint64 timingMs, ActionKind kind, MainWindow &windo
     issues.push_back(issue);
 }
 
+// R27：标签页切换后当前页 currentWidget 应非空且可见（捕获页面损坏/空页/隐藏页 bug）。
+// 仅对 TabSwitch 动作触发，避免对其他动作误报。
+void checkTabPageVisibleAfterSwitch(ActionKind kind, MainWindow &window, int expectedTab,
+                                    const QString &action, const QString &screenshotDir,
+                                    int issueIdx, std::vector<Issue> &issues)
+{
+    if (kind != ActionKind::TabSwitch || expectedTab < 0) {
+        return;
+    }
+    auto *tabs = findTabWidget(window);
+    if (tabs == nullptr) {
+        return;
+    }
+    QWidget *page = tabs->currentWidget();
+    if (page == nullptr || !page->isVisible()) {
+        Issue issue;
+        issue.type = QStringLiteral("visual");
+        issue.rule = QStringLiteral("R27 标签页切换后当前页应非空且可见");
+        issue.action = action;
+        issue.details = QStringLiteral("expectedTab=%1 page=%2 visible=%3")
+                            .arg(expectedTab)
+                            .arg(page == nullptr ? QStringLiteral("null") : QStringLiteral("非空"))
+                            .arg(page == nullptr ? 0 : (page->isVisible() ? 1 : 0));
+        issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+        captureScreenshot(window, screenshotDir, issue.screenshot);
+        issues.push_back(issue);
+    }
+}
+
 // 点击目标表第 row 行（选中目标）
 ActionResult clickTargetRow(MainWindow &window, int row)
 {
@@ -1795,6 +1825,8 @@ int main(int argc, char *argv[])
                                        static_cast<int>(issues.size()), issues);
         checkTabSwitchConsistency(*window, tabTarget, action, screenshotDir,
                                   static_cast<int>(issues.size()), issues);
+        checkTabPageVisibleAfterSwitch(kind, *window, tabTarget, action, screenshotDir,
+                                       static_cast<int>(issues.size()), issues);
         // 依赖前置快照的规则
         checkTransitionLegality(*window, pre, action, screenshotDir,
                                 static_cast<int>(issues.size()), issues);

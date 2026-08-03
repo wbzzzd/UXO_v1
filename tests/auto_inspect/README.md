@@ -67,9 +67,9 @@ Detected --confirm--> Confirmed --start--> Disposing --complete--> Disposed
 - 非法迁移（如 Disposed 状态点 confirm）必须被拒绝
 - 按钮启用逻辑：confirm↔Detected、start↔Confirmed、complete↔Disposing
 
-### 2.3 自洽性检查规则（26 条）
+### 2.3 自洽性检查规则（27 条）
 
-每个动作执行前后，worker 捕获快照（状态、目标 ID、日志行数、标签页索引）并运行 26 条检查：
+每个动作执行前后，worker 捕获快照（状态、目标 ID、日志行数、标签页索引）并运行 27 条检查：
 
 | 规则 | 检查内容 |
 |---|---|
@@ -99,6 +99,7 @@ Detected --confirm--> Confirmed --start--> Disposing --complete--> Disposed
 | R24 | 模态对话框弹出时标题应非空（menu_action 触发，捕获 tr() 缺失或编码异常）|
 | R25 | 对话框关闭后不应残留模态状态（activeModalWidget 应为 null，捕获关闭失败或挂起）|
 | R26 | 超长/对抗性输入过滤响应应 <=500ms（search_robust 注入超长文本/CRLF/正则字符/emoji/RTL/null 字节，主线程不应被同步过滤长时间阻塞）|
+| R27 | 标签页切换后当前页 currentWidget 应非空且可见（tab_switch 后页面损坏/空页/隐藏页 bug）|
 
 ---
 
@@ -260,7 +261,7 @@ reports/
 
 ## 5. 最近一次巡检结果
 
-**时间**：2026-08-03（F 系列输入鲁棒性扩展验证，3 轮 × 100 动作）
+**时间**：2026-08-03（C 系列视觉自洽性扩展验证，3 轮 × 100 动作）
 
 | 指标 | 数值 |
 |---|---|
@@ -272,11 +273,11 @@ reports/
 | 动作执行总数 | 300 |
 | 覆盖率 | 持续累积中 |
 
-**新增输入鲁棒性检查**：F 系列新增 `search_robust` 动作，向搜索框注入 10 类对抗性输入（超长文本 1000/5000 字符、CRLF 换行、正则元字符、HTML 标签、emoji、RTL 阿拉伯文、null 字节、制表符、混合中日韩），验证同步过滤逻辑不崩溃、不乱码、不长时间卡顿。R26 阈值 500ms（比 R23 的 200ms 宽，因超长文本会放大 O(rows×cols) 遍历成本）。
+**新增视觉自洽性检查**：C 系列新增 R27 规则，挂载到 `tab_switch` 动作上（无需新增动作，denominator 保持 115）。切换标签页后检查 `currentWidget` 非空且 `isVisible()`，捕获页面损坏/空页/隐藏页 bug（如 QTabWidget 移除页面未更新 currentIndex、页面 setVisible(false) 误调用等）。
 
-**验证结果**：3 轮中 `search_robust` 动作均被触发并正确执行（如 seed=100 触发 2 次），对抗性输入全部通过同步过滤无崩溃无卡顿（R26 通过）。`inputSearchRobust` 对 description 截断到 30 字符，避免超长文本污染 action_log 与 STATUS.md。
+**验证结果**：3 轮中 `tab_switch` 动作均被触发并正确执行（seed=100 触发 2 次、seed=200 触发 6 次、seed=300 触发 4 次），所有切换后当前页均非空且可见（R27 通过）。
 
-**历史扩展**：A 系列（R20-R23 性能时序）、D 系列（R24/R25 对话框守护）均已在之前批次验证通过，本次 F 系列验证未触发回归。
+**历史扩展**：A 系列（R20-R23 性能时序）、D 系列（R24/R25 对话框守护）、F 系列（R26 输入鲁棒性）均已在之前批次验证通过，本次 C 系列验证未触发回归。
 
 **关于用户原问题（菜单移开后过一阵才消失）**：offscreen 模式下"鼠标移开关闭菜单"无法复现（offscreen 不处理鼠标移出事件），R20 改用 Esc 关闭测量。当前测出 0ms 延迟，说明菜单响应关闭指令无延迟。R20 作为性能守护规则，未来若菜单关闭变慢（动画/定时器/主线程卡顿）会自动报警。
 
@@ -310,4 +311,5 @@ reports/
 - R24/R25 仅对 `menu_action` 触发的模态对话框生效；若业务侧新增经按钮（非菜单）触发的对话框，需在对应动作执行器中同样接入 `scheduleModalDialogAutoClose` 双定时器机制
 - R24 标题抓取依赖 50ms 定时器（exec 弹出后标题已就绪）；若业务侧引入异步加载标题（如网络请求后 `setWindowTitle`），可能需要增大抓取延迟
 - R26 对抗性输入样本固定 10 类（超长文本/CRLF/正则元字符/HTML/emoji/RTL/null/制表符/混合 CJK）；若业务侧新增其他危险输入类型（如 SQL 注入字符、Unicode BOM、零宽字符），需扩充 `robustSamples` 数组。阈值 500ms 比 R23 宽，因超长文本会放大 O(rows×cols) 遍历成本，但若数据量显著增大（如目标表行数 >1000）可能需要重新校准
+- R27 仅检查 `currentWidget` 非空且 `isVisible()`，不验证页面内容完整性（如页面内子控件是否全部渲染、数据是否加载）；offscreen 模式下 `isVisible()` 返回值可能与有屏幕环境不一致，当前源码无 `setVisible(false)` 误调用故通过，若业务侧引入条件隐藏逻辑需评估是否影响 R27
 - 巡检员仅检测崩溃/卡死/自洽性违规，不验证业务功能正确性（如"打开预案"是否真的加载了数据）
