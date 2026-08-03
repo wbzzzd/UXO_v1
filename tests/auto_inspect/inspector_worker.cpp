@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共27条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共28条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -30,6 +30,7 @@
 //   R25 对话框关闭后不应残留模态状态（activeModalWidget 应为 null）
 //   R26 超长/对抗性输入过滤响应应 <=500ms（主线程不应被同步过滤长时间阻塞）
 //   R27 标签页切换后当前页 currentWidget 应非空且可见（捕获页面损坏/空页/隐藏页 bug）
+//   R28 非状态机动作不应改变 panelStatus（捕获副作用 bug，如刷新触发状态重置、搜索触发误迁移）
 
 #include "MainWindow/MainWindow.h"
 
@@ -1124,6 +1125,47 @@ void checkTabPageVisibleAfterSwitch(ActionKind kind, MainWindow &window, int exp
     }
 }
 
+// 前置声明：actionKindToString 定义在 pickAndExecuteAction 附近，R28 在其之前使用
+QString actionKindToString(ActionKind kind);
+
+// R28：非状态机动作不应改变 panelStatus（当已选目标时）。
+// 可合法改变状态的动作：Confirm/Start/Complete/TargetRow（选择目标）/KeyEnter（可能触发聚焦按钮）。
+// 其他动作（相机/刷新/标签/搜索/导航/键盘 Tab/Esc/箭头/菜单/视图/任务表/设备表/状态子标签/菜单悬停/对抗性搜索）
+// 若改变了 panelStatus，说明业务侧有副作用 bug（如刷新触发状态重置、搜索触发误迁移）。
+void checkNonStateActionPreservesStatus(ActionKind kind, MainWindow &window, const Snapshot &pre,
+                                        const QString &action, const QString &screenshotDir,
+                                        int issueIdx, std::vector<Issue> &issues)
+{
+    // 选前无目标时，状态本就是 None，不适用本规则（由 R4 覆盖选择行为）
+    if (pre.panelStatus.isEmpty() || pre.panelStatus == QStringLiteral("None")) {
+        return;
+    }
+    // 可合法改变状态的动作
+    switch (kind) {
+    case ActionKind::Confirm:
+    case ActionKind::Start:
+    case ActionKind::Complete:
+    case ActionKind::TargetRow:
+    case ActionKind::KeyEnter:
+        return;
+    default:
+        break;
+    }
+    const QString post = getPanelStatus(window);
+    if (post == pre.panelStatus) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("business_flow");
+    issue.rule = QStringLiteral("R28 非状态机动作不应改变状态");
+    issue.action = action;
+    issue.details = QStringLiteral("动作=%1 前=%2 后=%3（非状态机动作意外改变了状态）")
+                        .arg(actionKindToString(kind), pre.panelStatus, post);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
 // 点击目标表第 row 行（选中目标）
 ActionResult clickTargetRow(MainWindow &window, int row)
 {
@@ -1830,6 +1872,8 @@ int main(int argc, char *argv[])
         // 依赖前置快照的规则
         checkTransitionLegality(*window, pre, action, screenshotDir,
                                 static_cast<int>(issues.size()), issues);
+        checkNonStateActionPreservesStatus(kind, *window, pre, action, screenshotDir,
+                                           static_cast<int>(issues.size()), issues);
         checkTargetReselectIdempotent(*window, pre, clickedRow, action, screenshotDir,
                                       static_cast<int>(issues.size()), issues);
         checkLogLineCountDelta(*window, pre, action, screenshotDir,
