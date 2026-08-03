@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共22条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共23条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -25,6 +25,7 @@
 //   R20 菜单关闭延迟应 <=300ms（Esc 关闭下拉菜单的耗时）
 //   R21 状态机按钮响应应 <=200ms（confirm/start/complete 点击+事件处理耗时）
 //   R22 标签页切换响应应 <=200ms（setCurrentIndex+事件处理耗时）
+//   R23 搜索框输入过滤响应应 <=200ms（textChanged->onSearchTextChanged 同步过滤耗时）
 
 #include "MainWindow/MainWindow.h"
 
@@ -989,6 +990,25 @@ void checkTabSwitchTiming(qint64 timingMs, ActionKind kind, MainWindow &window,
     issues.push_back(issue);
 }
 
+// R23：搜索框输入过滤响应应 <=200ms（onSearchTextChanged 同步遍历全部行列做 contains + setRowHidden）。
+void checkSearchFilterTiming(qint64 timingMs, ActionKind kind, MainWindow &window,
+                             const QString &action, const QString &screenshotDir,
+                             int issueIdx, std::vector<Issue> &issues)
+{
+    const qint64 threshold = 200;
+    if (kind != ActionKind::SearchInput || timingMs < 0 || timingMs <= threshold) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("performance");
+    issue.rule = QStringLiteral("R23 搜索过滤响应应 <=200ms");
+    issue.action = action;
+    issue.details = QStringLiteral("过滤耗时 %1ms 超过阈值 %2ms").arg(timingMs).arg(threshold);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
 // 点击目标表第 row 行（选中目标）
 ActionResult clickTargetRow(MainWindow &window, int row)
 {
@@ -1099,11 +1119,17 @@ ActionResult inputSearchText(MainWindow &window, const QString &text)
     if (edit == nullptr) {
         return {QStringLiteral("找不到搜索框"), false, ActionKind::SearchInput};
     }
+    // 测量 setText 触发 textChanged -> onSearchTextChanged 同步过滤的耗时
+    QElapsedTimer t;
+    t.start();
     edit->setText(text);
-    QTest::qWait(50);
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+    ActionResult r{QStringLiteral("搜索框输入 %1").arg(text), true, ActionKind::SearchInput};
+    r.timingMs = t.elapsed();
+    // 恢复：清空搜索框（不测量，仅恢复界面状态）
     edit->clear();
     QTest::qWait(30);
-    return {QStringLiteral("搜索框输入 %1").arg(text), true, ActionKind::SearchInput};
+    return r;
 }
 
 // 点击导航按钮（6 个：态势/探测/决策/设备/统计/配置）
@@ -1660,6 +1686,8 @@ int main(int argc, char *argv[])
                                   static_cast<int>(issues.size()), issues);
         checkTabSwitchTiming(timingMs, kind, *window, action, screenshotDir,
                              static_cast<int>(issues.size()), issues);
+        checkSearchFilterTiming(timingMs, kind, *window, action, screenshotDir,
+                                static_cast<int>(issues.size()), issues);
     };
 
     // 初始状态检查（无前置动作）

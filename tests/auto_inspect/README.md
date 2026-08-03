@@ -66,9 +66,9 @@ Detected --confirm--> Confirmed --start--> Disposing --complete--> Disposed
 - 非法迁移（如 Disposed 状态点 confirm）必须被拒绝
 - 按钮启用逻辑：confirm↔Detected、start↔Confirmed、complete↔Disposing
 
-### 2.3 自洽性检查规则（22 条）
+### 2.3 自洽性检查规则（23 条）
 
-每个动作执行前后，worker 捕获快照（状态、目标 ID、日志行数、标签页索引）并运行 22 条检查：
+每个动作执行前后，worker 捕获快照（状态、目标 ID、日志行数、标签页索引）并运行 23 条检查：
 
 | 规则 | 检查内容 |
 |---|---|
@@ -94,6 +94,7 @@ Detected --confirm--> Confirmed --start--> Disposing --complete--> Disposed
 | R20 | 菜单关闭延迟应 <=300ms（Esc 关闭下拉菜单的耗时，性能守护规则）|
 | R21 | 状态机按钮点击响应应 <=200ms（confirm/start/complete，性能守护规则）|
 | R22 | 标签页切换响应应 <=200ms（tab_switch，性能守护规则）|
+| R23 | 搜索框输入过滤响应应 <=200ms（search_input 触发 textChanged 同步过滤，性能守护规则）|
 
 ---
 
@@ -255,7 +256,7 @@ reports/
 
 ## 5. 最近一次巡检结果
 
-**时间**：2026-08-03（A2/A3 按钮点击与标签切换时序扩展验证，3 轮 × 100 动作）
+**时间**：2026-08-03（A4 搜索过滤时序扩展验证，3 轮 × 100 动作）
 
 | 指标 | 数值 |
 |---|---|
@@ -267,9 +268,11 @@ reports/
 | 动作执行总数 | 300 |
 | 覆盖率 | 持续累积中 |
 
-**新增时序测量**：A2/A3 为 `clickButton`、`clickButtonByText`、`clickTab` 三个动作执行器加入 `QElapsedTimer` 测量（`ActionResult.timingMs`），并在 `runChecks` 中接入 R21（状态机按钮 ≤200ms）和 R22（标签页切换 ≤200ms）两条性能守护规则。
+**新增时序测量**：A4 为 `inputSearchText` 动作执行器加入 `QElapsedTimer` 测量（`setText` + `processEvents`，触发 `textChanged -> onSearchTextChanged` 同步过滤链），并在 `runChecks` 中接入 R23（搜索过滤响应 ≤200ms）性能守护规则。测量不包含恢复阶段的 `clear()`。
 
-**验证结果**：3 轮中 22 种动作全部触发（含 confirm/start/complete/tab_switch），R20/R21/R22 均未报警。按钮点击与标签切换响应均在 200ms 阈值内，说明当前 UI 控件响应无延迟。R21/R22 作为性能守护规则，未来若主线程卡顿或控件响应变慢会自动报警。
+**验证结果**：3 轮中 `search_input` 共触发 8 次（随机输入"UXO/目标/12345/不存在的内容xyz"等文本），R20-R23 均未报警。搜索过滤响应均在 200ms 阈值内（业务侧 `onSearchTextChanged` 为 O(rows×cols) 同步遍历，当前目标表行数少故无延迟）。R23 作为性能守护规则，未来若目标表数据量增大或过滤逻辑变复杂会自动报警。
+
+**历史扩展**：A2/A3（R21/R22 按钮+标签时序）、A1（R20 菜单关闭延迟）均已在之前批次验证通过，本次 A4 验证未触发回归。
 
 **关于用户原问题（菜单移开后过一阵才消失）**：offscreen 模式下"鼠标移开关闭菜单"无法复现（offscreen 不处理鼠标移出事件），R20 改用 Esc 关闭测量。当前测出 0ms 延迟，说明菜单响应关闭指令无延迟。R20 作为性能守护规则，未来若菜单关闭变慢（动画/定时器/主线程卡顿）会自动报警。
 
@@ -299,4 +302,5 @@ reports/
 - 键盘导航动作对当前焦点控件发送按键；若焦点不在预期控件（如模态对话框弹出期间），按键可能被对话框消费。源码当前无自定义键盘处理，走 Qt 默认行为；若业务侧新增快捷键或 keyPressEvent，需评估是否影响 R19
 - R20 菜单关闭延迟用 Esc 测量（offscreen 下"鼠标移开关闭菜单"不可复现，因 offscreen 不处理鼠标移出事件）；当前测出 0ms，若未来菜单关闭变慢（动画/定时器/主线程卡顿）R20 会报警
 - R21/R22 时序测量包含 `mouseClick + processEvents` 整体耗时（含 Qt 事件循环派发与槽函数执行），不含按钮查找与快照捕获；当前均在 200ms 内，若业务侧引入同步重计算或阻塞式槽函数会触发报警
+- R23 搜索过滤时序测量包含 `setText + processEvents` 耗时（触发 `textChanged -> onSearchTextChanged` 同步遍历过滤），不含恢复阶段 `clear()`；当前目标表行数少故无延迟，若数据量增大或过滤逻辑变复杂（如正则/模糊匹配）会触发报警
 - 巡检员仅检测崩溃/卡死/自洽性违规，不验证业务功能正确性（如"打开预案"是否真的加载了数据）
