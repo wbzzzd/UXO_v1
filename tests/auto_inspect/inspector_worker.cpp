@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共18条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共19条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -21,6 +21,7 @@
 //   R16 搜索框输入不应改变选中状态
 //   R17 任务/设备表行点击不应改变目标选中状态
 //   R18 状态子标签页点击不应改变目标选中状态
+//   R19 键盘导航（Tab/Enter/Esc/方向键）不应破坏模拟状态机或丢失选中
 
 #include "MainWindow/MainWindow.h"
 
@@ -853,6 +854,39 @@ void checkStatusTabClickPreservesSelection(MainWindow &window, const Snapshot &p
     }
 }
 
+// R19：键盘导航（Tab/Enter/Esc/方向键）不应丢失选中（panelTargetId 不应从有值变为空）。
+// 注意：Enter 可能触发聚焦按钮导致状态机变更，这是合法的（由 R4 覆盖），
+// 故 R19 只检查选中丢失，不检查状态变更。
+void checkKeyboardNavPreservesSelection(MainWindow &window, const Snapshot &pre,
+                                         const QString &action, const QString &screenshotDir,
+                                         int issueIdx, std::vector<Issue> &issues)
+{
+    if (!action.contains(QStringLiteral("键盘"))) {
+        return;
+    }
+    // 仅当选前已有选中、操作后选中丢失时才报告
+    const bool hadSelection = !pre.panelTargetId.isEmpty()
+                              && !pre.panelTargetId.contains(QStringLiteral("未选择"));
+    if (!hadSelection) {
+        return;
+    }
+    const Snapshot post = captureSnapshot(window);
+    const bool lostSelection = post.panelTargetId.isEmpty()
+                               || post.panelTargetId.contains(QStringLiteral("未选择"));
+    if (!lostSelection) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("state_loss");
+    issue.rule = QStringLiteral("R19 键盘导航不应丢失选中");
+    issue.action = action;
+    issue.details = QStringLiteral("操作前 target=%1 | 操作后 target=%2（选中丢失）")
+                        .arg(pre.panelTargetId, post.panelTargetId);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
 // ===== 动作执行 =====
 
 enum class ActionKind {
@@ -873,6 +907,10 @@ enum class ActionKind {
     MissionRow,
     DeviceRow,
     StatusTab,
+    KeyTab,
+    KeyEnter,
+    KeyEscape,
+    KeyArrow,
 };
 
 struct ActionResult {
@@ -1040,6 +1078,68 @@ ActionResult clickStatusTab(MainWindow &window, int tabIndex)
     return {QStringLiteral("点击状态标签 #%1").arg(tabIndex), true, ActionKind::StatusTab};
 }
 
+// 键盘导航：对当前焦点控件发送 Tab 键（焦点切换，Qt 默认行为）
+ActionResult sendKeyTab(MainWindow &window)
+{
+    QWidget *focus = QApplication::focusWidget();
+    if (focus == nullptr) {
+        window.setFocus();
+        focus = QApplication::focusWidget();
+        if (focus == nullptr) {
+            return {QStringLiteral("无焦点控件，跳过 Tab"), false, ActionKind::KeyTab};
+        }
+    }
+    QTest::keyClick(focus, Qt::Key_Tab);
+    return {QStringLiteral("键盘 Tab（焦点切换）"), true, ActionKind::KeyTab};
+}
+
+// 键盘导航：对当前焦点控件发送 Enter 键（可能触发按钮点击或行激活）
+ActionResult sendKeyEnter(MainWindow &window)
+{
+    QWidget *focus = QApplication::focusWidget();
+    if (focus == nullptr) {
+        window.setFocus();
+        focus = QApplication::focusWidget();
+        if (focus == nullptr) {
+            return {QStringLiteral("无焦点控件，跳过 Enter"), false, ActionKind::KeyEnter};
+        }
+    }
+    QTest::keyClick(focus, Qt::Key_Return);
+    return {QStringLiteral("键盘 Enter"), true, ActionKind::KeyEnter};
+}
+
+// 键盘导航：对当前焦点控件发送 Esc 键（关闭模态或清空选中）
+ActionResult sendKeyEscape(MainWindow &window)
+{
+    QWidget *focus = QApplication::focusWidget();
+    if (focus == nullptr) {
+        window.setFocus();
+        focus = QApplication::focusWidget();
+        if (focus == nullptr) {
+            return {QStringLiteral("无焦点控件，跳过 Esc"), false, ActionKind::KeyEscape};
+        }
+    }
+    QTest::keyClick(focus, Qt::Key_Escape);
+    return {QStringLiteral("键盘 Esc"), true, ActionKind::KeyEscape};
+}
+
+// 键盘导航：对当前焦点控件发送方向键（上下左右随机选一个）
+ActionResult sendKeyArrow(MainWindow &window, QRandomGenerator &rng)
+{
+    QWidget *focus = QApplication::focusWidget();
+    if (focus == nullptr) {
+        window.setFocus();
+        focus = QApplication::focusWidget();
+        if (focus == nullptr) {
+            return {QStringLiteral("无焦点控件，跳过方向键"), false, ActionKind::KeyArrow};
+        }
+    }
+    const Qt::Key arrows[4] = {Qt::Key_Up, Qt::Key_Down, Qt::Key_Left, Qt::Key_Right};
+    const Qt::Key key = arrows[rng.bounded(4)];
+    QTest::keyClick(focus, key);
+    return {QStringLiteral("键盘方向键 %1").arg(static_cast<int>(key)), true, ActionKind::KeyArrow};
+}
+
 QString actionKindToString(ActionKind kind)
 {
     switch (kind) {
@@ -1077,6 +1177,14 @@ QString actionKindToString(ActionKind kind)
         return QStringLiteral("device_row");
     case ActionKind::StatusTab:
         return QStringLiteral("status_tab");
+    case ActionKind::KeyTab:
+        return QStringLiteral("key_tab");
+    case ActionKind::KeyEnter:
+        return QStringLiteral("key_enter");
+    case ActionKind::KeyEscape:
+        return QStringLiteral("key_escape");
+    case ActionKind::KeyArrow:
+        return QStringLiteral("key_arrow");
     }
     return QStringLiteral("unknown");
 }
@@ -1168,6 +1276,10 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
         {ActionKind::MissionRow, missionRowCount > 0 ? 3 : 0},
         {ActionKind::DeviceRow, deviceRowCount > 0 ? 3 : 0},
         {ActionKind::StatusTab, statusTabs.isEmpty() ? 0 : 2},
+        {ActionKind::KeyTab, 2},
+        {ActionKind::KeyEnter, 2},
+        {ActionKind::KeyEscape, 2},
+        {ActionKind::KeyArrow, 2},
     };
 
     struct Weighted {
@@ -1249,6 +1361,14 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
         return clickDeviceRow(window, rng.bounded(deviceRowCount));
     case ActionKind::StatusTab:
         return clickStatusTab(window, rng.bounded(statusTabs.size()));
+    case ActionKind::KeyTab:
+        return sendKeyTab(window);
+    case ActionKind::KeyEnter:
+        return sendKeyEnter(window);
+    case ActionKind::KeyEscape:
+        return sendKeyEscape(window);
+    case ActionKind::KeyArrow:
+        return sendKeyArrow(window, rng);
     }
     return {QStringLiteral("未知动作"), false};
 }
@@ -1389,6 +1509,8 @@ int main(int argc, char *argv[])
                                              static_cast<int>(issues.size()), issues);
         checkStatusTabClickPreservesSelection(*window, pre, action, screenshotDir,
                                               static_cast<int>(issues.size()), issues);
+        checkKeyboardNavPreservesSelection(*window, pre, action, screenshotDir,
+                                           static_cast<int>(issues.size()), issues);
     };
 
     // 初始状态检查（无前置动作）
