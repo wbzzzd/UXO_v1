@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共23条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共25条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -26,6 +26,8 @@
 //   R21 状态机按钮响应应 <=200ms（confirm/start/complete 点击+事件处理耗时）
 //   R22 标签页切换响应应 <=200ms（setCurrentIndex+事件处理耗时）
 //   R23 搜索框输入过滤响应应 <=200ms（textChanged->onSearchTextChanged 同步过滤耗时）
+//   R24 模态对话框弹出时标题应非空（捕获 tr() 缺失或编码异常）
+//   R25 对话框关闭后不应残留模态状态（activeModalWidget 应为 null）
 
 #include "MainWindow/MainWindow.h"
 
@@ -293,8 +295,23 @@ QVector<QPushButton *> findNavButtons(MainWindow &window)
 
 // 在触发可能弹模态对话框的 action 前，预设自动关闭定时器。
 // QDialog::exec 启动嵌套事件循环，QTimer 在其中仍会触发，从而自动关闭对话框。
-void scheduleModalDialogAutoClose(int delayMs = 300)
+// 同时在 50ms 时抓取对话框标题用于 R24 检查（exec 弹出后标题已就绪）。
+void scheduleModalDialogAutoClose(QString *capturedTitle, bool *dialogShown,
+                                  int delayMs = 300)
 {
+    // 50ms 抓取标题（exec 已弹出对话框，标题可读）
+    QTimer::singleShot(50, qApp, [capturedTitle, dialogShown]() {
+        QWidget *modal = QApplication::activeModalWidget();
+        if (modal != nullptr) {
+            if (capturedTitle != nullptr) {
+                *capturedTitle = modal->windowTitle();
+            }
+            if (dialogShown != nullptr) {
+                *dialogShown = true;
+            }
+        }
+    });
+    // delayMs 关闭对话框
     QTimer::singleShot(delayMs, qApp, []() {
         QWidget *modal = QApplication::activeModalWidget();
         if (modal != nullptr) {
@@ -927,6 +944,8 @@ struct ActionResult {
     int tabTarget = -1;  // 仅 TabSwitch 有效
     int navTarget = -1;  // 仅 NavButton 有效
     qint64 timingMs = -1; // 动作耗时（click+processEvents），-1 表示未测量
+    QString dialogTitle;  // 弹出对话框的标题（exec 期间抓取），空表示无对话框弹出
+    bool dialogShown = false; // 是否弹出了模态对话框
 };
 
 // R20：菜单关闭延迟应 <=300ms（用户原问题：下拉菜单过一阵才消失）。
@@ -1004,6 +1023,50 @@ void checkSearchFilterTiming(qint64 timingMs, ActionKind kind, MainWindow &windo
     issue.rule = QStringLiteral("R23 搜索过滤响应应 <=200ms");
     issue.action = action;
     issue.details = QStringLiteral("过滤耗时 %1ms 超过阈值 %2ms").arg(timingMs).arg(threshold);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
+// R24：模态对话框弹出时标题应非空（捕获 i18n/tr() 缺失或编码异常）。
+void checkDialogTitleNotEmpty(ActionKind kind, bool dialogShown, const QString &dialogTitle,
+                              MainWindow &window, const QString &action,
+                              const QString &screenshotDir, int issueIdx,
+                              std::vector<Issue> &issues)
+{
+    if (kind != ActionKind::MenuAction || !dialogShown) {
+        return;
+    }
+    if (!dialogTitle.isEmpty()) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("dialog");
+    issue.rule = QStringLiteral("R24 对话框标题应非空");
+    issue.action = action;
+    issue.details = QStringLiteral("弹出模态对话框但标题为空（疑似 tr() 缺失或编码异常）");
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
+// R25：对话框关闭后不应残留模态状态（activeModalWidget 应为 null）。
+void checkNoResidualModalAfterClose(ActionKind kind, bool dialogShown, MainWindow &window,
+                                    const QString &action, const QString &screenshotDir,
+                                    int issueIdx, std::vector<Issue> &issues)
+{
+    if (kind != ActionKind::MenuAction || !dialogShown) {
+        return;
+    }
+    QWidget *modal = QApplication::activeModalWidget();
+    if (modal == nullptr) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("dialog");
+    issue.rule = QStringLiteral("R25 对话框关闭后不应残留模态状态");
+    issue.action = action;
+    issue.details = QStringLiteral("对话框已关闭但 activeModalWidget 仍非空（疑似关闭失败或挂起）");
     issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
     captureScreenshot(window, screenshotDir, issue.screenshot);
     issues.push_back(issue);
@@ -1087,15 +1150,21 @@ ActionResult triggerMenuAction(MainWindow &window, const MenuActionInfo &info)
     if (info.action == nullptr) {
         return {QStringLiteral("菜单 action 无效"), false, ActionKind::MenuAction};
     }
-    scheduleModalDialogAutoClose();
+    ActionResult r{QStringLiteral("触发菜单 %1 > %2").arg(info.menuName, info.actionText),
+                   true, ActionKind::MenuAction};
+    scheduleModalDialogAutoClose(&r.dialogTitle, &r.dialogShown);
     info.action->trigger();
     QCoreApplication::processEvents(QEventLoop::AllEvents);
     // 二次确认关闭残留对话框（exec 可能在 processEvents 后才弹出）
     QWidget *modal = QApplication::activeModalWidget();
     if (modal != nullptr) {
+        if (!r.dialogShown) {
+            r.dialogShown = true;
+            r.dialogTitle = modal->windowTitle();
+        }
         modal->close();
     }
-    return {QStringLiteral("触发菜单 %1 > %2").arg(info.menuName, info.actionText), true, ActionKind::MenuAction};
+    return r;
 }
 
 // 切换视图菜单的 checkable action，再切换回来恢复原状态。
@@ -1636,7 +1705,8 @@ int main(int argc, char *argv[])
 
     // 统一执行：动作前快照 -> 动作 -> 动作后检查
     auto runChecks = [&](const QString &action, const Snapshot &pre, int clickedRow,
-                         int tabTarget, ActionKind kind, qint64 timingMs) {
+                         int tabTarget, ActionKind kind, qint64 timingMs,
+                         bool dialogShown, const QString &dialogTitle) {
         QCoreApplication::processEvents(QEventLoop::AllEvents);
         QTest::qWait(50);
 
@@ -1688,6 +1758,10 @@ int main(int argc, char *argv[])
                              static_cast<int>(issues.size()), issues);
         checkSearchFilterTiming(timingMs, kind, *window, action, screenshotDir,
                                 static_cast<int>(issues.size()), issues);
+        checkDialogTitleNotEmpty(kind, dialogShown, dialogTitle, *window, action,
+                                 screenshotDir, static_cast<int>(issues.size()), issues);
+        checkNoResidualModalAfterClose(kind, dialogShown, *window, action,
+                                       screenshotDir, static_cast<int>(issues.size()), issues);
     };
 
     // 初始状态检查（无前置动作）
@@ -1699,7 +1773,8 @@ int main(int argc, char *argv[])
         entry["kind"] = QStringLiteral("init");
         entry["executed"] = true;
         actionLog.append(entry);
-        runChecks(QStringLiteral("初始状态"), emptyPre, -1, -1, ActionKind::TargetRow, -1);
+        runChecks(QStringLiteral("初始状态"), emptyPre, -1, -1, ActionKind::TargetRow, -1,
+                  false, QString());
     }
 
     // 加权随机点击循环
@@ -1720,10 +1795,13 @@ int main(int argc, char *argv[])
         entry["action"] = result.description;
         entry["kind"] = actionKindToString(result.kind);
         entry["executed"] = result.executed;
+        if (result.dialogShown) {
+            entry["dialog_title"] = result.dialogTitle;
+        }
         actionLog.append(entry);
 
         runChecks(result.description, pre, result.clickedRow, result.tabTarget,
-                  result.kind, result.timingMs);
+                  result.kind, result.timingMs, result.dialogShown, result.dialogTitle);
     }
 
     saveCoverage(coveragePath, coverage);
