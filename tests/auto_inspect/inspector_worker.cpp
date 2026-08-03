@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共13条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共16条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -16,12 +16,16 @@
 //   R11 切换标签页后，QTabWidget 的 currentIndex 必须等于目标索引
 //   R12 刷新按钮不应丢失已选目标（panelTargetId 和 panelStatus 保持）
 //   R13 相机操作不应改变模拟状态机或日志
+//   R14 任何动作后主窗口仍可见（未意外关闭）
+//   R15 视图切换（面板隐藏/显示）后恢复，状态不丢失
+//   R16 搜索框输入不应改变选中状态
 
 #include "MainWindow/MainWindow.h"
 
 #include <QApplication>
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QDialog>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -29,8 +33,12 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QLabel>
+#include <QLineEdit>
+#include <QMenu>
+#include <QMenuBar>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QAction>
 #include <QHash>
 #include <QRandomGenerator>
 #include <QTableWidget>
@@ -38,6 +46,8 @@
 #include <QTest>
 #include <QTextStream>
 #include <QTextEdit>
+#include <QTimer>
+#include <QToolBar>
 
 #include <memory>
 #include <vector>
@@ -181,6 +191,108 @@ QPushButton *findButtonByText(MainWindow &window, const QString &text)
 QTabWidget *findTabWidget(MainWindow &window)
 {
     return window.findChild<QTabWidget *>();
+}
+
+// ===== Layer 1 扩展：控件发现与模态对话框处理 =====
+
+// 菜单 action 三元组：指针、所属菜单名、action 文本
+struct MenuActionInfo {
+    QAction *action;
+    QString menuName;
+    QString actionText;
+};
+
+// 收集菜单栏所有非 checkable、非"退出"的 QAction。
+// "退出"会关闭主窗口，必须跳过；checkable 的视图项交给 ViewToggle。
+QVector<MenuActionInfo> collectMenuActions(MainWindow &window)
+{
+    QVector<MenuActionInfo> result;
+    auto *bar = window.menuBar();
+    if (bar == nullptr) {
+        return result;
+    }
+    for (QAction *menuAction : bar->actions()) {
+        QMenu *menu = menuAction->menu();
+        if (menu == nullptr) {
+            continue;
+        }
+        const QString menuName = menuAction->text();
+        for (QAction *a : menu->actions()) {
+            if (a == nullptr || a->isSeparator()) {
+                continue;
+            }
+            if (a->isCheckable()) {
+                continue;
+            }
+            if (a->text().contains(QStringLiteral("退出"))) {
+                continue;
+            }
+            result.append({a, menuName, a->text()});
+        }
+    }
+    return result;
+}
+
+// 收集"视图"菜单的 checkable QAction（显示/隐藏面板），用于 ViewToggle
+QVector<QAction *> collectViewToggleActions(MainWindow &window)
+{
+    QVector<QAction *> result;
+    auto *bar = window.menuBar();
+    if (bar == nullptr) {
+        return result;
+    }
+    for (QAction *menuAction : bar->actions()) {
+        QMenu *menu = menuAction->menu();
+        if (menu == nullptr) {
+            continue;
+        }
+        if (!menuAction->text().contains(QStringLiteral("视图"))) {
+            continue;
+        }
+        for (QAction *a : menu->actions()) {
+            if (a != nullptr && a->isCheckable()) {
+                result.append(a);
+            }
+        }
+    }
+    return result;
+}
+
+// 查找搜索框（无 objectName，按 placeholderText "搜索目标" 查找）
+QLineEdit *findSearchEdit(MainWindow &window)
+{
+    const auto edits = window.findChildren<QLineEdit *>();
+    for (auto *edit : edits) {
+        if (edit->placeholderText().contains(QStringLiteral("搜索目标"))) {
+            return edit;
+        }
+    }
+    return nullptr;
+}
+
+// 查找导航按钮（无 objectName，按 "navIndex" 属性查找）
+QVector<QPushButton *> findNavButtons(MainWindow &window)
+{
+    QVector<QPushButton *> result;
+    const auto buttons = window.findChildren<QPushButton *>();
+    for (auto *btn : buttons) {
+        if (btn->property("navIndex").isValid()) {
+            result.append(btn);
+        }
+    }
+    return result;
+}
+
+// 在触发可能弹模态对话框的 action 前，预设自动关闭定时器。
+// QDialog::exec 启动嵌套事件循环，QTimer 在其中仍会触发，从而自动关闭对话框。
+void scheduleModalDialogAutoClose(int delayMs = 300)
+{
+    QTimer::singleShot(delayMs, qApp, []() {
+        QWidget *modal = QApplication::activeModalWidget();
+        if (modal != nullptr) {
+            modal->close();
+        }
+    });
 }
 
 // ===== 检查规则 =====
@@ -592,6 +704,71 @@ void checkCameraDoesNotCorruptState(MainWindow &window, const Snapshot &pre,
     }
 }
 
+// R14：任何动作后主窗口仍可见（菜单"退出"等动作不应意外关闭窗口）
+void checkWindowStillVisible(MainWindow &window, const QString &action,
+                              const QString &screenshotDir, int issueIdx,
+                              std::vector<Issue> &issues)
+{
+    if (window.isVisible()) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("window_closed");
+    issue.rule = QStringLiteral("R14 动作后主窗口仍可见");
+    issue.action = action;
+    issue.details = QStringLiteral("执行动作后主窗口不可见（疑似意外关闭）");
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
+// R15：视图切换（菜单 checkable 切换面板显示）后恢复，状态不丢失。
+// ViewToggle 动作会在 toggle 后再 toggle 回来恢复原状态；本规则验证恢复后状态保持。
+void checkViewTogglePreservesState(MainWindow &window, const Snapshot &pre,
+                                    const QString &action, const QString &screenshotDir,
+                                    int issueIdx, std::vector<Issue> &issues)
+{
+    if (!action.contains(QStringLiteral("视图切换"))) {
+        return;
+    }
+    const Snapshot post = captureSnapshot(window);
+    if (pre.panelStatus != post.panelStatus || pre.panelTargetId != post.panelTargetId
+        || pre.logLineCount != post.logLineCount) {
+        Issue issue;
+        issue.type = QStringLiteral("state_loss");
+        issue.rule = QStringLiteral("R15 视图切换恢复后状态应保持");
+        issue.action = action;
+        issue.details = QStringLiteral("操作前 status=%1 target=%2 log=%3 | 恢复后 status=%4 target=%5 log=%6")
+                            .arg(pre.panelStatus, pre.panelTargetId).arg(pre.logLineCount)
+                            .arg(post.panelStatus, post.panelTargetId).arg(post.logLineCount);
+        issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+        captureScreenshot(window, screenshotDir, issue.screenshot);
+        issues.push_back(issue);
+    }
+}
+
+// R16：搜索框输入不应改变选中状态（panelTargetId 和 panelStatus 保持）
+void checkSearchPreservesSelection(MainWindow &window, const Snapshot &pre,
+                                    const QString &action, const QString &screenshotDir,
+                                    int issueIdx, std::vector<Issue> &issues)
+{
+    if (!action.contains(QStringLiteral("搜索框"))) {
+        return;
+    }
+    const Snapshot post = captureSnapshot(window);
+    if (pre.panelTargetId != post.panelTargetId || pre.panelStatus != post.panelStatus) {
+        Issue issue;
+        issue.type = QStringLiteral("state_loss");
+        issue.rule = QStringLiteral("R16 搜索框输入不应改变选中状态");
+        issue.action = action;
+        issue.details = QStringLiteral("操作前 target=%1 status=%2 | 操作后 target=%3 status=%4")
+                            .arg(pre.panelTargetId, pre.panelStatus, post.panelTargetId, post.panelStatus);
+        issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+        captureScreenshot(window, screenshotDir, issue.screenshot);
+        issues.push_back(issue);
+    }
+}
+
 // ===== 动作执行 =====
 
 enum class ActionKind {
@@ -605,6 +782,10 @@ enum class ActionKind {
     CameraReset,
     TabSwitch,
     Refresh,
+    MenuAction,
+    ViewToggle,
+    SearchInput,
+    NavButton,
 };
 
 struct ActionResult {
@@ -613,6 +794,7 @@ struct ActionResult {
     ActionKind kind = ActionKind::TargetRow;
     int clickedRow = -1; // 仅 TargetRow 有效
     int tabTarget = -1;  // 仅 TabSwitch 有效
+    int navTarget = -1;  // 仅 NavButton 有效
 };
 
 // 点击目标表第 row 行（选中目标）
@@ -672,6 +854,62 @@ ActionResult clickTab(MainWindow &window, int tabIndex)
     return {QStringLiteral("切换到标签页 %1").arg(tabs->tabText(tabIndex)), true, ActionKind::TabSwitch, -1, tabIndex};
 }
 
+// 触发菜单 action。部分菜单（文件菜单）会弹 QMessageBox，预设定时器自动关闭。
+ActionResult triggerMenuAction(MainWindow &window, const MenuActionInfo &info)
+{
+    if (info.action == nullptr) {
+        return {QStringLiteral("菜单 action 无效"), false, ActionKind::MenuAction};
+    }
+    scheduleModalDialogAutoClose();
+    info.action->trigger();
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+    // 二次确认关闭残留对话框（exec 可能在 processEvents 后才弹出）
+    QWidget *modal = QApplication::activeModalWidget();
+    if (modal != nullptr) {
+        modal->close();
+    }
+    return {QStringLiteral("触发菜单 %1 > %2").arg(info.menuName, info.actionText), true, ActionKind::MenuAction};
+}
+
+// 切换视图菜单的 checkable action，再切换回来恢复原状态。
+// 验证隐藏/显示面板后状态不被破坏。
+ActionResult toggleViewAction(MainWindow &window, QAction *action, int index)
+{
+    if (action == nullptr) {
+        return {QStringLiteral("视图 action 无效"), false, ActionKind::ViewToggle};
+    }
+    action->trigger();
+    QTest::qWait(50);
+    action->trigger();
+    QTest::qWait(50);
+    return {QStringLiteral("视图切换 %1 (恢复)").arg(action->text()), true, ActionKind::ViewToggle, -1, -1, index};
+}
+
+// 在搜索框输入文本（测试筛选不崩溃）
+ActionResult inputSearchText(MainWindow &window, const QString &text)
+{
+    auto *edit = findSearchEdit(window);
+    if (edit == nullptr) {
+        return {QStringLiteral("找不到搜索框"), false, ActionKind::SearchInput};
+    }
+    edit->setText(text);
+    QTest::qWait(50);
+    edit->clear();
+    QTest::qWait(30);
+    return {QStringLiteral("搜索框输入 %1").arg(text), true, ActionKind::SearchInput};
+}
+
+// 点击导航按钮（6 个：态势/探测/决策/设备/统计/配置）
+ActionResult clickNavButton(MainWindow &window, int navIndex)
+{
+    const auto buttons = findNavButtons(window);
+    if (navIndex < 0 || navIndex >= buttons.size()) {
+        return {QStringLiteral("导航按钮索引越界"), false, ActionKind::NavButton, -1, -1, navIndex};
+    }
+    QTest::mouseClick(buttons[navIndex], Qt::LeftButton);
+    return {QStringLiteral("点击导航按钮 #%1").arg(navIndex), true, ActionKind::NavButton, -1, -1, navIndex};
+}
+
 QString actionKindToString(ActionKind kind)
 {
     switch (kind) {
@@ -695,6 +933,14 @@ QString actionKindToString(ActionKind kind)
         return QStringLiteral("tab_switch");
     case ActionKind::Refresh:
         return QStringLiteral("refresh");
+    case ActionKind::MenuAction:
+        return QStringLiteral("menu_action");
+    case ActionKind::ViewToggle:
+        return QStringLiteral("view_toggle");
+    case ActionKind::SearchInput:
+        return QStringLiteral("search_input");
+    case ActionKind::NavButton:
+        return QStringLiteral("nav_button");
     }
     return QStringLiteral("unknown");
 }
@@ -751,6 +997,12 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
     auto *complete = findWidget<QPushButton>(window, "simulationCompleteButton");
     const QString currentStatus = getPanelStatus(window);
 
+    // Layer 1 扩展：预收集菜单/视图/导航控件，按可用性决定权重
+    const QVector<MenuActionInfo> menuActions = collectMenuActions(window);
+    const QVector<QAction *> viewActions = collectViewToggleActions(window);
+    const QVector<QPushButton *> navButtons = findNavButtons(window);
+    QLineEdit *searchEdit = findSearchEdit(window);
+
     struct Candidate {
         ActionKind kind;
         int baseWeight;
@@ -766,6 +1018,10 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
         {ActionKind::CameraReset, 2},
         {ActionKind::TabSwitch, 3},
         {ActionKind::Refresh, 2},
+        {ActionKind::MenuAction, menuActions.isEmpty() ? 0 : 3},
+        {ActionKind::ViewToggle, viewActions.isEmpty() ? 0 : 2},
+        {ActionKind::SearchInput, (searchEdit == nullptr) ? 0 : 2},
+        {ActionKind::NavButton, navButtons.isEmpty() ? 0 : 3},
     };
 
     struct Weighted {
@@ -792,6 +1048,9 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
     for (const auto &w : weighted) {
         total += w.weight;
     }
+    if (total <= 0) {
+        return {QStringLiteral("无可用动作"), false};
+    }
     int r = rng.bounded(total);
     ActionKind chosen = ActionKind::TargetRow;
     for (const auto &w : weighted) {
@@ -801,6 +1060,11 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
             break;
         }
     }
+
+    static const QStringList searchSamples = {
+        QStringLiteral("UXO"), QStringLiteral("目标"), QStringLiteral("test"),
+        QStringLiteral("12345"), QStringLiteral("不存在的内容xyz")
+    };
 
     switch (chosen) {
     case ActionKind::TargetRow:
@@ -823,6 +1087,16 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
         return clickTab(window, rng.bounded(3)); // 3 个标签页随机选一个
     case ActionKind::Refresh:
         return clickButtonByText(window, QStringLiteral("刷新"), QStringLiteral("刷新"), chosen);
+    case ActionKind::MenuAction:
+        return triggerMenuAction(window, menuActions.at(rng.bounded(menuActions.size())));
+    case ActionKind::ViewToggle: {
+        const int vi = rng.bounded(viewActions.size());
+        return toggleViewAction(window, viewActions.at(vi), vi);
+    }
+    case ActionKind::SearchInput:
+        return inputSearchText(window, searchSamples.at(rng.bounded(searchSamples.size())));
+    case ActionKind::NavButton:
+        return clickNavButton(window, rng.bounded(navButtons.size()));
     }
     return {QStringLiteral("未知动作"), false};
 }
@@ -953,6 +1227,12 @@ int main(int argc, char *argv[])
                                        static_cast<int>(issues.size()), issues);
         checkCameraDoesNotCorruptState(*window, pre, action, screenshotDir,
                                        static_cast<int>(issues.size()), issues);
+        checkWindowStillVisible(*window, action, screenshotDir,
+                                static_cast<int>(issues.size()), issues);
+        checkViewTogglePreservesState(*window, pre, action, screenshotDir,
+                                      static_cast<int>(issues.size()), issues);
+        checkSearchPreservesSelection(*window, pre, action, screenshotDir,
+                                      static_cast<int>(issues.size()), issues);
     };
 
     // 初始状态检查（无前置动作）
