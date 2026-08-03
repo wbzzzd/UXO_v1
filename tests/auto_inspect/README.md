@@ -67,9 +67,9 @@ Detected --confirm--> Confirmed --start--> Disposing --complete--> Disposed
 - 非法迁移（如 Disposed 状态点 confirm）必须被拒绝
 - 按钮启用逻辑：confirm↔Detected、start↔Confirmed、complete↔Disposing
 
-### 2.3 自洽性检查规则（30 条）
+### 2.3 自洽性检查规则（31 条）
 
-每个动作执行前后，worker 捕获快照（状态、目标 ID、日志行数、标签页索引）并运行 30 条检查：
+每个动作执行前后，worker 捕获快照（状态、目标 ID、日志行数、标签页索引）并运行 31 条检查：
 
 | 规则 | 检查内容 |
 |---|---|
@@ -103,6 +103,7 @@ Detected --confirm--> Confirmed --start--> Disposing --complete--> Disposed
 | R28 | 非状态机动作不应改变 panelStatus（相机/刷新/标签/搜索/导航/键盘 Tab/Esc/箭头等若改变状态，说明业务侧有副作用 bug）|
 | R29 | 会话级 widget 子对象数不应显著增长（孤儿对话框/定时器累积未清理，阈值 +30，主循环结束后调用一次）|
 | R30 | 启用的状态机按钮点击后必须触发状态前进（捕获 enabled 但 no-op 的按钮 bug，补齐 R4 盲区）|
+| R31 | Tab 键后焦点应非空且变化（捕获焦点陷阱/死循环/焦点丢失，仅 KeyTab 生效，Tab 消费型控件白名单：QLineEdit/QTextEdit/QComboBox/QAbstractSpinBox/QAbstractItemView）|
 
 ---
 
@@ -264,7 +265,7 @@ reports/
 
 ## 5. 最近一次巡检结果
 
-**时间**：2026-08-03（H 系列业务流完整自洽性扩展，3 轮 × 100 动作）
+**时间**：2026-08-03（I 系列键盘焦点自洽性扩展，3 轮 × 100 动作）
 
 | 指标 | 数值 |
 |---|---|
@@ -276,11 +277,13 @@ reports/
 | 动作执行总数 | 300 |
 | 覆盖率 | 持续累积中 |
 
-**新增业务流完整自洽性检查**：H 系列新增 R30 规则，补齐 R4 的盲区。R4 只检查"发生了的状态迁移是否合法"，但无法发现"启用的按钮点击后未触发任何状态迁移"（enabled 但 no-op 的按钮 bug）。R30 在 `clickButton` 中捕获按钮点击前的 `isEnabled()`（`enabledBefore`），若按钮在点击前已启用且状态机契约要求应触发迁移，但点击后状态未变化，则报警。仅对 Confirm/Start/Complete 生效，禁用按钮的无反应由 R2/R3 覆盖。
+**新增键盘焦点自洽性检查**：I 系列新增 R31 规则，捕获焦点陷阱/死循环/焦点丢失。在 `sendKeyTab` 中捕获 Tab 前后焦点控件地址（`focusBeforeAddr`/`focusAfterAddr`），若 Tab 后焦点为空（焦点链断裂）或焦点未变化（焦点陷阱/nextPrevChild 被 no-op）则报警。仅对 KeyTab 生效。
 
-**验证结果**：3 轮 × 100 动作全部通过（0 issues），说明当前业务侧启用的状态机按钮点击后均能正确触发状态前进，无 enabled 但 no-op 的按钮 bug。
+**Tab 消费型白名单**：部分控件 Tab 键不前进焦点是合法的 Qt 默认行为，已加入白名单避免误报：QLineEdit/QTextEdit/QPlainTextEdit/QComboBox/QAbstractSpinBox（Tab 用于文本输入）、QAbstractItemView（Tab 用于单元格/项导航，如 QTableWidget:targetTable）。诊断阶段确认 targetTable 消费 Tab 是合法行为，白名单化后 0 误报。
 
-**历史扩展**：A 系列（R20-R23 性能时序）、D 系列（R24/R25 对话框守护）、F 系列（R26 输入鲁棒性）、C 系列（R27 标签页视觉）、E 系列（R28 业务流自洽性）、G 系列（R29 长期稳定性）均已在之前批次验证通过，本次 H 系列验证未触发回归。
+**验证结果**：3 轮 × 100 动作全部通过（0 issues），说明当前业务侧无焦点陷阱或焦点链断裂 bug。
+
+**历史扩展**：A 系列（R20-R23 性能时序）、D 系列（R24/R25 对话框守护）、F 系列（R26 输入鲁棒性）、C 系列（R27 标签页视觉）、E 系列（R28 业务流自洽性）、G 系列（R29 长期稳定性）、H 系列（R30 业务流完整自洽性）均已在之前批次验证通过，本次 I 系列验证未触发回归。
 
 **关于用户原问题（菜单移开后过一阵才消失）**：offscreen 模式下"鼠标移开关闭菜单"无法复现（offscreen 不处理鼠标移出事件），R20 改用 Esc 关闭测量。当前测出 0ms 延迟，说明菜单响应关闭指令无延迟。R20 作为性能守护规则，未来若菜单关闭变慢（动画/定时器/主线程卡顿）会自动报警。
 
@@ -318,4 +321,5 @@ reports/
 - R28 白名单包含 KeyEnter（可能触发聚焦按钮导致状态迁移，由 R4 覆盖合法性）；若业务侧新增其他可合法改变状态的非状态机动作（如快捷键 Ctrl+Enter 触发确认），需扩充白名单。R28 仅在已选目标（状态非 None）时生效，未选目标时状态本就是 None 不适用
 - R29 会话级检查仅在主循环结束后调用一次（非 per-action）；`children().size()` 包含所有 QObject 子对象（含布局/定时器/Action 等），不只是 widget。阈值 +30 经验值，100 动作规模下当前增长 <10，若业务侧引入大量动态创建的 widget（如自定义弹窗工厂）可能需重新校准。R29 只检测增长不检测对象类型，无法区分"正常增长"与"泄漏"，需结合长期运行（run_loop.sh 数百轮）综合判断
 - R30 仅覆盖 Confirm/Start/Complete 三个状态机按钮；若业务侧新增其他状态机按钮需在 `checkEnabledButtonCausesTransition` 的 switch 中补充 case。R30 依赖 `enabledBefore` 字段（在 `clickButton` 中捕获），其他非 `clickButton` 触发的状态机迁移（如键盘 Enter 触发聚焦按钮）不在覆盖范围内。R30 与 R4 互补：R4 检查"发生的迁移是否合法"，R30 检查"启用的按钮是否真的触发了迁移"，两者不重复
+- R31 仅对 KeyTab 动作生效，不覆盖 Enter/Esc/方向键的焦点行为。Tab 消费型白名单使用 `inherits()` 匹配基类（覆盖子类），当前包含 QLineEdit/QTextEdit/QPlainTextEdit/QComboBox/QAbstractSpinBox/QAbstractItemView；若业务侧引入自定义控件重写 `keyPressEvent` 消费 Tab 但不继承上述基类，可能误报。offscreen 模式下焦点链行为与有屏幕环境可能略有差异（offscreen 不 grab keyboard），当前源码无自定义焦点策略故通过。R31 用指针地址比较焦点控件，不比较内容，故同一控件 Tab 后内容变化但焦点未变不会报警
 - 巡检员仅检测崩溃/卡死/自洽性违规，不验证业务功能正确性（如"打开预案"是否真的加载了数据）

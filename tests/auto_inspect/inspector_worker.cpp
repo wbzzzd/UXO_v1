@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共30条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共31条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -33,6 +33,7 @@
 //   R28 非状态机动作不应改变 panelStatus（捕获副作用 bug，如刷新触发状态重置、搜索触发误迁移）
 //   R29 会话级 widget 子对象数不应显著增长（孤儿对话框/定时器累积未清理，阈值 +30）
 //   R30 启用的状态机按钮点击后必须触发状态前进（捕获 enabled 但 no-op 的按钮 bug，补齐 R4 盲区）
+//   R31 Tab 键后焦点应非空且变化（捕获焦点陷阱/死循环/焦点丢失，仅 KeyTab 生效）
 
 #include "MainWindow/MainWindow.h"
 
@@ -953,6 +954,8 @@ struct ActionResult {
     QString dialogTitle;  // 弹出对话框的标题（exec 期间抓取），空表示无对话框弹出
     bool dialogShown = false; // 是否弹出了模态对话框
     bool enabledBefore = false; // 点击前按钮是否启用（仅 Confirm/Start/Complete 有效，供 R30 检查）
+    quintptr focusBeforeAddr = 0; // Tab 前焦点控件地址（仅 KeyTab 有效，供 R31 检查）
+    quintptr focusAfterAddr = 0;  // Tab 后焦点控件地址（仅 KeyTab 有效，供 R31 检查）
 };
 
 // R20：菜单关闭延迟应 <=300ms（用户原问题：下拉菜单过一阵才消失）。
@@ -1242,6 +1245,58 @@ void checkEnabledButtonCausesTransition(ActionKind kind, bool enabledBefore,
     issues.push_back(issue);
 }
 
+// R31：Tab 键后焦点应非空且发生变化（捕获焦点陷阱/死循环/焦点丢失）。
+// 仅对 KeyTab 生效，依赖 ActionResult.focusBeforeAddr/focusAfterAddr。
+// offscreen 下 Tab 仍走 Qt 默认焦点链，焦点不变通常意味着焦点陷阱或
+// nextPrevChild 被重写为 no-op（业务侧常见 bug）。
+void checkTabFocusMoved(ActionKind kind, quintptr focusBeforeAddr, quintptr focusAfterAddr,
+                        MainWindow &window, const QString &action,
+                        const QString &screenshotDir, int issueIdx,
+                        std::vector<Issue> &issues)
+{
+    if (kind != ActionKind::KeyTab) {
+        return;
+    }
+    if (focusAfterAddr == 0) {
+        // Tab 后焦点丢失
+        Issue issue;
+        issue.type = QStringLiteral("keyboard");
+        issue.rule = QStringLiteral("R31 Tab 键后焦点不应丢失");
+        issue.action = action;
+        issue.details = QStringLiteral("Tab 后 focusWidget 为空（焦点链断裂，可能丢失到不可见控件或被清空）");
+        issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+        captureScreenshot(window, screenshotDir, issue.screenshot);
+        issues.push_back(issue);
+        return;
+    }
+    if (focusBeforeAddr != 0 && focusAfterAddr == focusBeforeAddr) {
+        // 焦点未变化。Tab 在以下控件上不前进焦点是合法的：
+        //   - 文本输入控件（QLineEdit/QTextEdit/QComboBox/QAbstractSpinBox 等，Tab 用于输入）
+        //   - 项视图（QAbstractItemView 子类，Tab 用于单元格/项导航，Qt 默认行为）
+        // 仅当焦点控件非"Tab 消费型"时才报警。
+        auto *w = QApplication::focusWidget();
+        const QString cls = w != nullptr ? w->metaObject()->className() : QString();
+        const QString name = w != nullptr && !w->objectName().isEmpty() ? w->objectName() : QStringLiteral("(无名)");
+        const bool isTabConsumer =
+            (w != nullptr)
+            && (w->inherits("QLineEdit") || w->inherits("QTextEdit")
+                || w->inherits("QPlainTextEdit") || w->inherits("QComboBox")
+                || w->inherits("QAbstractSpinBox") || w->inherits("QAbstractItemView"));
+        if (isTabConsumer) {
+            return; // 合法：Tab 被输入控件或项视图消费
+        }
+        Issue issue;
+        issue.type = QStringLiteral("keyboard");
+        issue.rule = QStringLiteral("R31 Tab 键后焦点应变化");
+        issue.action = action;
+        issue.details = QStringLiteral("Tab 前后焦点控件相同（焦点陷阱或 nextPrevChild 被 no-op，焦点链死循环）控件=%1:%2")
+                            .arg(cls, name);
+        issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+        captureScreenshot(window, screenshotDir, issue.screenshot);
+        issues.push_back(issue);
+    }
+}
+
 // 点击目标表第 row 行（选中目标）
 ActionResult clickTargetRow(MainWindow &window, int row)
 {
@@ -1461,8 +1516,15 @@ ActionResult sendKeyTab(MainWindow &window)
             return {QStringLiteral("无焦点控件，跳过 Tab"), false, ActionKind::KeyTab};
         }
     }
+    const quintptr beforeAddr = reinterpret_cast<quintptr>(focus);
     QTest::keyClick(focus, Qt::Key_Tab);
-    return {QStringLiteral("键盘 Tab（焦点切换）"), true, ActionKind::KeyTab};
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+    QWidget *after = QApplication::focusWidget();
+    const quintptr afterAddr = after != nullptr ? reinterpret_cast<quintptr>(after) : 0;
+    ActionResult r{QStringLiteral("键盘 Tab（焦点切换）"), true, ActionKind::KeyTab};
+    r.focusBeforeAddr = beforeAddr;
+    r.focusAfterAddr = afterAddr;
+    return r;
 }
 
 // 键盘导航：对当前焦点控件发送 Enter 键（可能触发按钮点击或行激活）
@@ -1924,7 +1986,8 @@ int main(int argc, char *argv[])
     // 统一执行：动作前快照 -> 动作 -> 动作后检查
     auto runChecks = [&](const QString &action, const Snapshot &pre, int clickedRow,
                          int tabTarget, ActionKind kind, qint64 timingMs,
-                         bool dialogShown, const QString &dialogTitle, bool enabledBefore) {
+                         bool dialogShown, const QString &dialogTitle, bool enabledBefore,
+                         quintptr focusBeforeAddr, quintptr focusAfterAddr) {
         QCoreApplication::processEvents(QEventLoop::AllEvents);
         QTest::qWait(50);
 
@@ -1954,6 +2017,8 @@ int main(int argc, char *argv[])
                                            static_cast<int>(issues.size()), issues);
         checkEnabledButtonCausesTransition(kind, enabledBefore, *window, pre, action,
                                            screenshotDir, static_cast<int>(issues.size()), issues);
+        checkTabFocusMoved(kind, focusBeforeAddr, focusAfterAddr, *window, action,
+                           screenshotDir, static_cast<int>(issues.size()), issues);
         checkTargetReselectIdempotent(*window, pre, clickedRow, action, screenshotDir,
                                       static_cast<int>(issues.size()), issues);
         checkLogLineCountDelta(*window, pre, action, screenshotDir,
@@ -2000,7 +2065,7 @@ int main(int argc, char *argv[])
         entry["executed"] = true;
         actionLog.append(entry);
         runChecks(QStringLiteral("初始状态"), emptyPre, -1, -1, ActionKind::TargetRow, -1,
-                  false, QString(), false);
+                  false, QString(), false, 0, 0);
     }
 
     // R29 会话级泄漏检测基线：记录主循环开始前主窗口的子对象数
@@ -2031,7 +2096,7 @@ int main(int argc, char *argv[])
 
         runChecks(result.description, pre, result.clickedRow, result.tabTarget,
                   result.kind, result.timingMs, result.dialogShown, result.dialogTitle,
-                  result.enabledBefore);
+                  result.enabledBefore, result.focusBeforeAddr, result.focusAfterAddr);
     }
 
     saveCoverage(coveragePath, coverage);
