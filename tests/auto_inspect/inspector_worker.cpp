@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共29条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共30条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -32,6 +32,7 @@
 //   R27 标签页切换后当前页 currentWidget 应非空且可见（捕获页面损坏/空页/隐藏页 bug）
 //   R28 非状态机动作不应改变 panelStatus（捕获副作用 bug，如刷新触发状态重置、搜索触发误迁移）
 //   R29 会话级 widget 子对象数不应显著增长（孤儿对话框/定时器累积未清理，阈值 +30）
+//   R30 启用的状态机按钮点击后必须触发状态前进（捕获 enabled 但 no-op 的按钮 bug，补齐 R4 盲区）
 
 #include "MainWindow/MainWindow.h"
 
@@ -951,6 +952,7 @@ struct ActionResult {
     qint64 timingMs = -1; // 动作耗时（click+processEvents），-1 表示未测量
     QString dialogTitle;  // 弹出对话框的标题（exec 期间抓取），空表示无对话框弹出
     bool dialogShown = false; // 是否弹出了模态对话框
+    bool enabledBefore = false; // 点击前按钮是否启用（仅 Confirm/Start/Complete 有效，供 R30 检查）
 };
 
 // R20：菜单关闭延迟应 <=300ms（用户原问题：下拉菜单过一阵才消失）。
@@ -1191,6 +1193,55 @@ void checkSessionWidgetLeak(MainWindow &window, int initialChildCount,
     issues.push_back(issue);
 }
 
+// R30：启用的状态机按钮点击后必须触发状态前进（捕获 enabled 但 no-op 的按钮 bug）。
+// R4 只检查"发生了的迁移是否合法"，R30 补齐"启用的按钮是否真的触发了迁移"。
+// 仅对 Confirm/Start/Complete 生效，依赖 ActionResult.enabledBefore 与 pre.panelStatus。
+void checkEnabledButtonCausesTransition(ActionKind kind, bool enabledBefore,
+                                        MainWindow &window, const Snapshot &pre,
+                                        const QString &action, const QString &screenshotDir,
+                                        int issueIdx, std::vector<Issue> &issues)
+{
+    if (!enabledBefore) {
+        return; // 禁用按钮无反应是正常的（由 R2/R3 覆盖）
+    }
+    QString expectedPost;
+    switch (kind) {
+    case ActionKind::Confirm:
+        if (pre.panelStatus != QStringLiteral("Detected")) {
+            return; // 状态不匹配说明 R2 已报警，不重复
+        }
+        expectedPost = QStringLiteral("Confirmed");
+        break;
+    case ActionKind::Start:
+        if (pre.panelStatus != QStringLiteral("Confirmed")) {
+            return;
+        }
+        expectedPost = QStringLiteral("Disposing");
+        break;
+    case ActionKind::Complete:
+        if (pre.panelStatus != QStringLiteral("Disposing")) {
+            return;
+        }
+        expectedPost = QStringLiteral("Disposed");
+        break;
+    default:
+        return; // 非状态机按钮不适用
+    }
+    const QString post = getPanelStatus(window);
+    if (post == expectedPost) {
+        return; // 正确前进
+    }
+    Issue issue;
+    issue.type = QStringLiteral("business_flow");
+    issue.rule = QStringLiteral("R30 启用的状态机按钮必须触发状态前进");
+    issue.action = action;
+    issue.details = QStringLiteral("按钮已启用 前=%1 期望后=%2 实际后=%3（启用的按钮点击后无反应）")
+                        .arg(pre.panelStatus, expectedPost, post);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
 // 点击目标表第 row 行（选中目标）
 ActionResult clickTargetRow(MainWindow &window, int row)
 {
@@ -1221,12 +1272,14 @@ ActionResult clickButton(MainWindow &window, const char *objectName,
     }
     // 对禁用按钮也执行点击--mouseClick 不会触发 clicked 信号，
     // 随后的规则检查会验证状态确实没变（禁用按钮不应有反应）。
+    const bool enabledBefore = btn->isEnabled();
     QElapsedTimer t;
     t.start();
     QTest::mouseClick(btn, Qt::LeftButton);
     QCoreApplication::processEvents(QEventLoop::AllEvents);
     ActionResult r{QStringLiteral("点击 %1 按钮").arg(displayName), true, kind};
     r.timingMs = t.elapsed();
+    r.enabledBefore = enabledBefore;
     return r;
 }
 
@@ -1871,7 +1924,7 @@ int main(int argc, char *argv[])
     // 统一执行：动作前快照 -> 动作 -> 动作后检查
     auto runChecks = [&](const QString &action, const Snapshot &pre, int clickedRow,
                          int tabTarget, ActionKind kind, qint64 timingMs,
-                         bool dialogShown, const QString &dialogTitle) {
+                         bool dialogShown, const QString &dialogTitle, bool enabledBefore) {
         QCoreApplication::processEvents(QEventLoop::AllEvents);
         QTest::qWait(50);
 
@@ -1899,6 +1952,8 @@ int main(int argc, char *argv[])
                                 static_cast<int>(issues.size()), issues);
         checkNonStateActionPreservesStatus(kind, *window, pre, action, screenshotDir,
                                            static_cast<int>(issues.size()), issues);
+        checkEnabledButtonCausesTransition(kind, enabledBefore, *window, pre, action,
+                                           screenshotDir, static_cast<int>(issues.size()), issues);
         checkTargetReselectIdempotent(*window, pre, clickedRow, action, screenshotDir,
                                       static_cast<int>(issues.size()), issues);
         checkLogLineCountDelta(*window, pre, action, screenshotDir,
@@ -1945,7 +2000,7 @@ int main(int argc, char *argv[])
         entry["executed"] = true;
         actionLog.append(entry);
         runChecks(QStringLiteral("初始状态"), emptyPre, -1, -1, ActionKind::TargetRow, -1,
-                  false, QString());
+                  false, QString(), false);
     }
 
     // R29 会话级泄漏检测基线：记录主循环开始前主窗口的子对象数
@@ -1975,7 +2030,8 @@ int main(int argc, char *argv[])
         actionLog.append(entry);
 
         runChecks(result.description, pre, result.clickedRow, result.tabTarget,
-                  result.kind, result.timingMs, result.dialogShown, result.dialogTitle);
+                  result.kind, result.timingMs, result.dialogShown, result.dialogTitle,
+                  result.enabledBefore);
     }
 
     saveCoverage(coveragePath, coverage);
