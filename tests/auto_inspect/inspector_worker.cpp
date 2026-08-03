@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共31条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共32条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -34,6 +34,7 @@
 //   R29 会话级 widget 子对象数不应显著增长（孤儿对话框/定时器累积未清理，阈值 +30）
 //   R30 启用的状态机按钮点击后必须触发状态前进（捕获 enabled 但 no-op 的按钮 bug，补齐 R4 盲区）
 //   R31 Tab 键后焦点应非空且变化（捕获焦点陷阱/死循环/焦点丢失，仅 KeyTab 生效）
+//   R32 会话级响应时间退化趋势（前20% vs 后20%平均耗时，比值>2 且 绝对差>50ms，A5 性能守护）
 
 #include "MainWindow/MainWindow.h"
 
@@ -1196,6 +1197,52 @@ void checkSessionWidgetLeak(MainWindow &window, int initialChildCount,
     issues.push_back(issue);
 }
 
+// R32：会话级响应时间退化趋势检测（A5 性能守护）。
+// 比较前 20% 与后 20% 动作的平均耗时，若后 20% 显著慢于前 20%
+// （比值 >2 且绝对差 >50ms），说明性能在会话过程中退化（内存压力/状态累积/缓存膨胀）。
+// 仅统计 timingMs >= 0 的动作（有计时器的动作：clickButton/tabSwitch/searchInput/
+// searchRobust/menuHoverTiming），在主循环结束后调用一次。
+// 双阈值（比值+绝对差）避免小绝对差的噪声误报（如 5ms->11ms 是 2.2x 但仅 6ms 差）。
+void checkSessionResponseTimeDegradation(const QVector<qint64> &timings,
+                                         MainWindow &window,
+                                         const QString &screenshotDir, int issueIdx,
+                                         std::vector<Issue> &issues)
+{
+    const int n = timings.size();
+    if (n < 10) {
+        return; // 样本不足，无法可靠比较
+    }
+    const int bucketSize = n / 5; // 20%
+    if (bucketSize < 3) {
+        return; // 每桶样本不足
+    }
+    qint64 firstSum = 0;
+    for (int i = 0; i < bucketSize; ++i) {
+        firstSum += timings[i];
+    }
+    const double firstAvg = static_cast<double>(firstSum) / bucketSize;
+    qint64 lastSum = 0;
+    for (int i = n - bucketSize; i < n; ++i) {
+        lastSum += timings[i];
+    }
+    const double lastAvg = static_cast<double>(lastSum) / bucketSize;
+    const double ratio = firstAvg > 0 ? lastAvg / firstAvg : 0;
+    const double absDiff = lastAvg - firstAvg;
+    if (ratio <= 2.0 || absDiff <= 50.0) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("performance");
+    issue.rule = QStringLiteral("R32 会话级响应时间退化趋势");
+    issue.action = QStringLiteral("会话结束");
+    issue.details = QStringLiteral("前20%%平均=%1ms 后20%%平均=%2ms 比值=%3x 绝对差=%4ms（性能在会话过程中显著退化）")
+                        .arg(firstAvg, 0, 'f', 1).arg(lastAvg, 0, 'f', 1)
+                        .arg(ratio, 0, 'f', 2).arg(absDiff, 0, 'f', 1);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
 // R30：启用的状态机按钮点击后必须触发状态前进（捕获 enabled 但 no-op 的按钮 bug）。
 // R4 只检查"发生了的迁移是否合法"，R30 补齐"启用的按钮是否真的触发了迁移"。
 // 仅对 Confirm/Start/Complete 生效，依赖 ActionResult.enabledBefore 与 pre.panelStatus。
@@ -2071,6 +2118,10 @@ int main(int argc, char *argv[])
     // R29 会话级泄漏检测基线：记录主循环开始前主窗口的子对象数
     const int initialChildCount = window->children().size();
 
+    // R32 会话级响应时间退化趋势检测：收集每动作耗时
+    QVector<qint64> timings;
+    timings.reserve(maxActions);
+
     // 加权随机点击循环
     for (int step = 1; step <= maxActions; ++step) {
         const Snapshot pre = captureSnapshot(*window);
@@ -2079,6 +2130,9 @@ int main(int argc, char *argv[])
         const ActionResult result = pickAndExecuteAction(*window, rng, &coverage);
         if (result.executed) {
             coverage[coverageKey(pre.panelStatus, result.kind)]++;
+        }
+        if (result.timingMs >= 0) {
+            timings.append(result.timingMs);
         }
         writeStateFile(statePath, result.description);
         verboseLog(QStringLiteral("REPLAY step=%1 done action=%2")
@@ -2105,6 +2159,9 @@ int main(int argc, char *argv[])
     if (!screenshotDir.isEmpty()) {
         checkSessionWidgetLeak(*window, initialChildCount, screenshotDir,
                                static_cast<int>(issues.size()), issues);
+        // R32：会话级响应时间退化趋势检测（主循环结束后调用一次）
+        checkSessionResponseTimeDegradation(timings, *window, screenshotDir,
+                                            static_cast<int>(issues.size()), issues);
     }
 
     // 写 JSON 报告

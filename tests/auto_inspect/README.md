@@ -67,9 +67,9 @@ Detected --confirm--> Confirmed --start--> Disposing --complete--> Disposed
 - 非法迁移（如 Disposed 状态点 confirm）必须被拒绝
 - 按钮启用逻辑：confirm↔Detected、start↔Confirmed、complete↔Disposing
 
-### 2.3 自洽性检查规则（31 条）
+### 2.3 自洽性检查规则（32 条）
 
-每个动作执行前后，worker 捕获快照（状态、目标 ID、日志行数、标签页索引）并运行 31 条检查：
+每个动作执行前后，worker 捕获快照（状态、目标 ID、日志行数、标签页索引）并运行 32 条检查：
 
 | 规则 | 检查内容 |
 |---|---|
@@ -104,6 +104,7 @@ Detected --confirm--> Confirmed --start--> Disposing --complete--> Disposed
 | R29 | 会话级 widget 子对象数不应显著增长（孤儿对话框/定时器累积未清理，阈值 +30，主循环结束后调用一次）|
 | R30 | 启用的状态机按钮点击后必须触发状态前进（捕获 enabled 但 no-op 的按钮 bug，补齐 R4 盲区）|
 | R31 | Tab 键后焦点应非空且变化（捕获焦点陷阱/死循环/焦点丢失，仅 KeyTab 生效，Tab 消费型控件白名单：QLineEdit/QTextEdit/QComboBox/QAbstractSpinBox/QAbstractItemView）|
+| R32 | 会话级响应时间退化趋势（前20% vs 后20%平均耗时，比值>2 且 绝对差>50ms，A5 性能守护，主循环结束后调用一次）|
 
 ---
 
@@ -265,7 +266,7 @@ reports/
 
 ## 5. 最近一次巡检结果
 
-**时间**：2026-08-03（I 系列键盘焦点自洽性扩展，3 轮 × 100 动作）
+**时间**：2026-08-03（J 系列会话级性能退化趋势守护，3 轮 × 100 动作）
 
 | 指标 | 数值 |
 |---|---|
@@ -277,13 +278,13 @@ reports/
 | 动作执行总数 | 300 |
 | 覆盖率 | 持续累积中 |
 
-**新增键盘焦点自洽性检查**：I 系列新增 R31 规则，捕获焦点陷阱/死循环/焦点丢失。在 `sendKeyTab` 中捕获 Tab 前后焦点控件地址（`focusBeforeAddr`/`focusAfterAddr`），若 Tab 后焦点为空（焦点链断裂）或焦点未变化（焦点陷阱/nextPrevChild 被 no-op）则报警。仅对 KeyTab 生效。
+**新增会话级性能退化趋势检查**：J 系列新增 R32 规则（A5 性能守护），补齐 R20-R23 的 per-action 时序检查盲区。R20-R23 只检查单次动作耗时是否超阈值，无法发现"每次都达标但整体趋势在变慢"的性能退化。R32 在主循环中收集每动作的 `timingMs`，循环结束后比较前 20% 与后 20% 动作的平均耗时，若后 20% 显著慢于前 20%（比值 >2 且绝对差 >50ms）则报警。
 
-**Tab 消费型白名单**：部分控件 Tab 键不前进焦点是合法的 Qt 默认行为，已加入白名单避免误报：QLineEdit/QTextEdit/QPlainTextEdit/QComboBox/QAbstractSpinBox（Tab 用于文本输入）、QAbstractItemView（Tab 用于单元格/项导航，如 QTableWidget:targetTable）。诊断阶段确认 targetTable 消费 Tab 是合法行为，白名单化后 0 误报。
+**双阈值设计**：比值阈值（>2x）检测相对退化幅度，绝对差阈值（>50ms）避免小绝对差的噪声误报（如 5ms→11ms 是 2.2x 但仅 6ms 差，属正常波动）。仅统计 `timingMs >= 0` 的动作（有计时器的动作：clickButton/tabSwitch/searchInput/searchRobust/menuHoverTiming），在主循环结束后调用一次。样本量门槛：总动作 <10 或每桶 <3 时跳过（统计可靠性约束）。
 
-**验证结果**：3 轮 × 100 动作全部通过（0 issues），说明当前业务侧无焦点陷阱或焦点链断裂 bug。
+**验证结果**：3 轮 × 100 动作全部通过（0 issues），说明当前业务侧在 100 动作规模下无显著性能退化趋势。R32 作为长期性能守护规则，未来若长时间运行（如 run_loop.sh 持续数百轮）出现内存压力/状态累积/缓存膨胀导致性能退化会自动报警。
 
-**历史扩展**：A 系列（R20-R23 性能时序）、D 系列（R24/R25 对话框守护）、F 系列（R26 输入鲁棒性）、C 系列（R27 标签页视觉）、E 系列（R28 业务流自洽性）、G 系列（R29 长期稳定性）、H 系列（R30 业务流完整自洽性）均已在之前批次验证通过，本次 I 系列验证未触发回归。
+**历史扩展**：A 系列（R20-R23 性能时序）、D 系列（R24/R25 对话框守护）、F 系列（R26 输入鲁棒性）、C 系列（R27 标签页视觉）、E 系列（R28 业务流自洽性）、G 系列（R29 长期稳定性）、H 系列（R30 业务流完整自洽性）、I 系列（R31 键盘焦点自洽性）均已在之前批次验证通过，本次 J 系列验证未触发回归。
 
 **关于用户原问题（菜单移开后过一阵才消失）**：offscreen 模式下"鼠标移开关闭菜单"无法复现（offscreen 不处理鼠标移出事件），R20 改用 Esc 关闭测量。当前测出 0ms 延迟，说明菜单响应关闭指令无延迟。R20 作为性能守护规则，未来若菜单关闭变慢（动画/定时器/主线程卡顿）会自动报警。
 
@@ -322,4 +323,5 @@ reports/
 - R29 会话级检查仅在主循环结束后调用一次（非 per-action）；`children().size()` 包含所有 QObject 子对象（含布局/定时器/Action 等），不只是 widget。阈值 +30 经验值，100 动作规模下当前增长 <10，若业务侧引入大量动态创建的 widget（如自定义弹窗工厂）可能需重新校准。R29 只检测增长不检测对象类型，无法区分"正常增长"与"泄漏"，需结合长期运行（run_loop.sh 数百轮）综合判断
 - R30 仅覆盖 Confirm/Start/Complete 三个状态机按钮；若业务侧新增其他状态机按钮需在 `checkEnabledButtonCausesTransition` 的 switch 中补充 case。R30 依赖 `enabledBefore` 字段（在 `clickButton` 中捕获），其他非 `clickButton` 触发的状态机迁移（如键盘 Enter 触发聚焦按钮）不在覆盖范围内。R30 与 R4 互补：R4 检查"发生的迁移是否合法"，R30 检查"启用的按钮是否真的触发了迁移"，两者不重复
 - R31 仅对 KeyTab 动作生效，不覆盖 Enter/Esc/方向键的焦点行为。Tab 消费型白名单使用 `inherits()` 匹配基类（覆盖子类），当前包含 QLineEdit/QTextEdit/QPlainTextEdit/QComboBox/QAbstractSpinBox/QAbstractItemView；若业务侧引入自定义控件重写 `keyPressEvent` 消费 Tab 但不继承上述基类，可能误报。offscreen 模式下焦点链行为与有屏幕环境可能略有差异（offscreen 不 grab keyboard），当前源码无自定义焦点策略故通过。R31 用指针地址比较焦点控件，不比较内容，故同一控件 Tab 后内容变化但焦点未变不会报警
+- R32 会话级检查仅在主循环结束后调用一次；样本量门槛：总动作 <10 或每桶 <3 时跳过。双阈值（比值>2 且 绝对差>50ms）经验值，避免小绝对差噪声误报；若业务侧动作普遍在 1-2ms 级别（当前情况），比值阈值可能需要调高（如 >3x）以减少误报。仅统计有计时器的动作（timingMs>=0），其他动作（如 nav_button/mission_row/device_row/status_tab/key_enter/key_escape/key_arrow/menu_action/view_toggle）不参与统计，若这些动作未来加计时器需同步评估是否影响 R32。R32 只检测退化趋势，不检测绝对慢（由 R20-R23 覆盖）
 - 巡检员仅检测崩溃/卡死/自洽性违规，不验证业务功能正确性（如"打开预案"是否真的加载了数据）
