@@ -73,7 +73,7 @@ update_status() {
         echo "| 崩溃 | $TOTAL_CRASH |"
         echo "| 卡死 | $TOTAL_HANG |"
         echo "| 问题总数 | $TOTAL_ISSUES |"
-        echo "| 覆盖率 | ${cov_pairs}/105 |"
+        echo "| 覆盖率 | ${cov_pairs}/106 |"
         echo ""
         echo "---"
         echo ""
