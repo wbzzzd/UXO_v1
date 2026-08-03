@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共20条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共22条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -22,7 +22,9 @@
 //   R17 任务/设备表行点击不应改变目标选中状态
 //   R18 状态子标签页点击不应改变目标选中状态
 //   R19 键盘导航（Tab/Enter/Esc/方向键）不应破坏模拟状态机或丢失选中
-//   R20 菜单关闭延迟应 <=300ms（点击菜单外到下拉菜单消失的时间）
+//   R20 菜单关闭延迟应 <=300ms（Esc 关闭下拉菜单的耗时）
+//   R21 状态机按钮响应应 <=200ms（confirm/start/complete 点击+事件处理耗时）
+//   R22 标签页切换响应应 <=200ms（setCurrentIndex+事件处理耗时）
 
 #include "MainWindow/MainWindow.h"
 
@@ -889,26 +891,6 @@ void checkKeyboardNavPreservesSelection(MainWindow &window, const Snapshot &pre,
     issues.push_back(issue);
 }
 
-// R20：菜单关闭延迟应 <=300ms（用户原问题：下拉菜单过一阵才消失）。
-// 仅在菜单时序测量动作（timingMs >= 0）时生效。
-void checkMenuCloseTiming(qint64 timingMs, MainWindow &window, const QString &action,
-                          const QString &screenshotDir, int issueIdx,
-                          std::vector<Issue> &issues)
-{
-    const qint64 threshold = 300;
-    if (timingMs < 0 || timingMs <= threshold) {
-        return;
-    }
-    Issue issue;
-    issue.type = QStringLiteral("performance");
-    issue.rule = QStringLiteral("R20 菜单关闭延迟应 <=300ms");
-    issue.action = action;
-    issue.details = QStringLiteral("关闭延迟 %1ms 超过阈值 %2ms").arg(timingMs).arg(threshold);
-    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
-    captureScreenshot(window, screenshotDir, issue.screenshot);
-    issues.push_back(issue);
-}
-
 // ===== 动作执行 =====
 
 enum class ActionKind {
@@ -943,7 +925,69 @@ struct ActionResult {
     int clickedRow = -1; // 仅 TargetRow 有效
     int tabTarget = -1;  // 仅 TabSwitch 有效
     int navTarget = -1;  // 仅 NavButton 有效
+    qint64 timingMs = -1; // 动作耗时（click+processEvents），-1 表示未测量
 };
+
+// R20：菜单关闭延迟应 <=300ms（用户原问题：下拉菜单过一阵才消失）。
+// 仅对 MenuHoverTiming 动作生效（timingMs >= 0）。
+void checkMenuCloseTiming(qint64 timingMs, ActionKind kind, MainWindow &window,
+                          const QString &action, const QString &screenshotDir,
+                          int issueIdx, std::vector<Issue> &issues)
+{
+    const qint64 threshold = 300;
+    if (kind != ActionKind::MenuHoverTiming || timingMs < 0 || timingMs <= threshold) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("performance");
+    issue.rule = QStringLiteral("R20 菜单关闭延迟应 <=300ms");
+    issue.action = action;
+    issue.details = QStringLiteral("关闭延迟 %1ms 超过阈值 %2ms").arg(timingMs).arg(threshold);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
+// R21：状态机按钮点击响应应 <=200ms（confirm/start/complete）。
+void checkButtonResponseTiming(qint64 timingMs, ActionKind kind, MainWindow &window,
+                               const QString &action, const QString &screenshotDir,
+                               int issueIdx, std::vector<Issue> &issues)
+{
+    const qint64 threshold = 200;
+    const bool isStateButton = (kind == ActionKind::Confirm
+                                || kind == ActionKind::Start
+                                || kind == ActionKind::Complete);
+    if (!isStateButton || timingMs < 0 || timingMs <= threshold) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("performance");
+    issue.rule = QStringLiteral("R21 状态机按钮响应应 <=200ms");
+    issue.action = action;
+    issue.details = QStringLiteral("响应耗时 %1ms 超过阈值 %2ms").arg(timingMs).arg(threshold);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
+// R22：标签页切换响应应 <=200ms。
+void checkTabSwitchTiming(qint64 timingMs, ActionKind kind, MainWindow &window,
+                          const QString &action, const QString &screenshotDir,
+                          int issueIdx, std::vector<Issue> &issues)
+{
+    const qint64 threshold = 200;
+    if (kind != ActionKind::TabSwitch || timingMs < 0 || timingMs <= threshold) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("performance");
+    issue.rule = QStringLiteral("R22 标签页切换响应应 <=200ms");
+    issue.action = action;
+    issue.details = QStringLiteral("切换耗时 %1ms 超过阈值 %2ms").arg(timingMs).arg(threshold);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
 
 // 点击目标表第 row 行（选中目标）
 ActionResult clickTargetRow(MainWindow &window, int row)
@@ -975,8 +1019,13 @@ ActionResult clickButton(MainWindow &window, const char *objectName,
     }
     // 对禁用按钮也执行点击--mouseClick 不会触发 clicked 信号，
     // 随后的规则检查会验证状态确实没变（禁用按钮不应有反应）。
+    QElapsedTimer t;
+    t.start();
     QTest::mouseClick(btn, Qt::LeftButton);
-    return {QStringLiteral("点击 %1 按钮").arg(displayName), true, kind};
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+    ActionResult r{QStringLiteral("点击 %1 按钮").arg(displayName), true, kind};
+    r.timingMs = t.elapsed();
+    return r;
 }
 
 // 点击无 objectName 的按钮（相机/刷新），按文本查找
@@ -987,8 +1036,13 @@ ActionResult clickButtonByText(MainWindow &window, const QString &text,
     if (btn == nullptr) {
         return {QStringLiteral("找不到按钮 %1").arg(displayName), false, kind};
     }
+    QElapsedTimer t;
+    t.start();
     QTest::mouseClick(btn, Qt::LeftButton);
-    return {QStringLiteral("点击 %1 按钮").arg(displayName), true, kind};
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+    ActionResult r{QStringLiteral("点击 %1 按钮").arg(displayName), true, kind};
+    r.timingMs = t.elapsed();
+    return r;
 }
 
 // 切换到指定标签页（0=目标, 1=任务, 2=设备）
@@ -998,8 +1052,13 @@ ActionResult clickTab(MainWindow &window, int tabIndex)
     if (tabs == nullptr || tabIndex >= tabs->count()) {
         return {QStringLiteral("找不到标签页或索引越界"), false, ActionKind::TabSwitch, -1, tabIndex};
     }
+    QElapsedTimer t;
+    t.start();
     tabs->setCurrentIndex(tabIndex);
-    return {QStringLiteral("切换到标签页 %1").arg(tabs->tabText(tabIndex)), true, ActionKind::TabSwitch, -1, tabIndex};
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+    ActionResult r{QStringLiteral("切换到标签页 %1").arg(tabs->tabText(tabIndex)), true, ActionKind::TabSwitch, -1, tabIndex};
+    r.timingMs = t.elapsed();
+    return r;
 }
 
 // 触发菜单 action。部分菜单（文件菜单）会弹 QMessageBox，预设定时器自动关闭。
@@ -1164,12 +1223,9 @@ ActionResult sendKeyArrow(MainWindow &window, QRandomGenerator &rng)
 }
 
 // 菜单关闭延迟测量（用户原问题：点击菜单后移开，下拉菜单过一阵才消失）。
-// 流程：弹出下拉菜单 -> 点击窗口其他位置 -> 测量菜单关闭耗时。
-// offscreen 模式下用 menu->show() 直接弹出，避开窗口管理器依赖。
-// outCloseMs 通过引用返回关闭耗时（-1 表示未成功测量）。
-ActionResult menuHoverTimingAction(MainWindow &window, QRandomGenerator &rng, qint64 &outCloseMs)
+// offscreen 下鼠标移开不可复现，改用 Esc 关闭测量耗时；结果存入 timingMs。
+ActionResult menuHoverTimingAction(MainWindow &window, QRandomGenerator &rng)
 {
-    outCloseMs = -1;
     auto *bar = window.menuBar();
     if (bar == nullptr) {
         return {QStringLiteral("菜单栏无效"), false, ActionKind::MenuHoverTiming};
@@ -1207,7 +1263,7 @@ ActionResult menuHoverTimingAction(MainWindow &window, QRandomGenerator &rng, qi
         QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
         QTest::qWait(10);
     }
-    outCloseMs = timer.elapsed();
+    const qint64 closeMs = timer.elapsed();
 
     // 兜底：Esc 未关闭时用 hide() 强制收尾
     if (menu->isVisible()) {
@@ -1215,8 +1271,10 @@ ActionResult menuHoverTimingAction(MainWindow &window, QRandomGenerator &rng, qi
         QTest::qWait(30);
     }
 
-    return {QStringLiteral("菜单 %1 关闭延迟 %2ms").arg(chosen->text()).arg(outCloseMs),
-            true, ActionKind::MenuHoverTiming};
+    ActionResult r{QStringLiteral("菜单 %1 关闭延迟 %2ms").arg(chosen->text()).arg(closeMs),
+                  true, ActionKind::MenuHoverTiming};
+    r.timingMs = closeMs;
+    return r;
 }
 
 QString actionKindToString(ActionKind kind)
@@ -1315,8 +1373,7 @@ void saveCoverage(const QString &path, const CoverageMap &map)
 // 相机/标签页/刷新为新增动作，中低权重避免喧宾夺主。
 // 覆盖率感知：未探索的 (状态,动作) 对权重 ×3，引导探索新路径。
 ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
-                                   CoverageMap *coverage = nullptr,
-                                   qint64 *outTimingMs = nullptr)
+                                   CoverageMap *coverage = nullptr)
 {
     auto *confirm = findWidget<QPushButton>(window, "simulationConfirmButton");
     auto *start = findWidget<QPushButton>(window, "simulationStartButton");
@@ -1452,14 +1509,8 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
         return sendKeyEscape(window);
     case ActionKind::KeyArrow:
         return sendKeyArrow(window, rng);
-    case ActionKind::MenuHoverTiming: {
-        qint64 closeMs = -1;
-        ActionResult r = menuHoverTimingAction(window, rng, closeMs);
-        if (outTimingMs != nullptr) {
-            *outTimingMs = closeMs;
-        }
-        return r;
-    }
+    case ActionKind::MenuHoverTiming:
+        return menuHoverTimingAction(window, rng);
     }
     return {QStringLiteral("未知动作"), false};
 }
@@ -1557,11 +1608,9 @@ int main(int argc, char *argv[])
     CoverageMap coverage;
     loadCoverage(coveragePath, coverage);
 
-    // 菜单时序测量结果，-1 表示本轮非菜单时序动作
-    qint64 lastTimingMs = -1;
-
     // 统一执行：动作前快照 -> 动作 -> 动作后检查
-    auto runChecks = [&](const QString &action, const Snapshot &pre, int clickedRow, int tabTarget) {
+    auto runChecks = [&](const QString &action, const Snapshot &pre, int clickedRow,
+                         int tabTarget, ActionKind kind, qint64 timingMs) {
         QCoreApplication::processEvents(QEventLoop::AllEvents);
         QTest::qWait(50);
 
@@ -1605,7 +1654,11 @@ int main(int argc, char *argv[])
                                               static_cast<int>(issues.size()), issues);
         checkKeyboardNavPreservesSelection(*window, pre, action, screenshotDir,
                                            static_cast<int>(issues.size()), issues);
-        checkMenuCloseTiming(lastTimingMs, *window, action, screenshotDir,
+        checkMenuCloseTiming(timingMs, kind, *window, action, screenshotDir,
+                             static_cast<int>(issues.size()), issues);
+        checkButtonResponseTiming(timingMs, kind, *window, action, screenshotDir,
+                                  static_cast<int>(issues.size()), issues);
+        checkTabSwitchTiming(timingMs, kind, *window, action, screenshotDir,
                              static_cast<int>(issues.size()), issues);
     };
 
@@ -1618,7 +1671,7 @@ int main(int argc, char *argv[])
         entry["kind"] = QStringLiteral("init");
         entry["executed"] = true;
         actionLog.append(entry);
-        runChecks(QStringLiteral("初始状态"), emptyPre, -1, -1);
+        runChecks(QStringLiteral("初始状态"), emptyPre, -1, -1, ActionKind::TargetRow, -1);
     }
 
     // 加权随机点击循环
@@ -1626,8 +1679,7 @@ int main(int argc, char *argv[])
         const Snapshot pre = captureSnapshot(*window);
         verboseLog(QStringLiteral("REPLAY step=%1 starting pre=[status:%2 target:%3 loglines:%4 tab:%5]")
                        .arg(step).arg(pre.panelStatus, pre.panelTargetId).arg(pre.logLineCount).arg(pre.tabIndex));
-        lastTimingMs = -1; // 每轮重置，非菜单时序动作保持 -1
-        const ActionResult result = pickAndExecuteAction(*window, rng, &coverage, &lastTimingMs);
+        const ActionResult result = pickAndExecuteAction(*window, rng, &coverage);
         if (result.executed) {
             coverage[coverageKey(pre.panelStatus, result.kind)]++;
         }
@@ -1642,7 +1694,8 @@ int main(int argc, char *argv[])
         entry["executed"] = result.executed;
         actionLog.append(entry);
 
-        runChecks(result.description, pre, result.clickedRow, result.tabTarget);
+        runChecks(result.description, pre, result.clickedRow, result.tabTarget,
+                  result.kind, result.timingMs);
     }
 
     saveCoverage(coveragePath, coverage);
