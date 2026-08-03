@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共16条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共18条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -19,6 +19,8 @@
 //   R14 任何动作后主窗口仍可见（未意外关闭）
 //   R15 视图切换（面板隐藏/显示）后恢复，状态不丢失
 //   R16 搜索框输入不应改变选中状态
+//   R17 任务/设备表行点击不应改变目标选中状态
+//   R18 状态子标签页点击不应改变目标选中状态
 
 #include "MainWindow/MainWindow.h"
 
@@ -293,6 +295,44 @@ void scheduleModalDialogAutoClose(int delayMs = 300)
             modal->close();
         }
     });
+}
+
+// ===== Layer 3 扩展：任务/设备表与状态子标签页 =====
+
+// 目标表有 objectName="targetTable"；任务表和设备表无 objectName。
+// 通过 QTabWidget 的页序定位：index 1=任务表，index 2=设备表。
+QTableWidget *findMissionTable(MainWindow &window)
+{
+    auto *tabs = findTabWidget(window);
+    if (tabs == nullptr || tabs->count() < 2) {
+        return nullptr;
+    }
+    return qobject_cast<QTableWidget *>(tabs->widget(1));
+}
+
+QTableWidget *findDeviceTable(MainWindow &window)
+{
+    auto *tabs = findTabWidget(window);
+    if (tabs == nullptr || tabs->count() < 3) {
+        return nullptr;
+    }
+    return qobject_cast<QTableWidget *>(tabs->widget(2));
+}
+
+// 状态子标签页 3 个按钮，按文本"待处置任务"/"处置中任务"/"已完成任务"查找
+QVector<QPushButton *> findStatusTabButtons(MainWindow &window)
+{
+    QVector<QPushButton *> result;
+    const auto buttons = window.findChildren<QPushButton *>();
+    for (auto *btn : buttons) {
+        const QString text = btn->text();
+        if (text.contains(QStringLiteral("待处置任务"))
+            || text.contains(QStringLiteral("处置中任务"))
+            || text.contains(QStringLiteral("已完成任务"))) {
+            result.append(btn);
+        }
+    }
+    return result;
 }
 
 // ===== 检查规则 =====
@@ -769,6 +809,50 @@ void checkSearchPreservesSelection(MainWindow &window, const Snapshot &pre,
     }
 }
 
+// R17：任务/设备表行点击不应改变目标选中状态（panelTargetId 和 panelStatus 保持）
+void checkTableRowClickPreservesSelection(MainWindow &window, const Snapshot &pre,
+                                           const QString &action, const QString &screenshotDir,
+                                           int issueIdx, std::vector<Issue> &issues)
+{
+    if (!action.contains(QStringLiteral("任务表")) && !action.contains(QStringLiteral("设备表"))) {
+        return;
+    }
+    const Snapshot post = captureSnapshot(window);
+    if (pre.panelTargetId != post.panelTargetId || pre.panelStatus != post.panelStatus) {
+        Issue issue;
+        issue.type = QStringLiteral("state_loss");
+        issue.rule = QStringLiteral("R17 任务/设备表行点击不应改变目标选中状态");
+        issue.action = action;
+        issue.details = QStringLiteral("操作前 target=%1 status=%2 | 操作后 target=%3 status=%4")
+                            .arg(pre.panelTargetId, pre.panelStatus, post.panelTargetId, post.panelStatus);
+        issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+        captureScreenshot(window, screenshotDir, issue.screenshot);
+        issues.push_back(issue);
+    }
+}
+
+// R18：状态子标签页点击不应改变目标选中状态
+void checkStatusTabClickPreservesSelection(MainWindow &window, const Snapshot &pre,
+                                            const QString &action, const QString &screenshotDir,
+                                            int issueIdx, std::vector<Issue> &issues)
+{
+    if (!action.contains(QStringLiteral("状态标签"))) {
+        return;
+    }
+    const Snapshot post = captureSnapshot(window);
+    if (pre.panelTargetId != post.panelTargetId || pre.panelStatus != post.panelStatus) {
+        Issue issue;
+        issue.type = QStringLiteral("state_loss");
+        issue.rule = QStringLiteral("R18 状态子标签页点击不应改变目标选中状态");
+        issue.action = action;
+        issue.details = QStringLiteral("操作前 target=%1 status=%2 | 操作后 target=%3 status=%4")
+                            .arg(pre.panelTargetId, pre.panelStatus, post.panelTargetId, post.panelStatus);
+        issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+        captureScreenshot(window, screenshotDir, issue.screenshot);
+        issues.push_back(issue);
+    }
+}
+
 // ===== 动作执行 =====
 
 enum class ActionKind {
@@ -786,6 +870,9 @@ enum class ActionKind {
     ViewToggle,
     SearchInput,
     NavButton,
+    MissionRow,
+    DeviceRow,
+    StatusTab,
 };
 
 struct ActionResult {
@@ -910,6 +997,49 @@ ActionResult clickNavButton(MainWindow &window, int navIndex)
     return {QStringLiteral("点击导航按钮 #%1").arg(navIndex), true, ActionKind::NavButton, -1, -1, navIndex};
 }
 
+// 点击任务表第 row 行（missionSelected 信号当前无消费者，验证点击不崩溃/不破坏选中）
+ActionResult clickMissionRow(MainWindow &window, int row)
+{
+    auto *table = findMissionTable(window);
+    if (table == nullptr || row >= table->rowCount()) {
+        return {QStringLiteral("任务表无效或行越界"), false, ActionKind::MissionRow};
+    }
+    QTableWidgetItem *item = table->item(row, 0);
+    if (item == nullptr) {
+        return {QStringLiteral("任务表单元格无效"), false, ActionKind::MissionRow};
+    }
+    QTest::mouseClick(table->viewport(), Qt::LeftButton, Qt::NoModifier,
+                      table->visualItemRect(item).center());
+    return {QStringLiteral("点击任务表第%1行").arg(row), true, ActionKind::MissionRow};
+}
+
+// 点击设备表第 row 行（deviceSelected 信号当前无消费者，验证点击不崩溃/不破坏选中）
+ActionResult clickDeviceRow(MainWindow &window, int row)
+{
+    auto *table = findDeviceTable(window);
+    if (table == nullptr || row >= table->rowCount()) {
+        return {QStringLiteral("设备表无效或行越界"), false, ActionKind::DeviceRow};
+    }
+    QTableWidgetItem *item = table->item(row, 0);
+    if (item == nullptr) {
+        return {QStringLiteral("设备表单元格无效"), false, ActionKind::DeviceRow};
+    }
+    QTest::mouseClick(table->viewport(), Qt::LeftButton, Qt::NoModifier,
+                      table->visualItemRect(item).center());
+    return {QStringLiteral("点击设备表第%1行").arg(row), true, ActionKind::DeviceRow};
+}
+
+// 点击状态子标签页按钮（待处置/处置中/已完成任务计数）
+ActionResult clickStatusTab(MainWindow &window, int tabIndex)
+{
+    const auto buttons = findStatusTabButtons(window);
+    if (tabIndex < 0 || tabIndex >= buttons.size()) {
+        return {QStringLiteral("状态标签页索引越界"), false, ActionKind::StatusTab};
+    }
+    QTest::mouseClick(buttons[tabIndex], Qt::LeftButton);
+    return {QStringLiteral("点击状态标签 #%1").arg(tabIndex), true, ActionKind::StatusTab};
+}
+
 QString actionKindToString(ActionKind kind)
 {
     switch (kind) {
@@ -941,6 +1071,12 @@ QString actionKindToString(ActionKind kind)
         return QStringLiteral("search_input");
     case ActionKind::NavButton:
         return QStringLiteral("nav_button");
+    case ActionKind::MissionRow:
+        return QStringLiteral("mission_row");
+    case ActionKind::DeviceRow:
+        return QStringLiteral("device_row");
+    case ActionKind::StatusTab:
+        return QStringLiteral("status_tab");
     }
     return QStringLiteral("unknown");
 }
@@ -1003,6 +1139,13 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
     const QVector<QPushButton *> navButtons = findNavButtons(window);
     QLineEdit *searchEdit = findSearchEdit(window);
 
+    // Layer 3 扩展：预收集任务/设备表与状态子标签页，按可用性决定权重
+    auto *missionTable = findMissionTable(window);
+    auto *deviceTable = findDeviceTable(window);
+    const QVector<QPushButton *> statusTabs = findStatusTabButtons(window);
+    const int missionRowCount = (missionTable != nullptr) ? missionTable->rowCount() : 0;
+    const int deviceRowCount = (deviceTable != nullptr) ? deviceTable->rowCount() : 0;
+
     struct Candidate {
         ActionKind kind;
         int baseWeight;
@@ -1022,6 +1165,9 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
         {ActionKind::ViewToggle, viewActions.isEmpty() ? 0 : 2},
         {ActionKind::SearchInput, (searchEdit == nullptr) ? 0 : 2},
         {ActionKind::NavButton, navButtons.isEmpty() ? 0 : 3},
+        {ActionKind::MissionRow, missionRowCount > 0 ? 3 : 0},
+        {ActionKind::DeviceRow, deviceRowCount > 0 ? 3 : 0},
+        {ActionKind::StatusTab, statusTabs.isEmpty() ? 0 : 2},
     };
 
     struct Weighted {
@@ -1097,6 +1243,12 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
         return inputSearchText(window, searchSamples.at(rng.bounded(searchSamples.size())));
     case ActionKind::NavButton:
         return clickNavButton(window, rng.bounded(navButtons.size()));
+    case ActionKind::MissionRow:
+        return clickMissionRow(window, rng.bounded(missionRowCount));
+    case ActionKind::DeviceRow:
+        return clickDeviceRow(window, rng.bounded(deviceRowCount));
+    case ActionKind::StatusTab:
+        return clickStatusTab(window, rng.bounded(statusTabs.size()));
     }
     return {QStringLiteral("未知动作"), false};
 }
@@ -1233,6 +1385,10 @@ int main(int argc, char *argv[])
                                       static_cast<int>(issues.size()), issues);
         checkSearchPreservesSelection(*window, pre, action, screenshotDir,
                                       static_cast<int>(issues.size()), issues);
+        checkTableRowClickPreservesSelection(*window, pre, action, screenshotDir,
+                                             static_cast<int>(issues.size()), issues);
+        checkStatusTabClickPreservesSelection(*window, pre, action, screenshotDir,
+                                              static_cast<int>(issues.size()), issues);
     };
 
     // 初始状态检查（无前置动作）
