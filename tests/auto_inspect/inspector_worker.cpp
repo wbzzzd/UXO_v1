@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共28条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共29条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -31,6 +31,7 @@
 //   R26 超长/对抗性输入过滤响应应 <=500ms（主线程不应被同步过滤长时间阻塞）
 //   R27 标签页切换后当前页 currentWidget 应非空且可见（捕获页面损坏/空页/隐藏页 bug）
 //   R28 非状态机动作不应改变 panelStatus（捕获副作用 bug，如刷新触发状态重置、搜索触发误迁移）
+//   R29 会话级 widget 子对象数不应显著增长（孤儿对话框/定时器累积未清理，阈值 +30）
 
 #include "MainWindow/MainWindow.h"
 
@@ -1166,6 +1167,30 @@ void checkNonStateActionPreservesStatus(ActionKind kind, MainWindow &window, con
     issues.push_back(issue);
 }
 
+// R29：会话级 widget 子对象数不应显著增长（孤儿对话框/定时器累积未清理）。
+// 阈值 +30：允许正常波动（菜单/对话框短暂创建），超过则可能存在泄漏。
+// 在主循环结束后调用一次，非 per-action 检查。
+void checkSessionWidgetLeak(MainWindow &window, int initialChildCount,
+                            const QString &screenshotDir, int issueIdx,
+                            std::vector<Issue> &issues)
+{
+    const int finalChildCount = window.children().size();
+    const int growth = finalChildCount - initialChildCount;
+    const int threshold = 30;
+    if (growth <= threshold) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("stability");
+    issue.rule = QStringLiteral("R29 会话级 widget 子对象数不应显著增长");
+    issue.action = QStringLiteral("会话结束");
+    issue.details = QStringLiteral("初始=%1 最终=%2 增长=%3 超过阈值%4（可能存在孤儿对象累积）")
+                        .arg(initialChildCount).arg(finalChildCount).arg(growth).arg(threshold);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
 // 点击目标表第 row 行（选中目标）
 ActionResult clickTargetRow(MainWindow &window, int row)
 {
@@ -1923,6 +1948,9 @@ int main(int argc, char *argv[])
                   false, QString());
     }
 
+    // R29 会话级泄漏检测基线：记录主循环开始前主窗口的子对象数
+    const int initialChildCount = window->children().size();
+
     // 加权随机点击循环
     for (int step = 1; step <= maxActions; ++step) {
         const Snapshot pre = captureSnapshot(*window);
@@ -1951,6 +1979,12 @@ int main(int argc, char *argv[])
     }
 
     saveCoverage(coveragePath, coverage);
+
+    // R29：会话级 widget 泄漏检测（主循环结束后调用一次）
+    if (!screenshotDir.isEmpty()) {
+        checkSessionWidgetLeak(*window, initialChildCount, screenshotDir,
+                               static_cast<int>(issues.size()), issues);
+    }
 
     // 写 JSON 报告
     QJsonObject report;
