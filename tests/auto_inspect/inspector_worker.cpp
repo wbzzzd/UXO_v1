@@ -2,7 +2,7 @@
 // 独立进程运行，每轮由 run_loop.sh 启动，崩溃/卡死由外层 timeout 检测。
 // 设计原则：只读检查，不修改任何业务代码；复用现有测试的离屏启动方式。
 //
-// 检查规则（共25条，均为自洽性检查，不依赖业务知识）：
+// 检查规则（共26条，均为自洽性检查，不依赖业务知识）：
 //   R1 三处状态显示一致：选中目标后 目标表/操作面板/决策面板 三处状态相同
 //   R2 按钮启用匹配状态：confirm↔Detected, start↔Confirmed, complete↔Disposing
 //   R3 未选目标时三按钮全禁用
@@ -28,6 +28,7 @@
 //   R23 搜索框输入过滤响应应 <=200ms（textChanged->onSearchTextChanged 同步过滤耗时）
 //   R24 模态对话框弹出时标题应非空（捕获 tr() 缺失或编码异常）
 //   R25 对话框关闭后不应残留模态状态（activeModalWidget 应为 null）
+//   R26 超长/对抗性输入过滤响应应 <=500ms（主线程不应被同步过滤长时间阻塞）
 
 #include "MainWindow/MainWindow.h"
 
@@ -934,6 +935,7 @@ enum class ActionKind {
     KeyEscape,
     KeyArrow,
     MenuHoverTiming, // 测量菜单关闭延迟（用户原问题）
+    SearchRobust,    // 搜索框注入对抗性输入（超长/特殊字符/emoji/RTL），验证不崩溃不乱码
 };
 
 struct ActionResult {
@@ -1072,6 +1074,26 @@ void checkNoResidualModalAfterClose(ActionKind kind, bool dialogShown, MainWindo
     issues.push_back(issue);
 }
 
+// R26：超长文本过滤响应应 <=500ms（对抗性输入不应导致主线程长时间卡顿）。
+// 阈值比 R23 宽（500ms vs 200ms），因为 SearchRobust 注入的超长文本会放大 O(rows×cols) 遍历成本。
+void checkSearchRobustTiming(qint64 timingMs, ActionKind kind, MainWindow &window,
+                             const QString &action, const QString &screenshotDir,
+                             int issueIdx, std::vector<Issue> &issues)
+{
+    const qint64 threshold = 500;
+    if (kind != ActionKind::SearchRobust || timingMs < 0 || timingMs <= threshold) {
+        return;
+    }
+    Issue issue;
+    issue.type = QStringLiteral("performance");
+    issue.rule = QStringLiteral("R26 超长文本过滤响应应 <=500ms");
+    issue.action = action;
+    issue.details = QStringLiteral("对抗性输入过滤耗时 %1ms 超过阈值 %2ms").arg(timingMs).arg(threshold);
+    issue.screenshot = QStringLiteral("issue_%1.png").arg(issueIdx);
+    captureScreenshot(window, screenshotDir, issue.screenshot);
+    issues.push_back(issue);
+}
+
 // 点击目标表第 row 行（选中目标）
 ActionResult clickTargetRow(MainWindow &window, int row)
 {
@@ -1196,6 +1218,29 @@ ActionResult inputSearchText(MainWindow &window, const QString &text)
     ActionResult r{QStringLiteral("搜索框输入 %1").arg(text), true, ActionKind::SearchInput};
     r.timingMs = t.elapsed();
     // 恢复：清空搜索框（不测量，仅恢复界面状态）
+    edit->clear();
+    QTest::qWait(30);
+    return r;
+}
+
+// 搜索框注入对抗性输入（超长文本/CRLF/正则字符/emoji/RTL），验证不崩溃不乱码不卡顿。
+// description 截断到 30 字符避免超长文本污染 action_log 与 STATUS.md。
+ActionResult inputSearchRobust(MainWindow &window, const QString &label, const QString &text)
+{
+    auto *edit = findSearchEdit(window);
+    if (edit == nullptr) {
+        return {QStringLiteral("找不到搜索框"), false, ActionKind::SearchRobust};
+    }
+    QElapsedTimer t;
+    t.start();
+    edit->setText(text);
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+    QString desc = label;
+    if (desc.size() > 30) {
+        desc = desc.left(30) + QStringLiteral("...");
+    }
+    ActionResult r{QStringLiteral("搜索框注入 %1").arg(desc), true, ActionKind::SearchRobust};
+    r.timingMs = t.elapsed();
     edit->clear();
     QTest::qWait(30);
     return r;
@@ -1419,6 +1464,8 @@ QString actionKindToString(ActionKind kind)
         return QStringLiteral("key_arrow");
     case ActionKind::MenuHoverTiming:
         return QStringLiteral("menu_hover_timing");
+    case ActionKind::SearchRobust:
+        return QStringLiteral("search_robust");
     }
     return QStringLiteral("unknown");
 }
@@ -1515,6 +1562,7 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
         {ActionKind::KeyEscape, 2},
         {ActionKind::KeyArrow, 2},
         {ActionKind::MenuHoverTiming, 2},
+        {ActionKind::SearchRobust, (searchEdit == nullptr) ? 0 : 1},
     };
 
     struct Weighted {
@@ -1559,6 +1607,22 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
         QStringLiteral("12345"), QStringLiteral("不存在的内容xyz")
     };
 
+    // 对抗性输入样本（label 用于 action_log，payload 用于实际注入）
+    struct RobustSample { QString label; QString payload; };
+    static const RobustSample robustSamples[] = {
+        {QStringLiteral("超长文本1000字符"), QStringLiteral("A").repeated(1000)},
+        {QStringLiteral("超长文本5000字符"), QStringLiteral("X").repeated(5000)},
+        {QStringLiteral("CRLF换行"), QStringLiteral("a\r\nb\r\nc")},
+        {QStringLiteral("正则元字符"), QStringLiteral(".*+?^${}()|[]\\")},
+        {QStringLiteral("HTML标签"), QStringLiteral("<script>alert(1)</script><b>UXO</b>")},
+        {QStringLiteral("emoji"), QStringLiteral("🎯💣🚨目标🎯")},
+        {QStringLiteral("RTL阿拉伯文"), QStringLiteral("هدف هدف هدف")},
+        {QStringLiteral("null字节"), QStringLiteral("a\x00" "b\x00" "c")},
+        {QStringLiteral("制表符"), QStringLiteral("a\tb\tc")},
+        {QStringLiteral("混合中日韩"), QStringLiteral("目标UXO배달목표")},
+    };
+    const int robustCount = sizeof(robustSamples) / sizeof(robustSamples[0]);
+
     switch (chosen) {
     case ActionKind::TargetRow:
         return clickTargetRow(window, 0); // 当前只有一个演示目标
@@ -1588,6 +1652,10 @@ ActionResult pickAndExecuteAction(MainWindow &window, QRandomGenerator &rng,
     }
     case ActionKind::SearchInput:
         return inputSearchText(window, searchSamples.at(rng.bounded(searchSamples.size())));
+    case ActionKind::SearchRobust: {
+        const auto &sample = robustSamples[rng.bounded(robustCount)];
+        return inputSearchRobust(window, sample.label, sample.payload);
+    }
     case ActionKind::NavButton:
         return clickNavButton(window, rng.bounded(navButtons.size()));
     case ActionKind::MissionRow:
@@ -1757,6 +1825,8 @@ int main(int argc, char *argv[])
         checkTabSwitchTiming(timingMs, kind, *window, action, screenshotDir,
                              static_cast<int>(issues.size()), issues);
         checkSearchFilterTiming(timingMs, kind, *window, action, screenshotDir,
+                                static_cast<int>(issues.size()), issues);
+        checkSearchRobustTiming(timingMs, kind, *window, action, screenshotDir,
                                 static_cast<int>(issues.size()), issues);
         checkDialogTitleNotEmpty(kind, dialogShown, dialogTitle, *window, action,
                                  screenshotDir, static_cast<int>(issues.size()), issues);

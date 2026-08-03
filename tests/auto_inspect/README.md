@@ -20,7 +20,7 @@
 
 ## 2. 巡检员做什么
 
-### 2.1 随机动作集（22 种）
+### 2.1 随机动作集（23 种）
 
 worker 在客户端窗口上加权随机选择并执行动作：
 
@@ -48,6 +48,7 @@ worker 在客户端窗口上加权随机选择并执行动作：
 | `key_escape` | 2 | 键盘 Esc（关闭模态或清空选中）|
 | `key_arrow` | 2 | 键盘方向键（上下左右随机选一个）|
 | `menu_hover_timing` | 2 | 弹出下拉菜单后用 Esc 关闭，测量关闭延迟（R20 性能守护）|
+| `search_robust` | 1 | 搜索框注入对抗性输入（超长文本/CRLF/正则字符/emoji/RTL/null 字节等），验证不崩溃不卡顿（R26 性能守护）|
 
 - 禁用按钮权重降为 1（偶尔验证它们确实无反应）
 - 不可用动作权重为 0（如无搜索框则 `search_input` 不参与选择）
@@ -66,9 +67,9 @@ Detected --confirm--> Confirmed --start--> Disposing --complete--> Disposed
 - 非法迁移（如 Disposed 状态点 confirm）必须被拒绝
 - 按钮启用逻辑：confirm↔Detected、start↔Confirmed、complete↔Disposing
 
-### 2.3 自洽性检查规则（25 条）
+### 2.3 自洽性检查规则（26 条）
 
-每个动作执行前后，worker 捕获快照（状态、目标 ID、日志行数、标签页索引）并运行 25 条检查：
+每个动作执行前后，worker 捕获快照（状态、目标 ID、日志行数、标签页索引）并运行 26 条检查：
 
 | 规则 | 检查内容 |
 |---|---|
@@ -97,6 +98,7 @@ Detected --confirm--> Confirmed --start--> Disposing --complete--> Disposed
 | R23 | 搜索框输入过滤响应应 <=200ms（search_input 触发 textChanged 同步过滤，性能守护规则）|
 | R24 | 模态对话框弹出时标题应非空（menu_action 触发，捕获 tr() 缺失或编码异常）|
 | R25 | 对话框关闭后不应残留模态状态（activeModalWidget 应为 null，捕获关闭失败或挂起）|
+| R26 | 超长/对抗性输入过滤响应应 <=500ms（search_robust 注入超长文本/CRLF/正则字符/emoji/RTL/null 字节，主线程不应被同步过滤长时间阻塞）|
 
 ---
 
@@ -245,7 +247,7 @@ reports/
 }
 ```
 
-状态空间：5 个状态 × 22 个动作 = 110 个对。
+状态空间：5 个状态 × 23 个动作 = 115 个对。
 
 ### 4.4 HTML 仪表盘内容
 
@@ -258,7 +260,7 @@ reports/
 
 ## 5. 最近一次巡检结果
 
-**时间**：2026-08-03（D 系列对话框测试扩展验证，3 轮 × 100 动作）
+**时间**：2026-08-03（F 系列输入鲁棒性扩展验证，3 轮 × 100 动作）
 
 | 指标 | 数值 |
 |---|---|
@@ -270,11 +272,11 @@ reports/
 | 动作执行总数 | 300 |
 | 覆盖率 | 持续累积中 |
 
-**新增对话框检查**：D 系列扩展 `scheduleModalDialogAutoClose` 为双定时器机制（50ms 抓取 `activeModalWidget()->windowTitle()`，300ms 关闭对话框），在 `ActionResult` 中新增 `dialogShown`/`dialogTitle` 字段并写入 action_log JSON，在 `runChecks` 中接入 R24（对话框标题非空）和 R25（关闭后无残留模态）两条规则。
+**新增输入鲁棒性检查**：F 系列新增 `search_robust` 动作，向搜索框注入 10 类对抗性输入（超长文本 1000/5000 字符、CRLF 换行、正则元字符、HTML 标签、emoji、RTL 阿拉伯文、null 字节、制表符、混合中日韩），验证同步过滤逻辑不崩溃、不乱码、不长时间卡顿。R26 阈值 500ms（比 R23 的 200ms 宽，因超长文本会放大 O(rows×cols) 遍历成本）。
 
-**验证结果**：3 轮中共 6 个模态对话框被正确捕获（新建任务/关于/打开预案），标题均非空（R24 通过），关闭后 `activeModalWidget` 均为 null（R25 通过）。R24/R25 作为对话框守护规则，未来若 `tr()` 缺失导致空标题或对话框关闭失败/挂起会自动报警。
+**验证结果**：3 轮中 `search_robust` 动作均被触发并正确执行（如 seed=100 触发 2 次），对抗性输入全部通过同步过滤无崩溃无卡顿（R26 通过）。`inputSearchRobust` 对 description 截断到 30 字符，避免超长文本污染 action_log 与 STATUS.md。
 
-**历史扩展**：A 系列（R20-R23 性能时序）均已在之前批次验证通过，本次 D 系列验证未触发回归。
+**历史扩展**：A 系列（R20-R23 性能时序）、D 系列（R24/R25 对话框守护）均已在之前批次验证通过，本次 F 系列验证未触发回归。
 
 **关于用户原问题（菜单移开后过一阵才消失）**：offscreen 模式下"鼠标移开关闭菜单"无法复现（offscreen 不处理鼠标移出事件），R20 改用 Esc 关闭测量。当前测出 0ms 延迟，说明菜单响应关闭指令无延迟。R20 作为性能守护规则，未来若菜单关闭变慢（动画/定时器/主线程卡顿）会自动报警。
 
@@ -307,4 +309,5 @@ reports/
 - R23 搜索过滤时序测量包含 `setText + processEvents` 耗时（触发 `textChanged -> onSearchTextChanged` 同步遍历过滤），不含恢复阶段 `clear()`；当前目标表行数少故无延迟，若数据量增大或过滤逻辑变复杂（如正则/模糊匹配）会触发报警
 - R24/R25 仅对 `menu_action` 触发的模态对话框生效；若业务侧新增经按钮（非菜单）触发的对话框，需在对应动作执行器中同样接入 `scheduleModalDialogAutoClose` 双定时器机制
 - R24 标题抓取依赖 50ms 定时器（exec 弹出后标题已就绪）；若业务侧引入异步加载标题（如网络请求后 `setWindowTitle`），可能需要增大抓取延迟
+- R26 对抗性输入样本固定 10 类（超长文本/CRLF/正则元字符/HTML/emoji/RTL/null/制表符/混合 CJK）；若业务侧新增其他危险输入类型（如 SQL 注入字符、Unicode BOM、零宽字符），需扩充 `robustSamples` 数组。阈值 500ms 比 R23 宽，因超长文本会放大 O(rows×cols) 遍历成本，但若数据量显著增大（如目标表行数 >1000）可能需要重新校准
 - 巡检员仅检测崩溃/卡死/自洽性违规，不验证业务功能正确性（如"打开预案"是否真的加载了数据）
