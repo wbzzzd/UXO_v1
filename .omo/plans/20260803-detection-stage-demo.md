@@ -1,8 +1,8 @@
 # 探测阶段动态演示执行计划
 
-状态：Draft（待功能文档与 REQ-008 批准后生效）
+状态：Approved for execution
 关联功能设计：[docs/features/detection-stage-demo.md](../../docs/features/detection-stage-demo.md)
-关联需求：REQ-008（待 PRODUCT.md §9.2 新增并升级为 Approved；REQ-007 已被 MOS 占用）
+关联需求：REQ-008（PRODUCT.md §9.2，Approved；REQ-007 已被 MOS 占用）
 
 ## 背景
 
