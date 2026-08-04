@@ -8,6 +8,8 @@ set(MAINWINDOW_SOURCES
     TargetDetailPanel.cpp
     NavigationWidget.cpp
     VideoStreamPanel.cpp
+    VideoOverlayWidget.cpp
+    TacticalMapWidget.cpp
     RightPanelWidget.cpp
     DeviceStatusPanel.cpp
     DecisionSuggestionPanel.cpp
@@ -26,6 +28,8 @@ set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/TargetDetailPanel.h
     ${HEADERS_DIR}/MainWindow/NavigationWidget.h
     ${HEADERS_DIR}/MainWindow/VideoStreamPanel.h
+    ${HEADERS_DIR}/MainWindow/VideoOverlayWidget.h
+    ${HEADERS_DIR}/MainWindow/TacticalMapWidget.h
     ${HEADERS_DIR}/MainWindow/RightPanelWidget.h
     ${HEADERS_DIR}/MainWindow/DeviceStatusPanel.h
     ${HEADERS_DIR}/MainWindow/DecisionSuggestionPanel.h
