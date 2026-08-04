@@ -25,6 +25,7 @@ obj/
 /bin/
 /lib/
 build/
+build-ninja/
 
 # Qt build folders
 cmake-build-*/
