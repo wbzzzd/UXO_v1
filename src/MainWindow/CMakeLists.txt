@@ -47,6 +47,8 @@ target_link_libraries(MainWindow
     Qt5::Core
     Qt5::Widgets
     Qt5::Gui
+    Qt5::Multimedia
+    Qt5::MultimediaWidgets
     Qt5::3DCore
     Qt5::3DRender
     Qt5::3DExtras

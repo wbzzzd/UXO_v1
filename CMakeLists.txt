@@ -20,6 +20,8 @@ find_package(Qt5 REQUIRED COMPONENTS
     Network
     Sql
     Test
+    Multimedia
+    MultimediaWidgets
 )
 
 find_package(ZeroMQ QUIET)

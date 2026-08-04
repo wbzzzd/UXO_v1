@@ -2,16 +2,16 @@
 #define MAINWINDOW_VIDEOSTREAMPANEL_H
 
 #include <QWidget>
-#include <QList>
-#include <QString>
-#include <QTimer>
+#include <QMediaPlayer>
 
+class QVideoWidget;
+class QStackedLayout;
 class QLabel;
-class QPushButton;
-class QGridLayout;
-class QStackedWidget;
-class QVBoxLayout;
+class VideoOverlayWidget;
 
+// 探测阶段视频面板: QMediaPlayer + QVideoWidget 单画面播放
+// 替代原 4 格 QLabel 文本占位; 暴露播放控制接口与位置变化信号
+// VideoOverlayWidget 作为透明叠加层覆盖在视频画面上, 由外部触发红框
 class VideoStreamPanel : public QWidget
 {
     Q_OBJECT
@@ -20,50 +20,46 @@ public:
     explicit VideoStreamPanel(QWidget *parent = nullptr);
     ~VideoStreamPanel();
 
-    void setStreamCount(int count);
-    int streamCount() const;
+    // 加载本地视频文件; path 为空时进入空状态
+    void loadVideo(const QString& path);
 
-    void setFullscreenIndex(int index);
-    int fullscreenIndex() const;
+    // 播放控制接口 (供探测工具栏 / DetectionTimelineController 调用)
+    void play();
+    void pause();
+    void stop();
+    void seek(qint64 ms);
+
+    // 当前播放位置 (ms), 未播放时返回 0
+    qint64 position() const;
+    // 视频总时长 (ms), 未加载时返回 0
+    qint64 duration() const;
+
+    // 视频叠加层访问 (供外部触发红框)
+    VideoOverlayWidget* overlay() const;
 
 signals:
-    void streamClicked(int index);
-    void streamDoubleClicked(int index);
-    void fullscreenRequested(int index);
+    // 播放位置变化 (ms)
+    void positionChanged(qint64 ms);
+    // 视频总时长变化 (ms)
+    void durationChanged(qint64 ms);
+    // 播放状态变化 (QMediaPlayer::State)
+    void stateChanged(QMediaPlayer::State state);
 
-public slots:
-    void onLayoutButtonClicked(int count);
+private slots:
+    void onPositionChanged(qint64 ms);
+    void onDurationChanged(qint64 ms);
+    void onStateChanged(QMediaPlayer::State state);
+    void onMediaStatusChanged(QMediaPlayer::MediaStatus status);
 
 private:
     void setupUi();
-    void createVideoCells();
-    void updateLayout();
-    void updateCellContents();
+    void showEmptyHint(bool visible);
 
-    struct VideoCell {
-        QWidget *widget;
-        QLabel *videoLabel;
-        QLabel *nameLabel;
-        QLabel *statusLabel;
-        QPushButton *fullscreenBtn;
-    };
-
-    QStackedWidget *m_stackWidget;
-    QWidget *m_gridContainer;
-    QGridLayout *m_gridLayout;
-    QWidget *m_singleContainer;
-    QVBoxLayout *m_singleLayout;
-
-    QList<VideoCell> m_cells;
-    int m_streamCount;
-    int m_currentLayout;
-    int m_fullscreenIndex;
-
-    QWidget *m_controlBar;
-    QList<QPushButton*> m_layoutButtons;
-    QPushButton *m_fullscreenExitBtn;
-
-    QTimer *m_updateTimer;
+    QMediaPlayer *m_player;
+    QVideoWidget *m_videoWidget;
+    VideoOverlayWidget *m_overlay;
+    QLabel *m_emptyHint;        // 空状态提示 "等待开始"
+    QStackedLayout *m_stackLayout;
 };
 
 #endif
