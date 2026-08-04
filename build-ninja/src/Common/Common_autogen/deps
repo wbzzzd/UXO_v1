@@ -1,5 +1,0 @@
-Common_autogen/timestamp: \
-	/home/lin/UXO_v1-detection/src/Common/CMakeLists.txt \
-	/home/lin/UXO_v1-detection/src/Common/GlobalStyle.cpp \
-	/home/lin/UXO_v1-detection/src/Common/MockDataGenerator.cpp \
-	/home/lin/.local/share/mamba/envs/uxo-dev/bin/cmake

@@ -1,7 +1,0 @@
-Core_autogen/timestamp: \
-	/home/lin/UXO_v1-detection/src/Core/3D/AirportSceneFactory.cpp \
-	/home/lin/UXO_v1-detection/src/Core/AirportData.cpp \
-	/home/lin/UXO_v1-detection/src/Core/CMakeLists.txt \
-	/home/lin/UXO_v1-detection/src/Core/Simulation/DemoScenarioProvider.cpp \
-	/home/lin/UXO_v1-detection/src/Core/Simulation/SimulationWorkflow.cpp \
-	/home/lin/.local/share/mamba/envs/uxo-dev/bin/cmake
