@@ -57,18 +57,18 @@
 
 ### 阶段 1：数据层与坐标修复
 
-- [ ] 1.1 修复 DemoScenarioProvider 坐标 bug
+- [x] 1.1 修复 DemoScenarioProvider 坐标 bug
   - 把经纬度 (108.9, 34.2) 改为本地米坐标系（0-5000 范围）。
   - 新增 5 个目标的脚本数据：时间点（10s/25s/42s/60s/78s）+ 坐标 + 类型 + 置信度 + 威胁等级。
-  - 类型从 `TargetInfo::Type` 枚举选取（AntiRunwayBomb / ArtilleryShell / Rocket / ClusterBomb / Unknown）。
+  - 类型从 `TargetInfo::Type` 枚举选取（实际枚举：AirBomb / ClusterBomb / AntiRunwayMine / CruiseMissile / IED / Other）。
+  - 实现：`DemoScenario` 结构体新增 `detectionScript` 字段（`QVector<DetectionScriptEntry>`），每条含 timeMs + TargetInfo + 红框归一化坐标。
   - 验证：新增 `demo_scenario_provider` 测试断言米坐标系和 5 目标脚本数据。
   - 证据：`build/demo_scenario_provider_test` 通过。
 
-- [ ] 1.2 改造 MainWindow 启动为空起步
-  - 删除 `loadMockData` 中 1 目标 1 任务 2 设备的预加载。
-  - 启动时目标表/告警/日志清空（设备表保留静态设备展示，因为设备不属于探测阶段流入）。
-  - 验证：启动后截图确认各区域为空。
-  - 证据：`startup_visible` 测试更新断言空起步。
+- [ ] 1.2 改造 MainWindow 启动为空起步（**推迟到阶段4**）
+  - **决策调整**：空起步从阶段1推迟到阶段4。原因：现有 `simulation_workflow_ui_test` 依赖启动时预加载的 `target-demo-001` 验证4状态工作流，阶段1切空起步会破坏该测试且阶段1-3期间无 DetectionTimelineController 可注入目标。
+  - 阶段4 DetectionTimelineController 就位后：改写 `simulation_workflow_ui_test` 通过控制器公开接口注入 TGT-001 再跑工作流断言，同时删 `target-demo-001` 预加载切空起步。
+  - 阶段1-3保留 `target-demo-001` 预加载（坐标已改米系），测试全绿。
 
 ### 阶段 2：2D 战术地图控件
 

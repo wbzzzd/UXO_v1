@@ -1,0 +1,79 @@
+{
+	"BUILD_DIR" : "/home/lin/UXO_v1-detection/build-ninja/src/Common/Common_autogen",
+	"CMAKE_BINARY_DIR" : "/home/lin/UXO_v1-detection/build-ninja",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/lin/UXO_v1-detection/build-ninja/src/Common",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/lin/UXO_v1-detection/src/Common",
+	"CMAKE_EXECUTABLE" : "/home/lin/.local/share/mamba/envs/uxo-dev/bin/cmake",
+	"CMAKE_LIST_FILES" : [ "/home/lin/UXO_v1-detection/src/Common/CMakeLists.txt" ],
+	"CMAKE_SOURCE_DIR" : "/home/lin/UXO_v1-detection",
+	"CROSS_CONFIG" : false,
+	"DEP_FILE" : "/home/lin/UXO_v1-detection/build-ninja/src/Common/Common_autogen/deps",
+	"DEP_FILE_RULE_NAME" : "Common_autogen/timestamp",
+	"HEADERS" : [],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/home/lin/UXO_v1-detection/build-ninja/src/Common/Common_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/lin/UXO_v1-detection/build-ninja/src/Common/Common_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : [ "QT_CORE_LIB", "QT_GUI_LIB", "QT_NO_DEBUG" ],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/home/lin/UXO_v1-detection/build-ninja/src/Common",
+		"/home/lin/UXO_v1-detection/src/Common",
+		"/home/lin/UXO_v1-detection/include",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/include/qt",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/include/qt/QtCore",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/mkspecs/linux-g++",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/include/qt/QtGui",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/include",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/lib/gcc/x86_64-conda-linux-gnu/14.3.0/include/c++",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/lib/gcc/x86_64-conda-linux-gnu/14.3.0/include/c++/x86_64-conda-linux-gnu",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/lib/gcc/x86_64-conda-linux-gnu/14.3.0/include/c++/backward",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/lib/gcc/x86_64-conda-linux-gnu/14.3.0/include",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/lib/gcc/x86_64-conda-linux-gnu/14.3.0/include-fixed",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/x86_64-conda-linux-gnu/sysroot/usr/include"
+	],
+	"MOC_MACRO_NAMES" : [ "Q_OBJECT", "Q_GADGET", "Q_NAMESPACE", "Q_NAMESPACE_EXPORT" ],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/home/lin/.local/share/mamba/envs/uxo-dev/bin/x86_64-conda-linux-gnu-c++",
+		"-std=gnu++17",
+		"-w",
+		"-dM",
+		"-E",
+		"/home/lin/.local/share/mamba/envs/uxo-dev/share/cmake-4.4/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/home/lin/UXO_v1-detection/build-ninja/src/Common/Common_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : [],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 16,
+	"PARSE_CACHE_FILE" : "/home/lin/UXO_v1-detection/build-ninja/src/Common/CMakeFiles/Common_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/home/lin/.local/share/mamba/envs/uxo-dev/bin/moc",
+	"QT_UIC_EXECUTABLE" : "/home/lin/.local/share/mamba/envs/uxo-dev/bin/uic",
+	"QT_VERSION_MAJOR" : 5,
+	"QT_VERSION_MINOR" : 15,
+	"SETTINGS_FILE" : "/home/lin/UXO_v1-detection/build-ninja/src/Common/CMakeFiles/Common_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[ "/home/lin/UXO_v1-detection/src/Common/GlobalStyle.cpp", "MU", null ],
+		[
+			"/home/lin/UXO_v1-detection/src/Common/MockDataGenerator.cpp",
+			"MU",
+			null
+		]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : [],
+	"UIC_SKIP" : [],
+	"UIC_UI_FILES" : [],
+	"USE_BETTER_GRAPH" : false,
+	"VERBOSITY" : 0
+}
