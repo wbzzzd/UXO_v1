@@ -1,7 +1,7 @@
 # 探测阶段动态演示
 
 状态：Draft
-关联产品需求：REQ-007（待 PRODUCT.md §9.2 新增并升级为 Approved）
+关联产品需求：REQ-008（待 PRODUCT.md §9.2 新增并升级为 Approved）
 关联版本：待确认
 
 ## 1. 问题与目标
@@ -81,7 +81,7 @@ SRS《排弹抢修指挥系统》v1.0 定义四阶段：探测 -> 识别 -> 规�
 
 ## 4. 需求增量
 
-### REQ-007 探测阶段动态演示
+### REQ-008 探测阶段动态演示
 
 **解决的当前缺口**：态势页中心区是占位文本和 Qt3D 场景，启动即加载固定场景，无探测过程呈现，演示效果"悬浮"。
 
@@ -205,7 +205,7 @@ SRS《排弹抢修指挥系统》v1.0 定义四阶段：探测 -> 识别 -> 规�
 
 | 文档 | 变更 |
 |------|------|
-| `docs/PRODUCT.md` §9.2 | 新增 REQ-007，状态从 Draft 升级为 Approved |
+| `docs/PRODUCT.md` §9.2 | 新增 REQ-008，状态从 Draft 升级为 Approved（REQ-007 已被 MOS 占用） |
 | `docs/PRODUCT.md` §9.3 | 包含范围补充探测阶段动态演示 |
 | `docs/ARCHITECTURE.md` §4 | 状态所有权表补充 DetectionTimelineController（探测脚本数据） |
 | `docs/ARCHITECTURE.md` §6 | 结构问题表更新：Qt3D 降级为 2D 已处理；视频占位已处理 |
