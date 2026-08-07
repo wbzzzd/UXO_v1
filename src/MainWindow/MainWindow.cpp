@@ -9,9 +9,12 @@
 #include "MainWindow/DetectionControlPanel.h"
 #include "MainWindow/BatchOperationBar.h"
 #include "MainWindow/DecisionSuggestionPanel.h"
+#include "MainWindow/DecisionView.h"
+#include "MainWindow/MosPlanningController.h"
 
 #include "Core/Data/Types.h"
 #include "Core/Simulation/DemoScenarioProvider.h"
+#include "Core/MOS/MosFixtureGenerator.h"
 #include "Common/GlobalStyle.h"
 
 #include <QMenuBar>
@@ -23,6 +26,7 @@
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QSplitter>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QDebug>
@@ -37,9 +41,14 @@ MainWindow::MainWindow(QWidget *parent)
     , m_detectionControlPanel(nullptr)
     , m_batchOperationBar(nullptr)
     , m_statusBarWidget(nullptr)
+    , m_mainToolBar(nullptr)
     , m_mainSplitter(nullptr)
     , m_centerSplitter(nullptr)
     , m_centerArea(nullptr)
+    , m_pageStack(nullptr)
+    , m_situationPage(nullptr)
+    , m_decisionView(nullptr)
+    , m_mosController(nullptr)
     , m_leftPanelVisible(true)
     , m_rightPanelVisible(true)
 {
@@ -58,6 +67,10 @@ void MainWindow::setupUi()
     resize(1920, 1080);
 
     setStyleSheet(GlobalStyle::getMainWindowStyle());
+
+    // MOS P0 控制器在 UI 构造前创建，确保 createConnections 可接线
+    m_mosController = new Core::MOS::MosPlanningController(this);
+    m_mosController->setObjectName(QStringLiteral("mosPlanningController"));
 
     createMenuBar();
     createToolBar();
@@ -112,52 +125,53 @@ void MainWindow::createMenuBar()
 
 void MainWindow::createToolBar()
 {
-    QToolBar *toolBar = addToolBar(tr("工具栏"));
-    toolBar->setMovable(false);
-    toolBar->setFixedHeight(32);
+    m_mainToolBar = addToolBar(tr("工具栏"));
+    m_mainToolBar->setObjectName(QStringLiteral("mainSituationToolBar"));
+    m_mainToolBar->setMovable(false);
+    m_mainToolBar->setFixedHeight(32);
 
     QLabel *label = new QLabel(tr("图层控制"));
     label->setStyleSheet("color: #AAAAAA; padding: 4px; font-size: 12px;");
-    toolBar->addWidget(label);
+    m_mainToolBar->addWidget(label);
 
-    toolBar->addSeparator();
+    m_mainToolBar->addSeparator();
 
     label = new QLabel(tr("测量工具"));
     label->setStyleSheet("color: #AAAAAA; padding: 4px; font-size: 12px;");
-    toolBar->addWidget(label);
+    m_mainToolBar->addWidget(label);
 
-    toolBar->addSeparator();
+    m_mainToolBar->addSeparator();
 
     label = new QLabel(tr("坐标拾取"));
     label->setStyleSheet("color: #AAAAAA; padding: 4px; font-size: 12px;");
-    toolBar->addWidget(label);
+    m_mainToolBar->addWidget(label);
 
-    toolBar->addSeparator();
+    m_mainToolBar->addSeparator();
 
-    QAction *resetViewAction = toolBar->addAction(tr("视角复位"), this, [this]() {
+    QAction *resetViewAction = m_mainToolBar->addAction(tr("视角复位"), this, [this]() {
         if (m_rightPanel && m_rightPanel->situationView()) {
             m_rightPanel->situationView()->resetCameraView();
         }
     });
     resetViewAction->setObjectName("resetViewAction");
 
-    toolBar->addSeparator();
+    m_mainToolBar->addSeparator();
 
     label = new QLabel(tr("同步状态"));
     label->setStyleSheet("color: #AAAAAA; padding: 4px; font-size: 12px;");
-    toolBar->addWidget(label);
+    m_mainToolBar->addWidget(label);
 
-    toolBar->addSeparator();
+    m_mainToolBar->addSeparator();
 
     label = new QLabel(tr("书签"));
     label->setStyleSheet("color: #AAAAAA; padding: 4px; font-size: 12px;");
-    toolBar->addWidget(label);
+    m_mainToolBar->addWidget(label);
 
-    toolBar->addSeparator();
+    m_mainToolBar->addSeparator();
 
     label = new QLabel(tr("设备控制台"));
     label->setStyleSheet("color: #AAAAAA; padding: 4px; font-size: 12px;");
-    toolBar->addWidget(label);
+    m_mainToolBar->addWidget(label);
 }
 
 void MainWindow::createMainLayout()
@@ -172,10 +186,21 @@ void MainWindow::createMainLayout()
     m_navigationWidget = new NavigationWidget(centralWidget);
     mainLayout->addWidget(m_navigationWidget);
 
-    m_leftPanel = new LeftPanelWidget(centralWidget);
-    mainLayout->addWidget(m_leftPanel);
+    // P0 页面栈：index 0 = 态势工作区（左+中+右），index 1 = MOS 决策页
+    m_pageStack = new QStackedWidget(centralWidget);
+    m_pageStack->setObjectName(QStringLiteral("mainPageStack"));
 
-    m_centerArea = new QWidget(centralWidget);
+    // 态势工作区页：包裹左面板 + 中心区 + 右面板，作为页面栈 index 0
+    m_situationPage = new QWidget(m_pageStack);
+    m_situationPage->setObjectName(QStringLiteral("situationWorkspacePage"));
+    QHBoxLayout *situationLayout = new QHBoxLayout(m_situationPage);
+    situationLayout->setContentsMargins(0, 0, 0, 0);
+    situationLayout->setSpacing(0);
+
+    m_leftPanel = new LeftPanelWidget(m_situationPage);
+    situationLayout->addWidget(m_leftPanel);
+
+    m_centerArea = new QWidget(m_situationPage);
     QVBoxLayout *centerLayout = new QVBoxLayout(m_centerArea);
     centerLayout->setContentsMargins(0, 0, 0, 0);
     centerLayout->setSpacing(0);
@@ -235,10 +260,20 @@ void MainWindow::createMainLayout()
 
     centerLayout->addWidget(m_centerSplitter, 1);
 
-    mainLayout->addWidget(m_centerArea, 1);
+    // 中心区加入态势工作区布局
+    situationLayout->addWidget(m_centerArea, 1);
 
-    m_rightPanel = new RightPanelWidget(centralWidget);
-    mainLayout->addWidget(m_rightPanel);
+    // 右面板加入态势工作区布局
+    m_rightPanel = new RightPanelWidget(m_situationPage);
+    situationLayout->addWidget(m_rightPanel);
+
+    // MOS 决策页：页面栈 index 1
+    m_decisionView = new DecisionView;
+    m_decisionView->setObjectName(QStringLiteral("mosDecisionPage"));
+    m_pageStack->addWidget(m_situationPage);
+    m_pageStack->addWidget(m_decisionView);
+    m_pageStack->setCurrentIndex(0);
+    mainLayout->addWidget(m_pageStack, 1);
 
     setCentralWidget(centralWidget);
 }
@@ -284,6 +319,34 @@ void MainWindow::createConnections()
             &DetectionControlPanel::completeSimulationDisposalRequested,
             this,
             &MainWindow::onCompleteSimulationDisposalRequested);
+
+    // MOS P0 决策页接线：controller 单一状态通知 <-> DecisionView 请求（本地合成 fixture）
+    connect(m_mosController, &Core::MOS::MosPlanningController::mosStateChanged,
+            this, [this]() {
+        if (m_decisionView) {
+            m_decisionView->setSnapshot(m_mosController->snapshot());
+        }
+    });
+    connect(m_mosController, &Core::MOS::MosPlanningController::replanActivityChanged,
+            m_decisionView, &DecisionView::setPlanning);
+    connect(m_decisionView, &DecisionView::replanRequested,
+            this, [this]() {
+        m_mosController->requestReplan(m_decisionView->currentObstacles(),
+                                        m_decisionView->currentParams());
+    });
+    connect(m_decisionView, &DecisionView::tierSelected,
+            m_mosController, &Core::MOS::MosPlanningController::selectTier);
+    connect(m_decisionView, &DecisionView::generatorApplied,
+            this, [this](const Core::MOS::MosGeneratorParams &genParams, qint32 seed) {
+        const auto runwayParams = m_decisionView->currentParams();
+        const auto obstacles = Core::MOS::MosFixtureGenerator::generate(runwayParams, genParams, seed);
+        // 仅替换障碍物，不自动规划；用户点击重新规划按钮后才执行 MOS 规划
+        m_mosController->replaceObstacles(obstacles, runwayParams);
+    });
+    connect(m_decisionView, &DecisionView::exportRequested,
+            this, [this](const QString &path) {
+        m_mosController->exportFixture(path);
+    });
 }
 
 // 加载模拟演示场景数据（来自 DemoScenarioProvider，不连接真实设备）
@@ -344,11 +407,33 @@ void MainWindow::loadMockData()
     }
     refreshSelectedTarget();
     refreshSimulationLog();
+
+    // MOS 决策页初始 seed-42 replan：用默认跑道参数与默认生成器参数产出 revision 1
+    // 已提交快照，避免启动时显示 inert 空状态。createConnections 已接线 mosStateChanged
+    // -> setSnapshot，requestReplan 同步触发 worker 完成后会自动刷新视图。
+    if (m_decisionView && m_mosController) {
+        Core::MOS::MosRunwayParams runwayParams;
+        Core::MOS::MosGeneratorParams genParams;
+        const qint32 seed = 42;
+        const auto obstacles = Core::MOS::MosFixtureGenerator::generate(runwayParams, genParams, seed);
+        m_mosController->requestReplan(obstacles, runwayParams);
+    }
 }
 
 void MainWindow::onNavigationChanged(int index)
 {
     qDebug() << "Navigation changed to:" << index;
+
+    // P0 路由：导航 index 2（决策）切到 MOS 决策页，其余 index 保持态势工作区
+    if (!m_pageStack) {
+        return;
+    }
+    m_pageStack->setCurrentIndex(index == 2 ? 1 : 0);
+
+    // 态势页遗留工具栏仅在态势工作区可见时显示；MOS 决策页（index 2）独占 MOS 工具栏
+    if (m_mainToolBar) {
+        m_mainToolBar->setVisible(index != 2);
+    }
 }
 
 void MainWindow::onTargetSelected(const Core::TargetInfo& target)

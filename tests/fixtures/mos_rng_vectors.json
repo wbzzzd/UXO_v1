@@ -1,0 +1,609 @@
+{
+  "contract_version": "mos-p0-v1",
+  "params": {
+    "L": 3000,
+    "W": 50,
+    "K": 1.5,
+    "expand": 1.5,
+    "step": 1,
+    "minLength": 460,
+    "minWidth": 15,
+    "backfill": 50,
+    "uxoHours": 8,
+    "tiers": 3
+  },
+  "generator_defaults": {
+    "craterCount": 2,
+    "craterRMin": 3,
+    "craterRMax": 6,
+    "uxoCount": 2,
+    "uxoYMin": 10,
+    "uxoYMax": 50
+  },
+  "draw_order": {
+    "crater": [
+      "visibleRadius",
+      "x",
+      "y",
+      {
+        "threat": "仅 i>0 抽取"
+      }
+    ],
+    "uxo": [
+      "syntheticYield",
+      "x",
+      "y",
+      "threat"
+    ],
+    "note": "JS Math.round 半数向正无穷（+∞）语义"
+  },
+  "canonical_field_order": {
+    "crater": [
+      "visibleRadius",
+      "x",
+      "y",
+      "threat",
+      "influenceRadius"
+    ],
+    "uxo": [
+      "syntheticYield",
+      "x",
+      "y",
+      "threat",
+      "influenceRadius"
+    ]
+  },
+  "formulas": {
+    "crater_visibleRadius": "Math.round(crMin + u * (crMax - crMin))",
+    "crater_x": "Math.round(u * L)",
+    "crater_y": "Math.round(-40 + u * 80)",
+    "crater_influenceRadius": "visibleRadius * expand (float, 不取整)",
+    "uxo_syntheticYield": "uyMin + u * (uyMax - uyMin) (float, 不取整)",
+    "uxo_x": "Math.round(u * L)",
+    "uxo_y": "Math.round(-40 + u * 80)",
+    "uxo_influenceRadius": "K * Math.cbrt(syntheticYield) (float, 不取整)"
+  },
+  "seed_vectors": [
+    {
+      "seed_input": 0,
+      "seed_normalized": 0,
+      "fixture": {
+        "craters": [
+          {
+            "visibleRadius": 4,
+            "x": 1,
+            "y": -22,
+            "threat": "high",
+            "influenceRadius": 6
+          },
+          {
+            "visibleRadius": 3,
+            "x": 1402,
+            "y": 4,
+            "threat": "medium",
+            "influenceRadius": 4.5
+          }
+        ],
+        "uxo": [
+          {
+            "syntheticYield": 35.959415193647146,
+            "x": 1368,
+            "y": 6,
+            "threat": "medium",
+            "influenceRadius": 4.95102895017792
+          },
+          {
+            "syntheticYield": 13.914067791774869,
+            "x": 2710,
+            "y": -7,
+            "threat": "high",
+            "influenceRadius": 3.6078014661363853
+          }
+        ]
+      },
+      "canonical_bytes": "{\"craters\":[{\"visibleRadius\":4,\"x\":1,\"y\":-22,\"threat\":\"high\",\"influenceRadius\":6},{\"visibleRadius\":3,\"x\":1402,\"y\":4,\"threat\":\"medium\",\"influenceRadius\":4.5}],\"uxo\":[{\"syntheticYield\":35.959415193647146,\"x\":1368,\"y\":6,\"threat\":\"medium\",\"influenceRadius\":4.95102895017792},{\"syntheticYield\":13.914067791774869,\"x\":2710,\"y\":-7,\"threat\":\"high\",\"influenceRadius\":3.6078014661363853}]}"
+    },
+    {
+      "seed_input": 42,
+      "seed_normalized": 42,
+      "fixture": {
+        "craters": [
+          {
+            "visibleRadius": 5,
+            "x": 1345,
+            "y": 28,
+            "threat": "high",
+            "influenceRadius": 7.5
+          },
+          {
+            "visibleRadius": 5,
+            "x": 524,
+            "y": 2,
+            "threat": "high",
+            "influenceRadius": 7.5
+          }
+        ],
+        "uxo": [
+          {
+            "syntheticYield": 34.989786157384515,
+            "x": 2596,
+            "y": -2,
+            "threat": "medium",
+            "influenceRadius": 4.906122130897645
+          },
+          {
+            "syntheticYield": 45.28235333971679,
+            "x": 2237,
+            "y": -15,
+            "threat": "medium",
+            "influenceRadius": 5.346475595556224
+          }
+        ]
+      },
+      "canonical_bytes": "{\"craters\":[{\"visibleRadius\":5,\"x\":1345,\"y\":28,\"threat\":\"high\",\"influenceRadius\":7.5},{\"visibleRadius\":5,\"x\":524,\"y\":2,\"threat\":\"high\",\"influenceRadius\":7.5}],\"uxo\":[{\"syntheticYield\":34.989786157384515,\"x\":2596,\"y\":-2,\"threat\":\"medium\",\"influenceRadius\":4.906122130897645},{\"syntheticYield\":45.28235333971679,\"x\":2237,\"y\":-15,\"threat\":\"medium\",\"influenceRadius\":5.346475595556224}]}"
+    },
+    {
+      "seed_input": -1,
+      "seed_normalized": 4294967295,
+      "fixture": {
+        "craters": [
+          {
+            "visibleRadius": 6,
+            "x": 568,
+            "y": 17,
+            "threat": "high",
+            "influenceRadius": 9
+          },
+          {
+            "visibleRadius": 6,
+            "x": 2536,
+            "y": 3,
+            "threat": "medium",
+            "influenceRadius": 9
+          }
+        ],
+        "uxo": [
+          {
+            "syntheticYield": 29.02288385666907,
+            "x": 408,
+            "y": 39,
+            "threat": "high",
+            "influenceRadius": 4.609687100133543
+          },
+          {
+            "syntheticYield": 17.573938351124525,
+            "x": 1031,
+            "y": 19,
+            "threat": "medium",
+            "influenceRadius": 3.8998475052151935
+          }
+        ]
+      },
+      "canonical_bytes": "{\"craters\":[{\"visibleRadius\":6,\"x\":568,\"y\":17,\"threat\":\"high\",\"influenceRadius\":9},{\"visibleRadius\":6,\"x\":2536,\"y\":3,\"threat\":\"medium\",\"influenceRadius\":9}],\"uxo\":[{\"syntheticYield\":29.02288385666907,\"x\":408,\"y\":39,\"threat\":\"high\",\"influenceRadius\":4.609687100133543},{\"syntheticYield\":17.573938351124525,\"x\":1031,\"y\":19,\"threat\":\"medium\",\"influenceRadius\":3.8998475052151935}]}"
+    },
+    {
+      "seed_input": -2147483648,
+      "seed_normalized": 2147483648,
+      "fixture": {
+        "craters": [
+          {
+            "visibleRadius": 5,
+            "x": 1344,
+            "y": 23,
+            "threat": "high",
+            "influenceRadius": 7.5
+          },
+          {
+            "visibleRadius": 5,
+            "x": 2516,
+            "y": -6,
+            "threat": "medium",
+            "influenceRadius": 7.5
+          }
+        ],
+        "uxo": [
+          {
+            "syntheticYield": 47.30770705267787,
+            "x": 2024,
+            "y": -7,
+            "threat": "high",
+            "influenceRadius": 5.425026850330843
+          },
+          {
+            "syntheticYield": 30.041590174660087,
+            "x": 1021,
+            "y": 37,
+            "threat": "medium",
+            "influenceRadius": 4.663001603423398
+          }
+        ]
+      },
+      "canonical_bytes": "{\"craters\":[{\"visibleRadius\":5,\"x\":1344,\"y\":23,\"threat\":\"high\",\"influenceRadius\":7.5},{\"visibleRadius\":5,\"x\":2516,\"y\":-6,\"threat\":\"medium\",\"influenceRadius\":7.5}],\"uxo\":[{\"syntheticYield\":47.30770705267787,\"x\":2024,\"y\":-7,\"threat\":\"high\",\"influenceRadius\":5.425026850330843},{\"syntheticYield\":30.041590174660087,\"x\":1021,\"y\":37,\"threat\":\"medium\",\"influenceRadius\":4.663001603423398}]}"
+    },
+    {
+      "seed_input": 2147483647,
+      "seed_normalized": 2147483647,
+      "fixture": {
+        "craters": [
+          {
+            "visibleRadius": 4,
+            "x": 381,
+            "y": -9,
+            "threat": "high",
+            "influenceRadius": 6
+          },
+          {
+            "visibleRadius": 4,
+            "x": 359,
+            "y": 36,
+            "threat": "medium",
+            "influenceRadius": 6
+          }
+        ],
+        "uxo": [
+          {
+            "syntheticYield": 49.83122006058693,
+            "x": 1073,
+            "y": -17,
+            "threat": "high",
+            "influenceRadius": 5.519822332293598
+          },
+          {
+            "syntheticYield": 46.80975499562919,
+            "x": 2141,
+            "y": -27,
+            "threat": "medium",
+            "influenceRadius": 5.405925401394857
+          }
+        ]
+      },
+      "canonical_bytes": "{\"craters\":[{\"visibleRadius\":4,\"x\":381,\"y\":-9,\"threat\":\"high\",\"influenceRadius\":6},{\"visibleRadius\":4,\"x\":359,\"y\":36,\"threat\":\"medium\",\"influenceRadius\":6}],\"uxo\":[{\"syntheticYield\":49.83122006058693,\"x\":1073,\"y\":-17,\"threat\":\"high\",\"influenceRadius\":5.519822332293598},{\"syntheticYield\":46.80975499562919,\"x\":2141,\"y\":-27,\"threat\":\"medium\",\"influenceRadius\":5.405925401394857}]}"
+    }
+  ],
+  "oracle_cases": [
+    {
+      "name": "empty",
+      "description": "无障碍物，整个跑道可用",
+      "params": {
+        "L": 3000,
+        "W": 50,
+        "K": 1.5,
+        "expand": 1.5,
+        "step": 1,
+        "minLength": 460,
+        "minWidth": 15,
+        "backfill": 50,
+        "uxoHours": 8,
+        "tiers": 3
+      },
+      "obstacles": {
+        "craters": [],
+        "uxo": []
+      },
+      "expected": {
+        "solvable": true,
+        "reason": null,
+        "note": "全跑道为一个有效矩形"
+      }
+    },
+    {
+      "name": "no-solution",
+      "description": "障碍物每 400m 阻断全宽，无 ≥460m 空隙",
+      "params": {
+        "L": 3000,
+        "W": 50,
+        "K": 1.5,
+        "expand": 1.5,
+        "step": 1,
+        "minLength": 460,
+        "minWidth": 15,
+        "backfill": 50,
+        "uxoHours": 8,
+        "tiers": 3
+      },
+      "obstacles": {
+        "craters": [
+          {
+            "visibleRadius": 20,
+            "x": 200,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 30
+          },
+          {
+            "visibleRadius": 20,
+            "x": 600,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 30
+          },
+          {
+            "visibleRadius": 20,
+            "x": 1000,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 30
+          },
+          {
+            "visibleRadius": 20,
+            "x": 1400,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 30
+          },
+          {
+            "visibleRadius": 20,
+            "x": 1800,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 30
+          },
+          {
+            "visibleRadius": 20,
+            "x": 2200,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 30
+          },
+          {
+            "visibleRadius": 20,
+            "x": 2600,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 30
+          }
+        ],
+        "uxo": []
+      },
+      "expected": {
+        "solvable": false,
+        "reason": "NO_FEASIBLE_RECTANGLE",
+        "note": "所有 X 空隙 <460m"
+      }
+    },
+    {
+      "name": "tangency",
+      "description": "两弹坑影响圆相切（闭集禁止共享点）",
+      "params": {
+        "L": 3000,
+        "W": 50,
+        "K": 1.5,
+        "expand": 1.5,
+        "step": 1,
+        "minLength": 460,
+        "minWidth": 15,
+        "backfill": 50,
+        "uxoHours": 8,
+        "tiers": 3
+      },
+      "obstacles": {
+        "craters": [
+          {
+            "visibleRadius": 4,
+            "x": 1000,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 6
+          },
+          {
+            "visibleRadius": 4,
+            "x": 1012,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 6
+          }
+        ],
+        "uxo": []
+      },
+      "expected": {
+        "solvable": true,
+        "tangent": true,
+        "note": "距离=12=6+6，相切视为碰撞"
+      }
+    },
+    {
+      "name": "boundary",
+      "description": "障碍物触及坐标边界 x=0",
+      "params": {
+        "L": 3000,
+        "W": 50,
+        "K": 1.5,
+        "expand": 1.5,
+        "step": 1,
+        "minLength": 460,
+        "minWidth": 15,
+        "backfill": 50,
+        "uxoHours": 8,
+        "tiers": 3
+      },
+      "obstacles": {
+        "craters": [
+          {
+            "visibleRadius": 5,
+            "x": 0,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 7.5
+          }
+        ],
+        "uxo": []
+      },
+      "expected": {
+        "solvable": true,
+        "note": "x=0 边界障碍，右侧仍有空间"
+      }
+    },
+    {
+      "name": "symmetric-tie",
+      "description": "两相同障碍物关于 x=L/2 对称，产生等面积候选",
+      "params": {
+        "L": 3000,
+        "W": 50,
+        "K": 1.5,
+        "expand": 1.5,
+        "step": 1,
+        "minLength": 460,
+        "minWidth": 15,
+        "backfill": 50,
+        "uxoHours": 8,
+        "tiers": 3
+      },
+      "obstacles": {
+        "craters": [
+          {
+            "visibleRadius": 5,
+            "x": 1000,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 7.5
+          },
+          {
+            "visibleRadius": 5,
+            "x": 2000,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 7.5
+          }
+        ],
+        "uxo": []
+      },
+      "expected": {
+        "solvable": true,
+        "tie": true,
+        "note": "左右候选等面积，总排序须唯一"
+      }
+    },
+    {
+      "name": "overlap",
+      "description": "两弹坑影响圆重叠",
+      "params": {
+        "L": 3000,
+        "W": 50,
+        "K": 1.5,
+        "expand": 1.5,
+        "step": 1,
+        "minLength": 460,
+        "minWidth": 15,
+        "backfill": 50,
+        "uxoHours": 8,
+        "tiers": 3
+      },
+      "obstacles": {
+        "craters": [
+          {
+            "visibleRadius": 4,
+            "x": 1000,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 6
+          },
+          {
+            "visibleRadius": 4,
+            "x": 1005,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 6
+          }
+        ],
+        "uxo": []
+      },
+      "expected": {
+        "solvable": true,
+        "overlap": true,
+        "note": "距离=5<12，禁区合并"
+      }
+    },
+    {
+      "name": "five-tier-nesting",
+      "description": "五级嵌套修复集合，面积单调非减",
+      "params": {
+        "L": 3000,
+        "W": 50,
+        "K": 1.5,
+        "expand": 1.5,
+        "step": 1,
+        "minLength": 460,
+        "minWidth": 15,
+        "backfill": 50,
+        "uxoHours": 8,
+        "tiers": 5
+      },
+      "obstacles": {
+        "craters": [
+          {
+            "visibleRadius": 5,
+            "x": 1500,
+            "y": 0,
+            "threat": "high",
+            "influenceRadius": 7.5
+          }
+        ],
+        "uxo": []
+      },
+      "expected": {
+        "solvable": true,
+        "nested_order": [
+          0,
+          2,
+          5,
+          7,
+          10
+        ],
+        "labels": [
+          "无",
+          "中等",
+          "中等",
+          "中等",
+          "高"
+        ],
+        "note": "嵌套顺序 floor(i*N/(T-1))"
+      }
+    },
+    {
+      "name": "duplicate-seed",
+      "description": "同种子重复生成须产出完全一致的字节",
+      "params": {
+        "L": 3000,
+        "W": 50,
+        "K": 1.5,
+        "expand": 1.5,
+        "step": 1,
+        "minLength": 460,
+        "minWidth": 15,
+        "backfill": 50,
+        "uxoHours": 8,
+        "tiers": 3
+      },
+      "obstacles": null,
+      "seed": 42,
+      "expected": {
+        "deterministic": true,
+        "note": "两次 generateFixture 结果 JSON 相同"
+      }
+    }
+  ],
+  "nested_fixture_order": {
+    "formula": "floor(tierIndex * N / (T-1))",
+    "example_T5_N10": [
+      0,
+      2,
+      5,
+      7,
+      10
+    ]
+  },
+  "difficulty_labels": {
+    "rule": "tier 0=无, tier T-1=高, 其余=中等",
+    "example_T5": [
+      "无",
+      "中等",
+      "中等",
+      "中等",
+      "高"
+    ]
+  },
+  "duplicate_seed_check": {
+    "seed": 42,
+    "identical": true
+  }
+}

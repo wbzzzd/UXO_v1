@@ -1,4 +1,5 @@
 #include "MainWindow/StatusBarWidget.h"
+#include "Common/GlobalStyle.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -13,7 +14,9 @@ constexpr int kStatusContentHeight = 22;
 constexpr int kStatusVerticalMargin = 1;
 constexpr int kSeparatorHeight = 18;
 constexpr int kAlarmHeight = 18;
-constexpr int kEmergencyButtonWidth = 80;
+// 紧急停止占位按钮宽度需容纳完整中文「紧急停止（模拟占位）」文本，
+// 在 1280/1920/4K 下均可完整显示，且保持禁用占位语义不变。
+constexpr int kEmergencyButtonWidth = 128;
 constexpr int kEmergencyButtonHeight = 20;
 
 }
@@ -84,27 +87,32 @@ void StatusBarWidget::setupUi()
 
     mainLayout->addStretch();
 
-    m_emergencyStopBtn = new QPushButton("紧急停止", this);
+    m_emergencyStopBtn = new QPushButton("紧急停止（模拟占位）", this);
     m_emergencyStopBtn->setFixedSize(kEmergencyButtonWidth, kEmergencyButtonHeight);
-    m_emergencyStopBtn->setStyleSheet(R"(
-        QPushButton {
-            background-color: #D32F2F;
-            color: #FFFFFF;
-            font-size: 11px;
-            font-weight: bold;
-            border: none;
-            border-radius: 3px;
-            min-width: 0px;
-            max-width: 80px;
-            padding: 0px;
-        }
-        QPushButton:hover {
-            background-color: #B71C1C;
-        }
-        QPushButton:pressed {
-            background-color: #C62828;
-        }
-    )");
+    // 模拟占位按钮：禁用且不可点击，明确告知用户无实际效果
+    m_emergencyStopBtn->setEnabled(false);
+    m_emergencyStopBtn->setToolTip(QStringLiteral("模拟占位，无实际效果"));
+    m_emergencyStopBtn->setStyleSheet(QString(
+        "QPushButton {"
+        "   background-color: %1;"
+        "   color: %2;"
+        "   font-size: 11px;"
+        "   font-weight: bold;"
+        "   border: 1px solid %3;"
+        "   border-radius: 3px;"
+        "   min-width: 0px;"
+        "   max-width: 128px;"
+        "   padding: 0px;"
+        "}"
+        "QPushButton:disabled {"
+        "   background-color: %4;"
+        "   color: %2;"
+        "   border: 1px solid %3;"
+        "}")
+        .arg(GlobalStyle::Colors::DangerRed)
+        .arg(GlobalStyle::Colors::TextDisabled)
+        .arg(GlobalStyle::Colors::Border)
+        .arg(GlobalStyle::Colors::ToolbarBackground));
     connect(m_emergencyStopBtn, &QPushButton::clicked, this, &StatusBarWidget::onEmergencyStop);
     mainLayout->addWidget(m_emergencyStopBtn);
 }

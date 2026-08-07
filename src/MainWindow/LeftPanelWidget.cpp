@@ -21,9 +21,9 @@ constexpr int kTargetConfidenceColumn = 2;
 constexpr int kTargetPositionColumn = 3;
 constexpr int kTargetStatusColumn = 4;
 
-constexpr int kTargetCheckColumnWidth = 28;
-constexpr int kTargetTypeColumnWidth = 52;
-constexpr int kTargetConfidenceColumnWidth = 48;
+constexpr int kTargetCheckColumnWidth = 20;
+constexpr int kTargetTypeColumnWidth = 80;
+constexpr int kTargetConfidenceColumnWidth = 40;
 constexpr int kTargetPositionColumnWidth = 72;
 
 QString simulationTargetStatusText(Core::TargetStatus status)
@@ -199,7 +199,8 @@ void LeftPanelWidget::setupTargetList()
     m_targetTable->setHorizontalHeaderLabels({"", "类型", "置信度", "位置", "模拟状态"});
     QHeaderView *targetHeader = m_targetTable->horizontalHeader();
     targetHeader->setStyleSheet("QHeaderView::section { background-color: #2D2D2D; color: #FFFFFF; padding: 4px; }");
-    // 固定压缩前四列共 200px，末列拉伸占满余量，保证 320px 面板内模拟状态可读。
+    // 固定前四列共 212px（check 20 + type 80 + conf 40 + pos 72），末列拉伸占满 320px 面板余量，
+    // 确保模拟状态表头与"[模拟] 已发现"值完整可读，同时类型/位置单元格不折行。
     targetHeader->setMinimumSectionSize(kTargetCheckColumnWidth);
     targetHeader->setSectionResizeMode(kTargetCheckColumn, QHeaderView::Fixed);
     targetHeader->setSectionResizeMode(kTargetTypeColumn, QHeaderView::Fixed);
@@ -211,6 +212,8 @@ void LeftPanelWidget::setupTargetList()
     m_targetTable->setColumnWidth(kTargetConfidenceColumn, kTargetConfidenceColumnWidth);
     m_targetTable->setColumnWidth(kTargetPositionColumn, kTargetPositionColumnWidth);
     m_targetTable->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    // 关闭自动折行，确保"模拟反跑道雷"和"X:108 Y:0"等作为完整单元格显示，不产生孤字。
+    m_targetTable->setWordWrap(false);
     m_targetTable->verticalHeader()->setVisible(false);
     m_targetTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_targetTable->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -224,7 +227,7 @@ void LeftPanelWidget::setupTargetList()
             border: none;
         }
         QTableWidget::item {
-            padding: 4px;
+            padding: 2px;
         }
         QTableWidget::item:selected {
             background-color: #2A3F54;

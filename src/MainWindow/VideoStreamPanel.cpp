@@ -10,8 +10,6 @@
 #include <QStyle>
 #include <QPainter>
 #include <QPaintEvent>
-#include <QTimer>
-#include <QDateTime>
 
 VideoStreamPanel::VideoStreamPanel(QWidget *parent)
     : QWidget(parent)
@@ -25,7 +23,6 @@ VideoStreamPanel::VideoStreamPanel(QWidget *parent)
     , m_fullscreenIndex(-1)
     , m_controlBar(nullptr)
     , m_fullscreenExitBtn(nullptr)
-    , m_updateTimer(nullptr)
 {
     setupUi();
 }
@@ -129,10 +126,6 @@ void VideoStreamPanel::setupUi()
     controlLayout->addWidget(fullscreenBtn);
 
     mainLayout->addWidget(m_controlBar);
-
-    m_updateTimer = new QTimer(this);
-    connect(m_updateTimer, &QTimer::timeout, this, &VideoStreamPanel::updateCellContents);
-    m_updateTimer->start(1000);
 }
 
 void VideoStreamPanel::createVideoCells()
@@ -157,7 +150,8 @@ void VideoStreamPanel::createVideoCells()
         cell.videoLabel->setAlignment(Qt::AlignCenter);
         cell.videoLabel->setMinimumHeight(60);
         cell.videoLabel->setStyleSheet("background-color: #0D0D0D; color: #666; font-size: 24px;");
-        cell.videoLabel->setText("●");
+        // 静态本地模拟占位文本：不随时间刷新，避免引入非必要的定时器。
+        cell.videoLabel->setText(QString("● REC %1\n[模拟视频]").arg(i + 1));
         cellLayout->addWidget(cell.videoLabel, 1);
 
         QWidget *infoBar = new QWidget(cell.widget);
@@ -241,17 +235,6 @@ void VideoStreamPanel::updateLayout()
         btn->setProperty("active", active);
         btn->style()->unpolish(btn);
         btn->style()->polish(btn);
-    }
-}
-
-void VideoStreamPanel::updateCellContents()
-{
-    QString timeStr = QDateTime::currentDateTime().toString("HH:mm:ss");
-    for (int i = 0; i < m_cells.size(); ++i) {
-        if (m_cells[i].widget->isVisible()) {
-            m_cells[i].videoLabel->setText(
-                QString("● REC %1\n%2").arg(i + 1).arg(timeStr));
-        }
     }
 }
 

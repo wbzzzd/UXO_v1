@@ -3,6 +3,13 @@ set(CORE_SOURCES
     3D/AirportSceneFactory.cpp
     Simulation/DemoScenarioProvider.cpp
     Simulation/SimulationWorkflow.cpp
+    MOS/MosTypes.cpp
+    MOS/MosValidation.cpp
+    MOS/MosFixtureGenerator.cpp
+    MOS/MosEstimator.cpp
+    MOS/MosPlanner.cpp
+    MOS/MosPlannerProgressive.cpp
+    MOS/MosPlanningSession.cpp
 )
 
 add_library(Core STATIC ${CORE_SOURCES})

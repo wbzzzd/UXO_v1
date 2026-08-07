@@ -4,7 +4,6 @@
 #include <QWidget>
 #include <QList>
 #include <QString>
-#include <QTimer>
 
 class QLabel;
 class QPushButton;
@@ -38,7 +37,6 @@ private:
     void setupUi();
     void createVideoCells();
     void updateLayout();
-    void updateCellContents();
 
     struct VideoCell {
         QWidget *widget;
@@ -62,8 +60,6 @@ private:
     QWidget *m_controlBar;
     QList<QPushButton*> m_layoutButtons;
     QPushButton *m_fullscreenExitBtn;
-
-    QTimer *m_updateTimer;
 };
 
 #endif
