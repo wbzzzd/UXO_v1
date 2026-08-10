@@ -31,11 +31,11 @@ flowchart LR
 | 构建目标 | 源码位置 | 当前责任 | 直接项目依赖 |
 |----------|----------|----------|--------------|
 | `UXOMissionControl` | `src/App/`、`include/App/` | `main.cpp`、CURRENT `Application` 生命周期类与窗口创建 | `MainWindow` |
-| `MainWindow` | `src/MainWindow/`、`include/MainWindow/` | 15 个 UI 源文件、面板、态势视图、状态栏、导航；承担 UI 组合与大部分协调 | `Common`、`Core` |
+| `MainWindow` | `src/MainWindow/`、`include/MainWindow/` | 9 个已编译 UI 模块（MainWindow、LeftPanelWidget、StatusBarWidget、NavigationWidget、VideoStreamPanel、VideoOverlayWidget、TacticalMapWidget、DeviceResourceBar、TargetDetailOverlay）；承担 UI 组合与大部分协调 | `Common`、`Core` |
 | `Core` | `src/Core/`、`include/Core/` | AirportData、AirportSceneFactory、DemoScenarioProvider、SimulationWorkflow | 无项目依赖 |
 | `Common` | `src/Common/`、`include/Common/` | GlobalStyle（UI 样式）、MockDataGenerator（无当前调用方） | 无项目依赖（注：`Core` 不链接 `Common`；`Common` 通过公共头文件目录引用 `Core/Data/Types.h`，构成隐藏依赖） |
 
-外部依赖：根 CMake 查找 `Qt5::Network` 与 `Qt5::Sql`，但无生产目标链接使用；ZeroMQ、PostgreSQL 只做可选探测；当前没有 MQTT 依赖。根 CMake 另定义 4 个测试目标，测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
+外部依赖：根 CMake 查找 `Qt5::Network` 与 `Qt5::Sql`，但无生产目标链接使用；ZeroMQ、PostgreSQL 只做可选探测；当前没有 MQTT 依赖。根 CMake 另定义 5 个测试目标，测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
 
 ## 3. CURRENT 启动与对象装配
 
@@ -54,9 +54,9 @@ sequenceDiagram
     App->>Window: new MainWindow()
     Window->>Window: setupUi()
     Window->>Demo: create()
-    Demo-->>Window: 1目标 + 1任务 + 2设备
-    Window->>Flow: reset(targets)
-    Window->>Panels: 下发targets/missions/devices
+    Demo-->>Window: 2设备 + 1任务 + 无人机航线 + 检测数据 + 机场边界（空起步：0 目标）
+    Window->>Flow: reset(空目标列表)
+    Window->>Panels: 下发missions/devices/航线/检测数据/机场边界
     App->>Window: show()
     Main->>App: run()
     App->>Window: 再次show同一窗口
@@ -76,10 +76,18 @@ sequenceDiagram
 MainWindow
 ├── m_missions（任务，静态）
 ├── m_devices（设备，静态）
-└── SimulationWorkflow（按值持有）
-    ├── targets（目标）
-    ├── 当前选择
-    └── logEntries（操作日志）
+├── SimulationWorkflow（按值持有）
+│   ├── targets（目标，空起步：探测阶段由 DetectionSimulator 动态注入）
+│   ├── 当前选择
+│   └── logEntries（操作日志）
+├── DroneTelemetrySimulator（无人机遥测模拟器）
+├── DetectionSimulator（检测结果模拟器，由视频位置驱动检测时机，输出 DetectionResult）
+├── m_evidenceByTargetId（冻结标注证据，内存 QMap<QString, DetectionEvidence>）
+├── m_tacticalMap（2D 战术地图目标列表）
+├── VideoStreamPanel（视频 PiP 面板，QMediaPlayer + QVideoWidget + QVideoProbe，播放本地视频文件）
+├── VideoOverlayWidget（HUD 叠加层，VideoStreamPanel 子 widget，无业务状态）
+├── DeviceResourceBar（设备资源条，36px，显示设备在线状态，无业务状态）
+└── TargetDetailOverlay（目标详情浮层，340px 不透明面板，显示选中目标的冻结标注证据）
 
 AlertPanel（自身告警展示数据）
 StatusBarWidget（自身告警展示数据）
@@ -87,7 +95,11 @@ StatusBarWidget（自身告警展示数据）
 
 | 状态 | 当前权威位置 | 复制/展示位置 | 问题 |
 |------|--------------|--------------|------|
-| 目标、当前选择、操作日志 | `SimulationWorkflow` | LeftPanel、DecisionPanel、SituationView、DetectionControlPanel 日志 | 需 MainWindow 手工同步到各 UI |
+| 目标、当前选择、操作日志 | `SimulationWorkflow` | LeftPanel、DecisionPanel、TacticalMap、DetectionControlPanel 日志 | 需 MainWindow 手工同步到各 UI |
+| 探测阶段遥测与检测模拟 | `DroneTelemetrySimulator`、`DetectionSimulator` | 视频位置/遥测 -> MainWindow 四区同步；2D 地图为 aspect-fit 卫星图共享 WGS84 叠加矩形，无人机沿跑道轴向本地模拟巡航，目标偏移按 UAV 航向旋转后转 WGS84 | 本地模拟数据，非真实 GIS/飞控；真实接入不在当前范围 |
+| 视频管线 | `VideoStreamPanel`（QMediaPlayer + QVideoWidget + QVideoProbe） | 播放本地视频文件驱动检测时机；QVideoProbe 探测帧用于冻结证据捕获 | 本地文件回放，非真实视频流；无真实视频分析或 AI 推理 |
+| 冻结标注证据 | `MainWindow::m_evidenceByTargetId`（内存 QMap）+ `TargetDetailOverlay` 显示 | 检测时捕获并标注，选中目标时在详情浮层显示 | 由 MainWindow 在检测事件中捕获、选择事件中下发到详情浮层 |
+| 2D 地图目标列表 | `TacticalMapWidget` 内部 m_items | 与目标表保持同步 | 副本，由 MainWindow 手工同步 |
 | 任务 | `MainWindow::m_missions` | LeftPanel、DecisionPanel | 静态，不随目标处置变化 |
 | 设备 | `MainWindow::m_devices` | LeftPanel、DeviceStatusPanel、StatusBar | 静态，不随任务变化 |
 | 告警展示数据 | `AlertPanel` 与 `StatusBarWidget` 各自保存 | 两套 UI | 启动时注入，无统一告警状态 |

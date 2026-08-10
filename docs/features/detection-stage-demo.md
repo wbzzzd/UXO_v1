@@ -1,8 +1,11 @@
-# 探测阶段动态演示
+# 探测阶段动态演示（时间线驱动方案）
 
-状态：Approved
-关联产品需求：REQ-008（PRODUCT.md §9.2，Approved）
+状态：Superseded
+关联产品需求：REQ-008（PRODUCT.md §9.2，Superseded）
 关联版本：待确认
+
+> **已被 REQ-009 / [drone-detection-demo.md](./drone-detection-demo.md) 取代。**
+> REQ-008 采用 5 个预设视频时间点驱动检测，不符合真实无人机工作流；坐标使用本地米坐标系无法对接真实经纬度；地图无无人机位置显示。REQ-009 改为无人机遥测模拟 + 检测模拟 + 目标坐标推算方案。本文档仅保留历史依据，不得指导实现。
 
 ## 1. 问题与目标
 
