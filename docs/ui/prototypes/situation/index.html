@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=1920, initial-scale=1">
-<title>排弹抢修指挥系统 V1.0 - 态势页面（设计评审原型）</title>
+<title>排弹抢修指挥系统 V1.0 - 态势页面（设计评审原型 · Map-Primary）</title>
 <style>
 :root{
+  /* === 设计系统 token（取自 docs/ui/design-system.md，禁止硬编码新值） === */
   --color-bg:#1E1E1E;--color-panel:#252526;--color-toolbar:#2D2D2D;--color-menu:#2D2D2D;
   --color-primary:#4A7A4C;--color-primary-hover:#5A8A5C;--color-danger:#D32F2F;--color-danger-hover:#B71C1C;
   --color-threat-high:#FF5252;--color-threat-medium:#FFB74D;--color-threat-low:#FFF176;
@@ -13,20 +14,20 @@
   --color-text-primary:#FFFFFF;--color-text-secondary:#AAAAAA;--color-text-disabled:#888888;
   --color-border:#3C3C3C;--color-border-focus:#4A7A4C;
   --color-selection:#2A3F54;--color-row-hover:#2A2A2A;
-  --color-ground:#2D4A2D;--color-runway:#3D3D3D;--color-taxiway:#4A4A4A;
+  /* 地图专用 token（在 :root 集中定义，避免行内硬编码） */
+  --color-ground:#2D4A2D;--color-grid:#3A3A3A;--color-runway:#3D3D3D;--color-taxiway:#4A4A4A;
   --font-family:"Noto Sans CJK SC","Microsoft YaHei","Source Han Sans SC","SimHei",sans-serif;
   --font-size-title:16px;--font-size-body:14px;--font-size-caption:12px;
-  --font-weight-title:bold;--font-weight-body:normal;
-  --size-nav-width:80px;--size-left-panel-width:320px;--size-right-panel-width:360px;
+  --size-nav-width:80px;--size-left-panel-width:320px;
   --size-status-bar-height:22px;--size-toolbar-height:32px;--size-menu-bar-height:30px;
-  --size-button-min-width:80px;--size-button-height:32px;--size-icon-button:24px;--size-toolbar-button-height:32px;
-  --space-button-pad-y:6px;--space-button-pad-x:16px;--space-input-pad-y:6px;--space-input-pad-x:8px;
-  --space-tab-pad-y:8px;--space-tab-pad-x:16px;--space-table-item-pad:8px;--space-toolbar-gap:8px;--space-toolbar-pad:8px;
-  --radius-control:4px;--radius-scroll-handle:5px;--size-checkbox:16px;--size-scrollbar:10px;--size-combo-dropdown:24px;--min-scroll-handle:30px;
-  --anim-short:150ms;--anim-normal:200ms;--anim-long:300ms;--anim-easing:ease-in-out;
+  --size-device-bar-height:36px;--size-left-pane-collapsed:40px;
+  --radius-control:4px;--radius-scroll-handle:5px;--size-scrollbar:10px;--min-scroll-handle:30px;
+  --anim-short:150ms;--anim-normal:200ms;--anim-easing:ease-in-out;
+  /* PiP 专用尺寸（16:9，参考 QGC/Auterion Mission Control） */
+  --pip-width:480px;--pip-height:270px;--pip-titlebar-h:24px;
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-family)}
-html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body);font-weight:var(--font-weight-body)}
+html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body)}
 button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;font-size:inherit}
 button:disabled{cursor:not-allowed}
 ::-webkit-scrollbar{width:var(--size-scrollbar);height:var(--size-scrollbar)}
@@ -36,265 +37,244 @@ button:disabled{cursor:not-allowed}
 
 .app{display:flex;flex-direction:column;width:1920px;height:1080px}
 
-/* 菜单栏 */
+/* ============ 菜单栏（沿用 application-shell.md §4，不变） ============ */
 .menu-bar{height:var(--size-menu-bar-height);background:var(--color-menu);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 4px}
 .menu-bar button{padding:6px 12px;font-size:var(--font-size-body);color:var(--color-text-primary);background:transparent;border-radius:0;transition:background var(--anim-short) var(--anim-easing)}
 .menu-bar button:hover{background:var(--color-border)}
-.menu-bar button.active{background:var(--color-primary)}
 .menu-bar button[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
 .menu-bar button[data-disabled="true"]:hover{background:transparent}
 
-/* 工具栏 */
-.toolbar{height:var(--size-toolbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:var(--space-toolbar-gap);padding:0 var(--space-toolbar-pad)}
-.toolbar .tb-label{color:var(--color-text-secondary);font-size:var(--font-size-caption);padding:4px}
-.toolbar .tb-label[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
-.toolbar .tb-label[data-omitted="true"]{display:none}
-.toolbar .tb-btn{padding:4px 8px;color:var(--color-text-secondary);font-size:var(--font-size-caption);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control);transition:all var(--anim-short) var(--anim-easing)}
+/* ============ 工具栏（简化：去掉探测演示控制与阶段进度） ============ */
+.toolbar{height:var(--size-toolbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:8px;padding:0 8px}
+.toolbar .tb-btn{padding:4px 12px;color:var(--color-text-primary);font-size:var(--font-size-caption);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control);transition:all var(--anim-short) var(--anim-easing)}
 .toolbar .tb-btn:hover{background:var(--color-border);color:var(--color-text-primary)}
+.toolbar .tb-btn[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed;border-color:var(--color-border)}
+.toolbar .tb-btn[data-disabled="true"]:hover{background:transparent}
+.toolbar .tb-separator{width:1px;height:20px;background:var(--color-border)}
+.toolbar .tb-spacer{flex:1}
+.toolbar .sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
 
-/* 主区域 */
+/* ============ 主区域 ============ */
 .main-area{flex:1;display:flex;overflow:hidden}
 
-/* 导航栏 */
+/* ============ 导航栏（沿用 application-shell.md §3，不变） ============ */
 .nav-bar{width:var(--size-nav-width);background:var(--color-bg);border-right:1px solid var(--color-border);display:flex;flex-direction:column;align-items:stretch}
 .nav-logo{height:40px;display:flex;align-items:center;justify-content:center;color:var(--color-primary);font-size:18px;font-weight:bold;letter-spacing:2px}
 .nav-spacer-1{height:16px}
 .nav-items{display:flex;flex-direction:column}
-.nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing)}
+.nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
 .nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
 .nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
 .nav-item .nav-icon{font-size:18px;line-height:1}
 .nav-spacer-2{flex:1}
 
-/* 左面板 */
-.left-panel{width:var(--size-left-panel-width);background:var(--color-panel);padding:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
-.search-toolbar{background:var(--color-toolbar);border-radius:var(--radius-control);padding:8px 6px;display:flex;gap:8px;align-items:center}
-.search-input{flex:1;height:28px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 8px;color:var(--color-text-primary);font-size:var(--font-size-body)}
+/* ============ 内容列：设备资源条 + 中心区 ============ */
+.content-column{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ============ 设备资源条（设备是资源，不是研判对象） ============ */
+.device-bar{height:var(--size-device-bar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:8px;padding:0 8px;overflow-x:auto}
+.device-bar .db-label{color:var(--color-text-secondary);font-size:var(--font-size-caption);margin-right:4px;white-space:nowrap}
+.device-card{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);cursor:pointer;transition:all var(--anim-short) var(--anim-easing);white-space:nowrap;font-size:var(--font-size-caption)}
+.device-card:hover{background:var(--color-row-hover);border-color:var(--color-border-focus)}
+.device-card.selected{border-color:var(--color-primary);background:var(--color-selection)}
+.device-card .dc-dot{width:8px;height:8px;border-radius:50%;background:var(--color-status-online)}
+.device-card .dc-id{color:var(--color-text-primary);font-weight:bold}
+.device-card .dc-batt{color:var(--color-status-online)}
+.device-card .dc-task{color:var(--color-text-secondary)}
+
+/* ============ 中心区：左pane（可折叠） + 地图（主舞台） ============ */
+.center-area{flex:1;display:flex;overflow:hidden;position:relative}
+
+/* ============ 左pane（可折叠目标列表，默认收起） ============ */
+.left-pane{background:var(--color-panel);border-right:1px solid var(--color-border);display:flex;flex-direction:column;overflow:hidden;transition:width var(--anim-normal) var(--anim-easing);flex-shrink:0}
+.left-pane.collapsed{width:var(--size-left-pane-collapsed)}
+.left-pane.collapsed .lp-content{display:none}
+.left-pane.collapsed .lp-toggle{width:100%;height:100%;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:2px;color:var(--color-text-secondary);font-size:var(--font-size-caption);background:var(--color-panel);border:none}
+.left-pane.collapsed .lp-toggle:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
+.left-pane:not(.collapsed){width:var(--size-left-panel-width)}
+.left-pane:not(.collapsed) .lp-toggle-collapsed{display:none}
+.left-pane:not(.collapsed) .lp-toggle{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;color:var(--color-text-secondary);border-radius:var(--radius-control)}
+.left-pane:not(.collapsed) .lp-toggle:hover{background:var(--color-border);color:var(--color-text-primary)}
+.lp-toggle-expanded{display:none}
+.left-pane:not(.collapsed) .lp-toggle-expanded{display:inline}
+.lp-content{flex:1;display:flex;flex-direction:column;gap:8px;padding:8px;overflow:hidden}
+.lp-header{display:flex;align-items:center;gap:8px}
+.lp-title{color:var(--color-text-primary);font-size:var(--font-size-body);font-weight:bold}
+/* 搜索栏（去掉筛选按钮） */
+.search-toolbar{background:var(--color-toolbar);border-radius:var(--radius-control);padding:6px;display:flex;gap:6px;align-items:center}
+.search-input{flex:1;height:26px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 8px;color:var(--color-text-primary);font-size:var(--font-size-body)}
 .search-input:focus{outline:none;border-color:var(--color-border-focus)}
 .search-input::placeholder{color:var(--color-text-disabled)}
-.btn-filter{width:50px;height:28px;font-size:var(--font-size-caption);background:var(--color-toolbar);color:var(--color-text-secondary);border:1px solid var(--color-border);border-radius:var(--radius-control)}
-.btn-filter[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
-.btn-refresh{width:50px;height:28px;font-size:var(--font-size-caption);background:var(--color-primary);color:var(--color-text-primary);border:none;border-radius:var(--radius-control)}
+.btn-refresh{height:26px;padding:0 12px;font-size:var(--font-size-caption);background:var(--color-primary);color:var(--color-text-primary);border:none;border-radius:var(--radius-control)}
 .btn-refresh:hover{background:var(--color-primary-hover)}
-
-.status-tabs{background:var(--color-toolbar);border-radius:var(--radius-control);display:flex;padding:4px 0;gap:0}
-.status-tab{flex:1;padding:8px 2px;text-align:center;font-size:var(--font-size-caption);color:var(--color-text-secondary);border-bottom:2px solid transparent;background:transparent;transition:all var(--anim-short) var(--anim-easing)}
+/* 状态子标签 */
+.status-tabs{background:var(--color-toolbar);border-radius:var(--radius-control);display:flex;padding:4px 0}
+.status-tab{flex:1;padding:6px 2px;text-align:center;font-size:var(--font-size-caption);color:var(--color-text-secondary);border-bottom:2px solid transparent;background:transparent;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
 .status-tab:hover{background:var(--color-border)}
 .status-tab.selected{color:var(--color-text-primary);border-bottom-color:var(--color-primary)}
-
-.tab-widget{flex:1;display:flex;flex-direction:column;background:var(--color-panel);overflow:hidden}
-.tab-bar{display:flex;background:var(--color-toolbar);border-bottom:1px solid var(--color-border)}
-.tab-bar .tab{padding:var(--space-tab-pad-y) var(--space-tab-pad-x);font-size:var(--font-size-body);color:var(--color-text-secondary);background:var(--color-toolbar);border-bottom:2px solid transparent;transition:all var(--anim-short) var(--anim-easing)}
-.tab-bar .tab:hover{background:var(--color-border);color:var(--color-text-secondary)}
-.tab-bar .tab.selected{background:var(--color-bg);color:var(--color-text-primary);border-bottom-color:var(--color-primary)}
-.tab-bar .tab:focus-visible{outline:2px solid var(--color-border-focus);outline-offset:-2px}
-.tab-content{flex:1;overflow:auto}
-
+/* 目标表 */
+.lp-table-wrap{flex:1;overflow:auto;background:var(--color-panel)}
 .data-table{width:100%;border-collapse:collapse;font-size:var(--font-size-caption)}
-.data-table th{background:var(--color-toolbar);color:var(--color-text-primary);padding:4px;text-align:left;border-bottom:1px solid var(--color-border);font-weight:normal;position:sticky;top:0}
-.data-table td{padding:4px 8px;border-bottom:1px solid var(--color-border);color:var(--color-text-primary)}
-.data-table tbody tr{height:40px;cursor:pointer}
+.data-table th{background:var(--color-toolbar);color:var(--color-text-primary);padding:6px 4px;text-align:left;border-bottom:1px solid var(--color-border);font-weight:normal;position:sticky;top:0}
+.data-table td{padding:6px 8px;border-bottom:1px solid var(--color-border);color:var(--color-text-primary)}
+.data-table tbody tr{height:32px;cursor:pointer;transition:background var(--anim-short) var(--anim-easing)}
 .data-table tbody tr:hover{background:var(--color-row-hover)}
 .data-table tbody tr.selected{background:var(--color-selection)}
-.data-table tbody tr:nth-child(even){background:var(--color-panel)}
-.data-table tbody tr:nth-child(even):hover{background:var(--color-row-hover)}
-.data-table tbody tr:nth-child(even).selected{background:var(--color-selection)}
-.cb{width:var(--size-checkbox);height:var(--size-checkbox);accent-color:var(--color-primary)}
+.data-table tbody tr.pending{color:var(--color-text-disabled);opacity:0.6}
+.target-status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.target-status-dot.detected{background:var(--color-status-online)}
+.target-status-dot.pending{background:transparent;border:1px dashed var(--color-text-secondary)}
 
-/* 中心区 */
-.center-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.center-splitter{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.video-region{flex:3;display:flex;flex-direction:column;overflow:hidden;background:var(--color-bg);border-bottom:1px solid var(--color-border)}
-.info-region{flex:2;display:flex;flex-direction:column;overflow:hidden}
+/* ============ 2D 战术地图（主舞台，占满剩余空间） ============ */
+.tactical-map{flex:1;position:relative;overflow:hidden;background:var(--color-ground)}
+.map-bg{position:absolute;inset:0;background:radial-gradient(ellipse at center,var(--color-ground) 0%,#1E3A1E 100%)}
+/* 网格线（米坐标系 0-5000 × 0-3000） */
+.map-grid{position:absolute;inset:0;background-image:linear-gradient(var(--color-grid) 1px,transparent 1px),linear-gradient(90deg,var(--color-grid) 1px,transparent 1px);background-size:60px 60px;opacity:0.5}
+/* 坐标轴标签 */
+.map-axis-label{position:absolute;color:var(--color-text-disabled);font-size:10px;font-family:monospace;pointer-events:none}
+/* 跑道（横向，中间偏上） */
+.map-runway{position:absolute;left:8%;right:8%;top:33%;height:24px;background:var(--color-runway);border:1px solid var(--color-border);border-radius:2px}
+.map-runway::before{content:'';position:absolute;left:0;right:0;top:50%;height:2px;background:repeating-linear-gradient(90deg,var(--color-text-disabled) 0 20px,transparent 20px 40px);transform:translateY(-50%);opacity:0.6}
+.map-runway-label{position:absolute;left:50%;top:33%;transform:translate(-50%,-22px);color:var(--color-text-disabled);font-size:10px;letter-spacing:1px;pointer-events:none}
+/* 指北针（右上角） */
+.map-compass{position:absolute;right:16px;top:16px;width:40px;height:40px;border:1px solid var(--color-border);border-radius:50%;background:rgba(37,37,38,0.8);display:flex;align-items:center;justify-content:center;color:var(--color-text-primary);font-size:14px;font-weight:bold}
+.map-compass::before{content:'';position:absolute;left:50%;top:4px;width:2px;height:14px;background:var(--color-threat-high);transform:translateX(-50%)}
+/* 比例尺（左下角，避开 PiP 位置） */
+.map-scale{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;color:var(--color-text-secondary);font-size:10px;pointer-events:none}
+.map-scale-bar{width:80px;height:4px;background:var(--color-text-primary);border:1px solid var(--color-bg)}
+/* FOV 锥形（UAV-1 视场，半透明橙扇形向下） */
+.map-fov-cone{position:absolute;width:120px;height:90px;background:var(--color-threat-medium);opacity:0.22;clip-path:polygon(50% 0,0 100%,100% 100%);transform:translate(-50%,-2px);pointer-events:none}
+.map-fov-label{position:absolute;color:var(--color-threat-medium);font-size:10px;transform:translate(-50%,0);pointer-events:none;opacity:0.8}
+/* 设备标记 */
+.map-device{position:absolute;width:16px;height:16px;transform:translate(-50%,-50%);cursor:pointer;z-index:5}
+.map-device.uav{background:var(--color-status-online);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.map-device.robot{background:var(--color-status-online);border-radius:2px}
+.map-device.selected{outline:2px solid var(--color-text-primary);outline-offset:2px}
+.map-device-label{position:absolute;color:var(--color-status-online);font-size:10px;transform:translate(-50%,16px);pointer-events:none;white-space:nowrap;text-shadow:0 0 2px var(--color-bg)}
+/* 目标标记 */
+.map-target{position:absolute;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;z-index:6}
+.map-target.high{background:var(--color-threat-high);box-shadow:0 0 6px var(--color-threat-high)}
+.map-target.medium{background:var(--color-threat-medium);box-shadow:0 0 6px var(--color-threat-medium)}
+.map-target.pending{background:transparent;border:1px dashed var(--color-text-disabled);opacity:0.5}
+.map-target.selected{outline:2px solid var(--color-text-primary);outline-offset:3px}
+.map-target.pulse{animation:pulse-ring 1.6s ease-out infinite}
+@keyframes pulse-ring{0%{box-shadow:0 0 6px var(--color-threat-high),0 0 0 0 rgba(255,82,82,0.6)}70%{box-shadow:0 0 6px var(--color-threat-high),0 0 0 14px rgba(255,82,82,0)}100%{box-shadow:0 0 6px var(--color-threat-high),0 0 0 0 rgba(255,82,82,0)}}
+.map-target-label{position:absolute;color:var(--color-text-primary);font-size:10px;transform:translate(-50%,12px);pointer-events:none;white-space:nowrap;text-shadow:0 0 2px var(--color-bg)}
+.map-target-label.pending{color:var(--color-text-disabled)}
 
-/* 视频流面板 */
-.vsp{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
-.vsp-grid{flex:1;display:grid;gap:2px;padding:2px;overflow:hidden}
-.vsp-grid.layout-1{grid-template-columns:1fr;grid-template-rows:1fr}
-.vsp-grid.layout-2{grid-template-columns:1fr 1fr;grid-template-rows:1fr}
-.vsp-grid.layout-3{grid-template-columns:1fr 1fr;grid-template-rows:2fr 1fr}
-.vsp-grid.layout-3 .vsp-cell:nth-child(1){grid-column:1/3}
-.vsp-grid.layout-4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
-.vsp-cell{background:#1A1A1A;border:1px solid var(--color-border);border-radius:2px;display:flex;flex-direction:column;overflow:hidden}
-.vsp-placeholder{flex:1;background:#0D0D0D;color:#666;font-size:24px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.6}
-.vsp-info-bar{height:28px;background:rgba(0,0,0,0.7);display:flex;align-items:center;padding:0 8px;gap:8px}
-.vsp-info-name{color:var(--color-text-primary);font-size:11px;font-weight:bold}
-.vsp-info-status{font-size:10px}
-.vsp-info-status.online{color:var(--color-status-online)}
-.vsp-info-status.offline{color:var(--color-text-disabled)}
-.vsp-cell-fullscreen{width:20px;height:20px;color:#AAA;font-size:14px;background:transparent;border:none}
-.vsp-cell-fullscreen:hover{color:var(--color-text-primary)}
-.vsp-control-bar{height:32px;background:var(--color-toolbar);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;gap:4px}
-.vsp-control-label{color:var(--color-text-secondary);font-size:var(--font-size-caption);margin-right:4px}
-.vsp-layout-btn{width:28px;height:24px;font-size:var(--font-size-caption);background:var(--color-bg);color:var(--color-text-primary);border:1px solid var(--color-border);border-radius:3px}
-.vsp-layout-btn:hover{background:var(--color-border)}
-.vsp-layout-btn.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
-.vsp-spacer{flex:1}
-.vsp-fullscreen-btn{width:48px;height:24px;font-size:var(--font-size-caption);background:var(--color-bg);color:var(--color-text-primary);border:1px solid var(--color-border);border-radius:3px}
-.vsp-fullscreen-btn:hover{background:var(--color-border)}
+/* ============ 视频 PiP 浮窗（左下角，16:9） ============ */
+.video-pip{position:absolute;left:16px;bottom:16px;width:var(--pip-width);height:calc(var(--pip-height) + var(--pip-titlebar-h));background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);box-shadow:0 4px 16px rgba(0,0,0,0.6);display:flex;flex-direction:column;z-index:20;overflow:hidden}
+.video-pip.hidden{display:none}
+.video-pip.main-mode{left:0;top:0;width:100%;height:100%;border:none;border-radius:0}
+.video-pip.minimized{height:var(--pip-titlebar-h)}
+.video-pip.minimized .pip-video-area{display:none}
+.video-pip.minimized .pip-resize-handle{display:none}
+.pip-titlebar{height:var(--pip-titlebar-h);background:var(--color-toolbar);display:flex;align-items:center;gap:6px;padding:0 6px;cursor:move;flex-shrink:0}
+.pip-status-dot{width:8px;height:8px;border-radius:50%;background:var(--color-status-online);flex-shrink:0}
+.pip-title{flex:1;font-size:var(--font-size-caption);color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pip-btn{width:20px;height:18px;font-size:11px;color:var(--color-text-secondary);border-radius:3px;display:flex;align-items:center;justify-content:center}
+.pip-btn:hover{background:var(--color-border);color:var(--color-text-primary)}
+.pip-btn.close:hover{background:var(--color-danger);color:var(--color-text-primary)}
+.pip-video-area{flex:1;position:relative;background:linear-gradient(135deg,#1a2a1a 0%,#2a3a2a 50%,#1a2a1a 100%);overflow:hidden}
+.pip-video-frame{position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,0.02) 0 2px,transparent 2px 4px)}
+.pip-hud-crosshair{position:absolute;left:50%;top:50%;width:40px;height:40px;transform:translate(-50%,-50%);pointer-events:none}
+.pip-hud-crosshair::before,.pip-hud-crosshair::after{content:'';position:absolute;background:rgba(255,255,255,0.5)}
+.pip-hud-crosshair::before{left:50%;top:0;bottom:0;width:1px;transform:translateX(-50%)}
+.pip-hud-crosshair::after{top:50%;left:0;right:0;height:1px;transform:translateY(-50%)}
+.pip-hud-info{position:absolute;font-size:10px;color:rgba(255,255,255,0.85);font-family:monospace;line-height:1.4;pointer-events:none}
+.pip-hud-info.tl{top:6px;left:6px}
+.pip-hud-info.tr{top:6px;right:6px;text-align:right}
+.pip-hud-info.bl{bottom:6px;left:6px}
+.pip-hud-info.br{bottom:6px;right:6px;text-align:right}
+.pip-rec-indicator{position:absolute;top:6px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-danger);font-weight:bold;pointer-events:none}
+.pip-rec-dot{width:8px;height:8px;border-radius:50%;background:var(--color-danger);animation:rec-blink 1.2s ease-in-out infinite}
+@keyframes rec-blink{0%,100%{opacity:1}50%{opacity:0.3}}
+/* 目标检测红框（闪烁，对应 TGT-002） */
+.pip-detection-box{position:absolute;left:40%;top:32%;width:90px;height:60px;border:2px solid var(--color-threat-high);animation:detect-blink 1s ease-in-out infinite;pointer-events:none}
+.pip-detection-box::after{content:'TGT-002 92%';position:absolute;top:-16px;left:0;font-size:10px;color:var(--color-threat-high);font-family:monospace;white-space:nowrap}
+@keyframes detect-blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.pip-resize-handle{position:absolute;right:0;bottom:0;width:14px;height:14px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,var(--color-text-secondary) 50%);z-index:21}
 
-/* 信息区 */
-.info-header{height:28px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;font-size:var(--font-size-caption);color:var(--color-text-secondary)}
-.info-splitter{flex:1;display:flex;gap:0;overflow:hidden}
-.alert-panel{flex:1;background:var(--color-panel);margin:8px 4px 8px 8px;border-radius:var(--radius-control);display:flex;flex-direction:column;overflow:hidden}
-.alert-header{height:28px;display:flex;align-items:center;padding:0 8px;gap:6px}
-.alert-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
-.alert-badge{width:20px;height:20px;background:var(--color-danger);color:#fff;font-size:10px;font-weight:bold;border-radius:10px;display:flex;align-items:center;justify-content:center}
-.alert-list{flex:1;overflow:auto;padding:0 4px 4px}
-.alert-item{height:36px;background:var(--color-toolbar);border-radius:3px;display:flex;align-items:center;padding:0 4px;gap:6px;margin-bottom:4px;cursor:pointer;transition:background var(--anim-short) var(--anim-easing)}
-.alert-item:hover{background:#363636}
-.alert-dot{width:16px;text-align:center;font-size:10px}
-.alert-dot.critical{color:var(--color-danger)}
-.alert-dot.error{color:var(--color-threat-high)}
-.alert-dot.warning{color:var(--color-threat-medium)}
-.alert-dot.info{color:var(--color-text-secondary)}
-.alert-time{width:40px;color:var(--color-text-disabled);font-size:11px}
-.alert-msg{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-.alert-msg.critical{color:var(--color-danger)}
-.alert-msg.error{color:var(--color-threat-high)}
-.alert-msg.warning{color:var(--color-threat-medium)}
-.alert-msg.info{color:var(--color-text-secondary)}
-.alert-more{padding:4px;text-align:center;color:var(--color-text-disabled);font-size:11px}
+/* 主屏模式：视频全屏时，地图缩成右上角小 PiP */
+.map-pip-when-video-main{position:absolute;right:16px;top:16px;width:240px;height:150px;background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);display:none;flex-direction:column;z-index:19;overflow:hidden}
+.map-pip-when-video-main.visible{display:flex}
+.map-pip-when-video-main .pip-titlebar{cursor:default}
+.map-mini{flex:1;background:var(--color-ground);position:relative}
+.map-mini::before{content:'';position:absolute;inset:0;background-image:linear-gradient(var(--color-grid) 1px,transparent 1px),linear-gradient(90deg,var(--color-grid) 1px,transparent 1px);background-size:20px 20px;opacity:0.5}
 
-.detection-panel{flex:1;background:var(--color-panel);margin:8px 8px 8px 4px;border-radius:var(--radius-control);display:flex;flex-direction:column;overflow:hidden}
-.dc-header{height:28px;display:flex;align-items:center;padding:0 8px;font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
-.dc-status-row{height:40px;display:flex;align-items:center;gap:8px;padding:0 8px}
-.dc-target-label{color:var(--color-text-primary);font-size:var(--font-size-caption)}
-.dc-status-label{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
-.dc-action-row{height:32px;display:flex;align-items:center;gap:8px;padding:0 8px}
-.dc-btn{width:68px;height:32px;border-radius:var(--radius-control);font-size:var(--font-size-caption);background:var(--color-primary);color:var(--color-text-primary);transition:background var(--anim-short) var(--anim-easing)}
-.dc-btn:hover:not(:disabled){background:var(--color-primary-hover)}
-.dc-btn:disabled{background:var(--color-border);color:var(--color-text-disabled)}
-.dc-log{flex:1;min-height:72px;margin:8px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:4px;color:var(--color-text-secondary);font-size:10px;overflow:auto;font-family:monospace}
+/* ============ 选中目标详情+研判浮层（右侧，选中目标时出现） ============ */
+.target-detail-overlay{position:absolute;top:16px;right:16px;width:340px;background:rgba(37,37,38,0.95);border:1px solid var(--color-border);border-radius:var(--radius-control);box-shadow:0 4px 20px rgba(0,0,0,0.7);padding:12px;display:none;flex-direction:column;gap:8px;z-index:15}
+.target-detail-overlay.visible{display:flex}
+.td-close{position:absolute;top:6px;right:6px;width:22px;height:22px;color:var(--color-text-secondary);border-radius:3px;font-size:14px;display:flex;align-items:center;justify-content:center}
+.td-close:hover{background:var(--color-danger);color:var(--color-text-primary)}
+.td-header{display:flex;align-items:center;gap:8px;padding-right:24px}
+.td-id{font-size:var(--font-size-title);font-weight:bold;color:var(--color-text-primary)}
+.td-type{padding:2px 8px;font-size:var(--font-size-caption);border-radius:var(--radius-control);background:var(--color-border)}
+.td-type.high{background:var(--color-threat-high);color:var(--color-text-primary)}
+.td-type.medium{background:var(--color-threat-medium);color:var(--color-text-primary)}
+.td-type.unknown{background:var(--color-text-disabled);color:var(--color-text-primary)}
+.td-row{display:flex;align-items:center;gap:8px;font-size:var(--font-size-caption)}
+.td-label{color:var(--color-text-secondary);width:64px;flex-shrink:0}
+.td-value{color:var(--color-text-primary)}
+.td-value.high{color:var(--color-threat-high);font-weight:bold}
+.td-value.medium{color:var(--color-threat-medium);font-weight:bold}
+.td-value.mono{font-family:monospace}
+.td-value.online{color:var(--color-status-online)}
+.td-conf-bar{flex:1;height:6px;background:var(--color-bg);border-radius:3px;overflow:hidden}
+.td-conf-fill{height:100%;background:var(--color-primary);transition:width var(--anim-normal) var(--anim-easing)}
+.td-actions{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.td-btn{height:30px;padding:0 12px;font-size:var(--font-size-caption);background:var(--color-toolbar);color:var(--color-text-primary);border:1px solid var(--color-border);border-radius:var(--radius-control);text-align:left}
+.td-btn:hover{background:var(--color-row-hover);border-color:var(--color-border-focus)}
+.td-btn.primary{background:var(--color-primary);border-color:var(--color-primary)}
+.td-btn.primary:hover{background:var(--color-primary-hover)}
+.td-assign-dropdown,.td-history-list{background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-control);font-size:var(--font-size-caption);overflow:hidden}
+.td-assign-option{padding:6px 12px;cursor:pointer;color:var(--color-text-primary)}
+.td-assign-option:hover{background:var(--color-row-hover)}
+.td-history-item{padding:6px 12px;border-bottom:1px solid var(--color-border);color:var(--color-text-secondary);display:flex;gap:8px}
+.td-history-item:last-child{border-bottom:none}
+.td-history-item .h-time{font-family:monospace;color:var(--color-text-primary)}
+.td-feedback{font-size:var(--font-size-caption);color:var(--color-status-online);min-height:16px}
+.td-pending-msg{font-size:var(--font-size-caption);color:var(--color-text-secondary);padding:8px 0}
 
-.batch-bar{height:48px;background:#333333;border-top:1px solid var(--color-border);display:none;align-items:center;padding:0 6px;gap:12px}
-.batch-bar.visible{display:flex}
-.batch-count{color:var(--color-text-primary);font-size:12px}
-.batch-assign{height:32px;padding:4px 16px;background:var(--color-primary);color:var(--color-text-primary);border:none;border-radius:var(--radius-control);font-size:var(--font-size-caption)}
-.batch-ignore{height:32px;padding:4px 16px;background:transparent;color:var(--color-text-secondary);border:1px solid var(--color-border);border-radius:var(--radius-control);font-size:var(--font-size-caption)}
-
-/* 右面板 */
-.right-panel{width:var(--size-right-panel-width);background:var(--color-panel);display:flex;flex-direction:column;overflow:hidden}
-.rp-section{display:flex;flex-direction:column;overflow:hidden}
-.rp-section.map{flex:5}
-.rp-section.device{flex:2}
-.rp-section.decision{flex:3;min-height:280px}
-.rp-section-header{height:32px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;gap:8px}
-.rp-section-title{flex:1;font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
-.rp-fullscreen-btn{width:24px;height:24px;color:var(--color-text-secondary);font-size:16px;background:transparent;border:none}
-.rp-fullscreen-btn[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
-
-.map-container{flex:1;position:relative;background:var(--color-bg);overflow:hidden}
-.map-canvas{position:absolute;inset:0;background:linear-gradient(180deg,#87CEEB 0%,#2D4A2D 60%,#1E1E1E 100%)}
-.map-ground{position:absolute;bottom:0;left:0;right:0;height:40%;background:var(--color-ground);opacity:0.6}
-.map-runway{position:absolute;left:20%;right:20%;bottom:15%;height:8px;background:var(--color-runway);border-radius:2px}
-.map-taxiway{position:absolute;left:45%;bottom:15%;width:4px;height:30%;background:var(--color-taxiway)}
-.map-marker{position:absolute;width:16px;height:16px;border-radius:2px;transform:translate(-50%,-50%);box-shadow:0 0 8px currentColor;cursor:default}
-.map-marker.high{background:var(--color-threat-high);color:var(--color-threat-high)}
-.map-marker.medium{background:var(--color-threat-medium);color:var(--color-threat-medium)}
-.map-marker.low{background:var(--color-threat-low);color:var(--color-threat-low)}
-.map-marker.selected{transform:translate(-50%,-50%) scale(1.4);box-shadow:0 0 16px #fff,0 0 8px currentColor}
-.map-marker-label{position:absolute;font-size:10px;color:var(--color-text-primary);background:rgba(0,0,0,0.7);padding:1px 4px;border-radius:2px;white-space:nowrap;transform:translate(-50%,12px)}
-
-.map-toolbar{position:absolute;top:8px;right:8px;width:60px;background:rgba(30,30,30,0.78);border-left:1px solid #3D3D3D;display:flex;flex-direction:column;align-items:center;padding:4px;gap:4px}
-.map-toolbar-title{color:var(--color-text-secondary);font-size:10px;padding:2px 0}
-.map-btn{width:40px;height:28px;font-size:12px;color:#fff;border:none;border-radius:2px;transition:background var(--anim-short) var(--anim-easing)}
-.map-btn.top{background:#0078D7}
-.map-btn.top:hover{background:#1984D8}
-.map-btn.side,.map-btn.btn3d{background:#4A4A4A;color:#DDDDDD;border:1px solid #5A5A5A}
-.map-btn.side:hover,.map-btn.btn3d:hover{background:#5A5A5A}
-.map-btn.reset{background:#D9534F;font-size:11px}
-.map-btn.reset:hover{background:#E74C3C}
-.map-zoom-label{color:var(--color-text-disabled);font-size:10px;height:20px;display:flex;align-items:center}
-.map-pos-label{color:#666666;font-size:9px;height:40px;text-align:center;line-height:1.2;word-break:break-all;padding:2px}
-
-.device-panel-content{padding:8px;display:flex;flex-direction:column;gap:4px;overflow:auto}
-.device-card{height:40px;background:var(--color-toolbar);border-radius:var(--radius-control);display:flex;align-items:center;padding:0 4px;gap:8px;cursor:default;transition:background var(--anim-short) var(--anim-easing)}
-.device-card:hover{background:#363636}
-.device-dot{width:14px;text-align:center;font-size:10px}
-.device-dot.online{color:var(--color-status-online)}
-.device-dot.idle{color:var(--color-status-online)}
-.device-dot.offline{color:var(--color-status-offline)}
-.device-dot.busy{color:var(--color-status-busy)}
-.device-dot.error{color:var(--color-status-error)}
-.device-name{width:80px;color:var(--color-text-primary);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.device-status-text{font-size:11px}
-.device-status-text.online{color:var(--color-status-online)}
-.device-status-text.idle{color:var(--color-status-online)}
-.device-status-text.offline{color:var(--color-status-offline)}
-.device-status-text.busy{color:var(--color-status-busy)}
-.device-status-text.error{color:var(--color-status-error)}
-.device-battery{width:40px;text-align:right;font-size:11px}
-.device-battery.high{color:var(--color-status-online)}
-.device-battery.mid{color:var(--color-status-busy)}
-.device-battery.low{color:var(--color-status-error)}
-
-.decision-panel-content{padding:8px;display:flex;flex-direction:column;gap:10px;overflow:auto}
-.decision-card{background:var(--color-toolbar);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:10px}
-.decision-status{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
-.decision-method-label{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
-.decision-method-value{color:var(--color-primary);font-size:var(--font-size-body);font-weight:bold}
-.decision-risk-row{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:bold}
-.decision-risk-row.high{color:var(--color-threat-high)}
-.decision-risk-row.medium{color:var(--color-threat-medium)}
-.decision-risk-row.low{color:var(--color-threat-low)}
-.decision-risk-row.unknown{color:var(--color-text-disabled)}
-.decision-conf-row{display:flex;align-items:center;gap:8px}
-.decision-conf-bar{flex:1;height:8px;background:var(--color-border);border-radius:var(--radius-control);overflow:hidden}
-.decision-conf-fill{height:100%;background:var(--color-primary);border-radius:var(--radius-control)}
-.decision-conf-text{width:36px;text-align:right;color:var(--color-text-primary);font-size:12px}
-.decision-detail{color:var(--color-text-secondary);font-size:var(--font-size-caption);line-height:1.4;white-space:pre-line}
-
-/* 状态栏 */
-.status-bar{height:28px;background:var(--color-bg);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:16px}
-.status-label{color:var(--color-text-primary);font-size:var(--font-size-caption)}
-.status-battery.high{color:var(--color-status-online)}
-.status-battery.mid{color:var(--color-status-busy)}
-.status-battery.low{color:var(--color-status-error)}
-.status-sim{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
-.status-separator{width:1px;height:18px;background:var(--color-border)}
-.status-alarm{flex:1;min-width:400px;height:18px;overflow:hidden;display:flex;align-items:center}
-.status-alarm-item{height:18px;color:var(--color-status-busy);font-size:var(--font-size-caption);background:var(--color-toolbar);padding:2px 8px;border-radius:var(--radius-control);margin-right:10px;white-space:nowrap}
-.emergency-btn{width:80px;height:20px;font-size:11px;font-weight:bold;background:var(--color-danger);color:var(--color-text-primary);border:none;border-radius:3px}
-.emergency-btn:disabled{background:var(--color-border);color:var(--color-text-disabled);cursor:not-allowed}
-
-/* 全屏单元格视图（隐藏） */
-.vsp-fullscreen-view{display:none;position:absolute;inset:0;background:#1A1A1A;z-index:10}
-.vsp-fullscreen-view.visible{display:flex;flex-direction:column}
-.vsp-exit-btn{position:absolute;top:8px;right:8px;width:80px;height:28px;background:rgba(0,0,0,0.59);color:#fff;border:none;border-radius:4px;font-size:var(--font-size-caption);z-index:11}
-.vsp-exit-btn:hover{background:rgba(0,0,0,0.78)}
-
-/* 标注 */
-.sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+/* ============ 状态栏 ============ */
+.status-bar{height:var(--size-status-bar-height);background:var(--color-primary);display:flex;align-items:center;padding:0 8px;gap:8px;font-size:var(--font-size-caption);color:var(--color-text-primary)}
+.status-label{white-space:nowrap}
+.status-separator{width:1px;height:14px;background:rgba(255,255,255,0.3)}
+.status-sim{background:rgba(0,0,0,0.3);padding:1px 6px;border-radius:var(--radius-control);font-weight:bold}
+.status-alarm{flex:1;overflow:hidden;position:relative;height:100%;display:flex;align-items:center}
+.status-alarm-track{display:flex;gap:32px;white-space:nowrap;animation:alarm-scroll 18s linear infinite}
+.status-alarm-item{color:var(--color-text-primary)}
+@keyframes alarm-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.emergency-btn{height:18px;padding:0 8px;font-size:11px;background:var(--color-danger);color:var(--color-text-primary);border-radius:var(--radius-control);font-weight:bold}
+.emergency-btn:disabled{background:var(--color-text-disabled);cursor:not-allowed}
 </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- 菜单栏 -->
+  <!-- ============ 菜单栏 ============ -->
   <div class="menu-bar">
     <button data-testid="SIT-MENU-FILE">文件(&amp;F)</button>
     <button data-testid="SIT-MENU-VIEW">视图(&amp;V)</button>
     <button data-testid="SIT-MENU-TOOLS" data-disabled="true" title="占位控件，未实现">工具(&amp;T)</button>
-    <button data-testid="SIT-MENU-DEVICE" data-omitted="true" style="display:none">设备(&amp;D)</button>
     <button data-testid="SIT-MENU-HELP">帮助(&amp;H)</button>
   </div>
 
-  <!-- 工具栏 -->
+  <!-- ============ 工具栏（简化：去掉探测演示控制/阶段进度/时间码） ============ -->
   <div class="toolbar">
-    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="SIT-TB-LAYER">图层控制</span>
-    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="SIT-TB-MEASURE">测量工具</span>
-    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="SIT-TB-PICK">坐标拾取</span>
-    <button class="tb-btn" data-testid="SIT-TB-RESET" title="复位三维相机视角">视角复位</button>
-    <span class="tb-label" data-omitted="true" data-testid="SIT-TB-SYNC" style="display:none">同步状态</span>
-    <span class="tb-label" data-omitted="true" data-testid="SIT-TB-BOOKMARK" style="display:none">书签</span>
-    <span class="tb-label" data-omitted="true" data-testid="SIT-TB-CONSOLE" style="display:none">设备控制台</span>
+    <button class="tb-btn" data-testid="SIT-TB-RESET" title="地图视角复位">视角复位</button>
+    <span class="tb-separator"></span>
+    <button class="tb-btn" data-testid="SIT-TB-LAYER" data-disabled="true" title="占位，未实现">图层</button>
+    <button class="tb-btn" data-testid="SIT-TB-MEASURE" data-disabled="true" title="占位，未实现">测量</button>
+    <button class="tb-btn" data-testid="SIT-TB-PICK" data-disabled="true" title="占位，未实现">坐标拾取</button>
+    <span class="tb-spacer"></span>
+    <span class="sim-tag">[模拟]</span>
   </div>
 
-  <!-- 主区域 -->
+  <!-- ============ 主区域 ============ -->
   <div class="main-area">
 
-    <!-- 导航栏 -->
+    <!-- ============ 导航栏（不变） ============ -->
     <div class="nav-bar">
       <div class="nav-logo" data-testid="SIT-NAV-LOGO">UXO</div>
       <div class="nav-spacer-1"></div>
@@ -309,355 +289,482 @@ button:disabled{cursor:not-allowed}
       <div class="nav-spacer-2"></div>
     </div>
 
-    <!-- 左面板 -->
-    <div class="left-panel">
-      <!-- 搜索栏 -->
-      <div class="search-toolbar">
-        <input type="text" class="search-input" placeholder="搜索目标..." data-testid="SIT-LP-SEARCH">
-        <button class="btn-filter" data-disabled="true" title="筛选功能未实现" data-testid="SIT-LP-FILTER">筛选</button>
-        <button class="btn-refresh" data-testid="SIT-LP-REFRESH" title="同步模拟数据">刷新</button>
-      </div>
-      <!-- 状态子标签 -->
-      <div class="status-tabs">
-        <div class="status-tab selected" data-testid="SIT-LP-TAB-PENDING">待处置任务 0</div>
-        <div class="status-tab" data-testid="SIT-LP-TAB-EXECUTING">处置中任务 0</div>
-        <div class="status-tab" data-testid="SIT-LP-TAB-COMPLETED">已完成任务 0</div>
-      </div>
-      <!-- 三标签页 -->
-      <div class="tab-widget">
-        <div class="tab-bar">
-          <div class="tab selected" data-testid="SIT-LP-PAGE-TARGET" tabindex="0">目标</div>
-          <div class="tab" data-testid="SIT-LP-PAGE-MISSION" tabindex="0">任务</div>
-          <div class="tab" data-testid="SIT-LP-PAGE-DEVICE" tabindex="0">设备</div>
-        </div>
-        <div class="tab-content">
-          <!-- 目标表 -->
-          <table class="data-table" data-testid="SIT-LP-TARGET-TABLE">
-            <thead>
-              <tr><th style="width:28px"></th><th style="width:52px">类型</th><th style="width:48px">置信度</th><th style="width:72px">位置</th><th>模拟状态</th></tr>
-            </thead>
-            <tbody>
-              <tr class="selected" data-target="target-demo-001">
-                <td><input type="checkbox" class="cb"></td>
-                <td style="color:var(--color-threat-high)">反跑道雷</td>
-                <td>86%</td>
-                <td>X:109 Y:34</td>
-                <td>[模拟] 已发现</td>
-              </tr>
-            </tbody>
-          </table>
-          <!-- 任务表（默认隐藏） -->
-          <table class="data-table" data-testid="SIT-LP-MISSION-TABLE" style="display:none">
-            <thead>
-              <tr><th style="width:48px">优先级</th><th>任务编号</th><th>执行设备</th><th>状态</th></tr>
-            </thead>
-            <tbody>
-              <tr class="selected">
-                <td style="color:var(--color-threat-high)">P0</td>
-                <td>mission-demo-001</td>
-                <td>UAV-1</td>
-                <td>已批准</td>
-              </tr>
-            </tbody>
-          </table>
-          <!-- 设备表（默认隐藏） -->
-          <table class="data-table" data-testid="SIT-LP-DEVICE-TABLE" style="display:none">
-            <thead>
-              <tr><th>设备名称</th><th style="width:60px">状态</th><th style="width:48px">电量</th></tr>
-            </thead>
-            <tbody>
-              <tr class="selected">
-                <td>UAV-1 侦察无人机</td>
-                <td style="color:var(--color-status-online)">在线</td>
-                <td style="color:var(--color-status-online)">95%</td>
-              </tr>
-              <tr>
-                <td>Robot-1 排爆机器人</td>
-                <td style="color:var(--color-status-online)">在线</td>
-                <td style="color:var(--color-status-online)">88%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <!-- ============ 内容列：设备资源条 + 中心区 ============ -->
+    <div class="content-column">
 
-    <!-- 中心区 -->
-    <div class="center-area">
-      <div class="center-splitter">
-        <!-- 视频流区 -->
-        <div class="video-region">
-          <div class="vsp" data-testid="SIT-VSP">
-            <div class="vsp-grid layout-4">
-              <div class="vsp-cell" data-testid="SIT-VSP-CELL-0">
-                <div class="vsp-placeholder">● REC 1<br>00:00:01</div>
-                <div class="vsp-info-bar">
-                  <span class="vsp-info-name">UAV-1 侦察无人机</span>
-                  <span class="vsp-spacer"></span>
-                  <span class="vsp-info-status online">● 在线 95%</span>
-                  <button class="vsp-cell-fullscreen" data-testid="SIT-VSP-CELL-0-FULLSCREEN" title="全屏查看">全</button>
-                </div>
-              </div>
-              <div class="vsp-cell" data-testid="SIT-VSP-CELL-1">
-                <div class="vsp-placeholder">● REC 2<br>00:00:01</div>
-                <div class="vsp-info-bar">
-                  <span class="vsp-info-name">UAV-2 排爆无人机</span>
-                  <span class="vsp-spacer"></span>
-                  <span class="vsp-info-status online">● 在线 88%</span>
-                  <button class="vsp-cell-fullscreen" data-testid="SIT-VSP-CELL-1-FULLSCREEN" title="全屏查看">全</button>
-                </div>
-              </div>
-              <div class="vsp-cell" data-testid="SIT-VSP-CELL-2">
-                <div class="vsp-placeholder">● REC 3<br>00:00:01</div>
-                <div class="vsp-info-bar">
-                  <span class="vsp-info-name">Robot-1 排爆机器人</span>
-                  <span class="vsp-spacer"></span>
-                  <span class="vsp-info-status online">● 在线 92%</span>
-                  <button class="vsp-cell-fullscreen" data-testid="SIT-VSP-CELL-2-FULLSCREEN" title="全屏查看">全</button>
-                </div>
-              </div>
-              <div class="vsp-cell" data-testid="SIT-VSP-CELL-3">
-                <div class="vsp-placeholder">● REC 4<br>00:00:01</div>
-                <div class="vsp-info-bar">
-                  <span class="vsp-info-name">GPR-1 探地雷达</span>
-                  <span class="vsp-spacer"></span>
-                  <span class="vsp-info-status offline">● 离线</span>
-                  <button class="vsp-cell-fullscreen" data-testid="SIT-VSP-CELL-3-FULLSCREEN" title="全屏查看">全</button>
-                </div>
-              </div>
+      <!-- 设备资源条（设备是资源，不是研判对象） -->
+      <div class="device-bar">
+        <span class="db-label">设备资源</span>
+        <div class="device-card selected" data-testid="SIT-DR-UAV1" data-device="UAV-1" title="点击调看视频">
+          <span class="dc-dot"></span>
+          <span class="dc-id">UAV-1</span>
+          <span class="dc-batt">82%</span>
+          <span class="dc-task">侦察中</span>
+        </div>
+        <div class="device-card" data-testid="SIT-DR-ROBOT1" data-device="Robot-1" title="点击调看视频">
+          <span class="dc-dot"></span>
+          <span class="dc-id">Robot-1</span>
+          <span class="dc-batt">74%</span>
+          <span class="dc-task">待命</span>
+        </div>
+      </div>
+
+      <!-- 中心区：左pane（可折叠） + 地图（主舞台） -->
+      <div class="center-area" data-testid="SIT-CENTER">
+
+        <!-- 左pane（可折叠目标列表，默认收起成窄条） -->
+        <div class="left-pane collapsed" id="leftPane">
+          <!-- 折叠按钮：收起态为竖排"▶ 目标"窄条，展开态为左上角 ◀ -->
+          <button class="lp-toggle" data-testid="SIT-LP-TOGGLE" id="lpToggle" title="展开/收起目标列表">
+            <span class="lp-toggle-collapsed">▶ 目标</span>
+            <span class="lp-toggle-expanded">◀</span>
+          </button>
+          <div class="lp-content">
+            <div class="lp-header">
+              <span class="lp-title">目标列表</span>
             </div>
-            <div class="vsp-control-bar">
-              <span class="vsp-control-label">分屏:</span>
-              <button class="vsp-layout-btn" data-testid="SIT-VSP-LAYOUT-1">1</button>
-              <button class="vsp-layout-btn" data-testid="SIT-VSP-LAYOUT-2">2</button>
-              <button class="vsp-layout-btn" data-testid="SIT-VSP-LAYOUT-3">3</button>
-              <button class="vsp-layout-btn active" data-testid="SIT-VSP-LAYOUT-4">4</button>
-              <span class="vsp-spacer"></span>
-              <button class="vsp-fullscreen-btn" data-testid="SIT-VSP-FULLSCREEN">全屏</button>
+            <!-- 搜索栏（输入框 + 刷新按钮，去掉筛选） -->
+            <div class="search-toolbar">
+              <input type="text" class="search-input" placeholder="搜索目标..." data-testid="SIT-LP-SEARCH">
+              <button class="btn-refresh" data-testid="SIT-LP-REFRESH" title="同步模拟数据">刷新</button>
             </div>
-            <!-- 全屏单格视图（默认隐藏） -->
-            <div class="vsp-fullscreen-view" data-testid="SIT-VSP-FULLSCREEN-VIEW">
-              <button class="vsp-exit-btn" data-testid="SIT-VSP-EXIT">退出全屏</button>
-              <div class="vsp-fullscreen-content"></div>
+            <!-- 状态子标签 -->
+            <div class="status-tabs">
+              <div class="status-tab selected" data-testid="SIT-LP-TAB-PENDING">待处置 3</div>
+              <div class="status-tab" data-testid="SIT-LP-TAB-EXECUTING">处置中 0</div>
+              <div class="status-tab" data-testid="SIT-LP-TAB-COMPLETED">已完成 0</div>
+            </div>
+            <!-- 目标表（只放目标，无任务/设备 tab） -->
+            <div class="lp-table-wrap">
+              <table class="data-table" data-testid="SIT-LP-TARGET-TABLE">
+                <thead>
+                  <tr><th>编号</th><th>类型</th><th>置信度</th><th>状态</th></tr>
+                </thead>
+                <tbody>
+                  <tr class="detected" data-target="TGT-001">
+                    <td>TGT-001</td>
+                    <td style="color:var(--color-threat-high)">反跑道雷</td>
+                    <td>86%</td>
+                    <td><span class="target-status-dot detected"></span>已发现</td>
+                  </tr>
+                  <tr class="detected" data-target="TGT-002">
+                    <td>TGT-002</td>
+                    <td style="color:var(--color-threat-high)">反跑道雷</td>
+                    <td>92%</td>
+                    <td><span class="target-status-dot detected"></span>已发现</td>
+                  </tr>
+                  <tr class="detected" data-target="TGT-003">
+                    <td>TGT-003</td>
+                    <td style="color:var(--color-threat-medium)">地雷</td>
+                    <td>78%</td>
+                    <td><span class="target-status-dot detected"></span>已发现</td>
+                  </tr>
+                  <tr class="pending" data-target="TGT-004">
+                    <td>TGT-004</td>
+                    <td>待检测</td>
+                    <td>-</td>
+                    <td><span class="target-status-dot pending"></span>未发现</td>
+                  </tr>
+                  <tr class="pending" data-target="TGT-005">
+                    <td>TGT-005</td>
+                    <td>待检测</td>
+                    <td>-</td>
+                    <td><span class="target-status-dot pending"></span>未发现</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
 
-        <!-- 信息区 -->
-        <div class="info-region">
-          <div class="info-header">信息面板</div>
-          <div class="info-splitter">
-            <!-- 告警面板 -->
-            <div class="alert-panel">
-              <div class="alert-header">
-                <span class="alert-title">告警信息</span>
-                <span class="alert-badge" data-testid="SIT-ALERT-COUNT">3</span>
-                <span style="flex:1"></span>
-              </div>
-              <div class="alert-list" data-testid="SIT-ALERT-LIST">
-                <div class="alert-item">
-                  <span class="alert-dot warning">●</span>
-                  <span class="alert-time">14:30</span>
-                  <span class="alert-msg warning">模拟告警 1: 模拟设备电量偏低</span>
-                </div>
-                <div class="alert-item">
-                  <span class="alert-dot info">●</span>
-                  <span class="alert-time">14:29</span>
-                  <span class="alert-msg info">模拟告警 2: 模拟目标待确认</span>
-                </div>
-                <div class="alert-item">
-                  <span class="alert-dot info">●</span>
-                  <span class="alert-time">14:28</span>
-                  <span class="alert-msg info">模拟告警 3: 模拟目标待确认</span>
-                </div>
-              </div>
-            </div>
-            <!-- 探测控制面板 -->
-            <div class="detection-panel">
-              <div class="dc-header">模拟流程与操作日志</div>
-              <div class="dc-status-row">
-                <span class="dc-target-label" data-testid="SIT-DC-TARGET">模拟目标：target-demo-001</span>
-                <span class="dc-status-label" data-testid="SIT-DC-STATUS">模拟状态：已发现</span>
-              </div>
-              <div class="dc-action-row">
-                <button class="dc-btn" data-testid="SIT-DC-CONFIRM">模拟确认</button>
-                <button class="dc-btn" data-disabled="true" data-testid="SIT-DC-START" disabled>模拟处置</button>
-                <button class="dc-btn" data-disabled="true" data-testid="SIT-DC-COMPLETE" disabled>模拟完成</button>
-              </div>
-              <div class="dc-log" data-testid="SIT-DC-LOG">[14:30:00] 系统启动，加载模拟场景
-[14:30:01] 已加载 1 个模拟目标、1 个模拟任务、2 个模拟设备
-[14:30:02] 目标 target-demo-001 已选择</div>
-            </div>
-          </div>
-          <!-- 批量操作条（默认隐藏） -->
-          <div class="batch-bar" data-testid="SIT-BOB">
-            <span class="batch-count" data-testid="SIT-BOB-COUNT">已选择: 0</span>
-            <span style="flex:1"></span>
-            <button class="batch-assign" data-testid="SIT-BOB-ASSIGN">分配任务</button>
-            <button class="batch-ignore" data-testid="SIT-BOB-IGNORE">标记忽略</button>
-          </div>
-        </div>
-      </div>
-    </div>
+        <!-- 2D 战术地图（主舞台，占满剩余空间） -->
+        <div class="tactical-map" data-testid="SIT-MAP">
+          <div class="map-bg"></div>
+          <div class="map-grid"></div>
+          <!-- 坐标轴标签（米坐标系 0-5000 × 0-3000） -->
+          <div class="map-axis-label" style="left:4px;top:4px">0,3000</div>
+          <div class="map-axis-label" style="right:4px;top:4px">5000,3000</div>
+          <div class="map-axis-label" style="left:4px;bottom:4px">0,0</div>
+          <div class="map-axis-label" style="right:4px;bottom:4px">5000,0</div>
+          <!-- 跑道（横向，中间偏上） -->
+          <div class="map-runway"></div>
+          <div class="map-runway-label">RUNWAY 09/27</div>
+          <!-- 指北针（右上角） -->
+          <div class="map-compass">N</div>
+          <!-- 比例尺（右下角） -->
+          <div class="map-scale">500m<span class="map-scale-bar"></span></div>
 
-    <!-- 右面板 -->
-    <div class="right-panel">
-      <!-- 三维态势地图 -->
-      <div class="rp-section map">
-        <div class="rp-section-header">
-          <span class="rp-section-title">三维态势地图</span>
-          <button class="rp-fullscreen-btn" data-disabled="true" title="全屏功能未实现" data-testid="SIT-RP-FULLSCREEN">全</button>
-        </div>
-        <div class="map-container">
-          <div class="map-canvas" data-testid="SIT-RP-MAP">
-            <div class="map-ground"></div>
-            <div class="map-runway"></div>
-            <div class="map-taxiway"></div>
-            <div class="map-marker high selected" style="left:50%;top:55%" title="target-demo-001 反跑道雷"></div>
-            <div class="map-marker-label" style="left:50%;top:55%">TGT-001</div>
-          </div>
-          <!-- 三维视图工具栏 -->
-          <div class="map-toolbar">
-            <div class="map-toolbar-title">视角</div>
-            <button class="map-btn top" data-testid="SIT-RP-TOP">俯</button>
-            <button class="map-btn side" data-testid="SIT-RP-SIDE">侧</button>
-            <button class="map-btn btn3d" data-testid="SIT-RP-3D">3D</button>
-            <button class="map-btn reset" data-testid="SIT-RP-RESET">复位</button>
-            <div class="map-zoom-label" data-testid="SIT-RP-ZOOM">缩放: 100%</div>
-            <div class="map-pos-label" data-testid="SIT-RP-POS">X:109<br>Y:34<br>Z:0</div>
-          </div>
-        </div>
-      </div>
-      <!-- 模拟设备状态 -->
-      <div class="rp-section device">
-        <div class="rp-section-header">
-          <span class="rp-section-title">模拟设备状态（只读）</span>
-        </div>
-        <div class="device-panel-content" data-testid="SIT-DS-LIST">
-          <div class="device-card" data-testid="SIT-DS-CARD-device-demo-drone-001">
-            <span class="device-dot online">●</span>
-            <span class="device-name">模拟侦察无人机</span>
-            <span class="device-status-text online">模拟在线</span>
-            <span style="flex:1"></span>
-            <span class="device-battery high">⚡82%</span>
-          </div>
-          <div class="device-card" data-testid="SIT-DS-CARD-device-demo-robot-001">
-            <span class="device-dot idle">●</span>
-            <span class="device-name">模拟排爆机器人</span>
-            <span class="device-status-text idle">模拟在线</span>
-            <span style="flex:1"></span>
-            <span class="device-battery high">⚡74%</span>
-          </div>
-        </div>
-      </div>
-      <!-- 模拟决策建议 -->
-      <div class="rp-section decision">
-        <div class="rp-section-header">
-          <span class="rp-section-title">模拟决策建议</span>
-        </div>
-        <div class="decision-panel-content">
-          <div class="decision-card" data-testid="SIT-DEC-PANEL">
-            <div class="decision-status" data-testid="SIT-DEC-STATUS">[模拟] 目标状态：已发现</div>
-            <div>
-              <div class="decision-method-label">建议方案</div>
-              <div class="decision-method-value" data-testid="SIT-DEC-METHOD">聚能引爆</div>
+          <!-- UAV-1 FOV 锥形（半透明橙扇形向下） -->
+          <div class="map-fov-cone" style="left:35%;top:22%"></div>
+          <div class="map-fov-label" style="left:35%;top:38%">UAV-1 FOV</div>
+
+          <!-- 设备标记 -->
+          <div class="map-device uav" data-device="UAV-1" style="left:35%;top:22%" title="UAV-1 侦察无人机 在线 82%"></div>
+          <div class="map-device-label" style="left:35%;top:22%">UAV-1</div>
+          <div class="map-device robot" data-device="Robot-1" style="left:50%;top:75%" title="Robot-1 排爆机器人 待命 74%"></div>
+          <div class="map-device-label" style="left:50%;top:75%">Robot-1</div>
+
+          <!-- 目标标记（5 个，前 3 已检测，后 2 待检测灰虚线半透明） -->
+          <div class="map-target high pulse" data-target="TGT-001" style="left:24%;top:27%" title="TGT-001 反跑道雷 86%"></div>
+          <div class="map-target-label" style="left:24%;top:27%">TGT-001</div>
+          <div class="map-target high" data-target="TGT-002" style="left:42%;top:48%" title="TGT-002 反跑道雷 92%"></div>
+          <div class="map-target-label" style="left:42%;top:48%">TGT-002</div>
+          <div class="map-target medium" data-target="TGT-003" style="left:68%;top:40%" title="TGT-003 地雷 78%"></div>
+          <div class="map-target-label" style="left:68%;top:40%">TGT-003</div>
+          <div class="map-target pending" data-target="TGT-004" style="left:56%;top:70%" title="TGT-004 待检测"></div>
+          <div class="map-target-label pending" style="left:56%;top:70%">TGT-004?</div>
+          <div class="map-target pending" data-target="TGT-005" style="left:82%;top:30%" title="TGT-005 待检测"></div>
+          <div class="map-target-label pending" style="left:82%;top:30%">TGT-005?</div>
+
+          <!-- 选中目标详情+研判浮层（右侧，默认隐藏） -->
+          <div class="target-detail-overlay" data-testid="SIT-TD-PANEL" id="tdPanel">
+            <button class="td-close" data-testid="SIT-TD-CLOSE" id="tdClose" title="关闭">✕</button>
+            <div class="td-header">
+              <span class="td-id" data-testid="SIT-TD-ID">TGT-002</span>
+              <span class="td-type high" data-testid="SIT-TD-TYPE">反跑道雷</span>
             </div>
-            <div class="decision-risk-row high">
-              <span>风险等级:</span>
-              <span data-testid="SIT-DEC-RISK">● 高</span>
+            <div class="td-detail-rows" id="tdDetailRows">
+              <div class="td-row"><span class="td-label">威胁等级</span><span class="td-value high" data-testid="SIT-TD-THREAT">● 高</span></div>
+              <div class="td-row"><span class="td-label">置信度</span><span class="td-value mono" data-testid="SIT-TD-CONF-TEXT">92%</span><div class="td-conf-bar"><div class="td-conf-fill" data-testid="SIT-TD-CONF-BAR" style="width:92%"></div></div></div>
+              <div class="td-row"><span class="td-label">坐标(米)</span><span class="td-value mono" data-testid="SIT-TD-COORD">X:2100 Y:1440</span></div>
+              <div class="td-row"><span class="td-label">检测设备</span><span class="td-value online" data-testid="SIT-TD-DEVICE">UAV-1</span></div>
+              <div class="td-row"><span class="td-label">距跑道</span><span class="td-value mono" data-testid="SIT-TD-DIST">320m</span></div>
             </div>
-            <div class="decision-conf-row">
-              <span style="font-size:var(--font-size-caption)">置信度:</span>
-              <div class="decision-conf-bar"><div class="decision-conf-fill" style="width:86%" data-testid="SIT-DEC-CONF-BAR"></div></div>
-              <span class="decision-conf-text" data-testid="SIT-DEC-CONF-TEXT">86%</span>
+            <div class="td-actions" id="tdActions">
+              <button class="td-btn primary" data-testid="SIT-TD-BTN-TASK" id="tdBtnTask">创建处置任务</button>
+              <button class="td-btn" data-testid="SIT-TD-BTN-ASSIGN" id="tdBtnAssign">指派设备</button>
+              <div class="td-assign-dropdown" id="tdAssignDropdown" style="display:none">
+                <div class="td-assign-option" data-device="UAV-1">UAV-1 侦察无人机</div>
+                <div class="td-assign-option" data-device="Robot-1">Robot-1 排爆机器人</div>
+              </div>
+              <button class="td-btn" data-testid="SIT-TD-BTN-HISTORY" id="tdBtnHistory">查看历史检测</button>
+              <div class="td-history-list" id="tdHistoryList" style="display:none"></div>
             </div>
-            <div class="decision-detail" data-testid="SIT-DEC-DETAIL">模拟任务编号: mission-demo-001
-任务状态: 已批准
-执行单位: 模拟排爆组
-指派设备: device-demo-robot-001
-（模拟数据，不连接真实设备）</div>
+            <div class="td-pending-msg" id="tdPendingMsg" style="display:none">状态：待检测<br>目标尚未检测到，无研判操作（模拟）</div>
+            <div class="td-feedback" id="tdFeedback"></div>
+          </div>
+
+          <!-- 视频 PiP 浮窗（左下角，16:9） -->
+          <div class="video-pip" data-testid="SIT-PIP" id="videoPip">
+            <div class="pip-titlebar" data-testid="SIT-PIP-TITLEBAR" id="pipTitlebar">
+              <span class="pip-status-dot"></span>
+              <span class="pip-title" id="pipTitle">UAV-1 侦察无人机</span>
+              <button class="pip-btn" data-testid="SIT-PIP-SWAP" id="pipSwap" title="主次切换（视频全屏，地图缩成 PiP）">⇄</button>
+              <button class="pip-btn" data-testid="SIT-PIP-MIN" id="pipMin" title="最小化（只留标题条）">-</button>
+              <button class="pip-btn close" data-testid="SIT-PIP-CLOSE" id="pipClose" title="隐藏视频">✕</button>
+            </div>
+            <div class="pip-video-area" data-testid="SIT-PIP-VIDEO">
+              <div class="pip-video-frame"></div>
+              <div class="pip-hud-crosshair"></div>
+              <div class="pip-hud-info tl" id="pipHudTL">UAV-1<br>ALT: 120m<br>SPD: 15m/s</div>
+              <div class="pip-hud-info tr">LAT: 34.5678<br>LON: 117.9012<br>HDG: 045°</div>
+              <div class="pip-hud-info bl">ZOOM: 2x<br>IR: OFF</div>
+              <div class="pip-hud-info br" data-testid="SIT-PIP-TIMECODE" id="pipTimecode">14:30:45</div>
+              <div class="pip-rec-indicator"><span class="pip-rec-dot"></span>REC</div>
+              <!-- 目标检测红框（闪烁，对应 TGT-002） -->
+              <div class="pip-detection-box" data-testid="SIT-PIP-DETECT" id="pipDetect"></div>
+            </div>
+            <div class="pip-resize-handle" data-testid="SIT-PIP-RESIZE" id="pipResize"></div>
+          </div>
+
+          <!-- 主屏模式：视频全屏时，地图缩成右上角小 PiP -->
+          <div class="map-pip-when-video-main" id="mapPip">
+            <div class="pip-titlebar"><span class="pip-title" style="font-size:10px">2D 战术地图</span><button class="pip-btn" id="mapPipSwap" title="切回地图主屏">⇄</button></div>
+            <div class="map-mini"></div>
           </div>
         </div>
+
       </div>
     </div>
 
   </div>
 
-  <!-- 状态栏 -->
+  <!-- ============ 状态栏 ============ -->
   <div class="status-bar">
     <span class="status-label" data-testid="SIT-SB-DEVICE">设备: 2/2 在线</span>
     <span class="status-separator"></span>
-    <span class="status-label status-battery high" data-testid="SIT-SB-BATTERY">最低电量: 74%</span>
+    <span class="status-label" data-testid="SIT-SB-BATTERY">最低电量: 74%</span>
     <span class="status-separator"></span>
     <span class="status-sim" data-testid="SIT-SB-SIM">[模拟模式]</span>
     <span class="status-separator"></span>
     <div class="status-alarm" data-testid="SIT-SB-ALARM">
-      <span class="status-alarm-item">模拟告警 1: 模拟设备电量偏低</span>
+      <div class="status-alarm-track">
+        <span class="status-alarm-item">[模拟] TGT-002 检测置信度 92%</span>
+        <span class="status-alarm-item">[模拟] UAV-1 电量 82%</span>
+        <span class="status-alarm-item">[模拟] TGT-001 检测置信度 86%</span>
+        <span class="status-alarm-item">[模拟] Robot-1 待命中</span>
+        <!-- 复制一份用于无缝滚动 -->
+        <span class="status-alarm-item">[模拟] TGT-002 检测置信度 92%</span>
+        <span class="status-alarm-item">[模拟] UAV-1 电量 82%</span>
+        <span class="status-alarm-item">[模拟] TGT-001 检测置信度 86%</span>
+        <span class="status-alarm-item">[模拟] Robot-1 待命中</span>
+      </div>
     </div>
-    <button class="emergency-btn" data-disabled="true" disabled title="危险占位：CURRENT 仅弹确认框，无设备停止效果，本试点禁用" data-testid="SIT-SB-EMERGENCY">紧急停止</button>
+    <button class="emergency-btn" data-disabled="true" disabled title="模拟占位，无实际效果" data-testid="SIT-SB-EMERGENCY">紧急停止</button>
   </div>
 
 </div>
 
 <script>
-// 简易交互：搜索过滤、标签切换、目标选中联动、模拟处置流程
+// ============ 交互逻辑 ============
+// 设计原则:地图为主舞台,选中威胁时详情+研判在右侧浮层浮现,关掉后地图恢复干净。
+// 1. 左pane折叠/展开  2. 目标选中联动(地图标记/左面板行/详情浮层)
+// 3. 详情浮层关闭     4. 研判操作(模拟反馈)  5. 视频PiP(拖动/缩放/最小化/关闭/主次切换)
+// 6. 设备资源条点击 -> 打开/切换PiP视频源  7. 导航/菜单仅高亮
 document.addEventListener('DOMContentLoaded',()=>{
-  const targetState={status:'Detected'};
-  const statusText={'Detected':'已发现','Confirmed':'已确认','Disposing':'处置中','Disposed':'已完成'};
-  const methodMap={'Detected':'聚能引爆','Confirmed':'聚能引爆','Disposing':'聚能引爆','Disposed':'聚能引爆'};
-  const log=document.querySelector('[data-testid="SIT-DC-LOG"]');
-  const dcStatus=document.querySelector('[data-testid="SIT-DC-STATUS"]');
-  const decStatus=document.querySelector('[data-testid="SIT-DEC-STATUS"]');
-  const btnConfirm=document.querySelector('[data-testid="SIT-DC-CONFIRM"]');
-  const btnStart=document.querySelector('[data-testid="SIT-DC-START"]');
-  const btnComplete=document.querySelector('[data-testid="SIT-DC-COMPLETE"]');
-  const targetRow=document.querySelector('[data-target]');
-  const targetStatusCell=targetRow?targetRow.children[4]:null;
-  function now(){const d=new Date();return [d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':')}
-  function appendLog(msg){const t=now();log.textContent+='\n['+t+'] '+msg}
-  function updateButtons(){
-    const s=targetState.status;
-    btnConfirm.disabled=s!=='Detected';
-    btnStart.disabled=s!=='Confirmed';
-    btnComplete.disabled=s!=='Disposing';
-    [btnConfirm,btnStart,btnComplete].forEach(b=>{if(b.disabled)b.setAttribute('data-disabled','true');else b.removeAttribute('data-disabled')});
+  // ===== 目标数据(模拟态势页 5 目标) =====
+  const targets={
+    'TGT-001':{type:'反跑道雷',threat:'high',conf:86,detected:true,x:1200,y:800,device:'UAV-1',dist:180},
+    'TGT-002':{type:'反跑道雷',threat:'high',conf:92,detected:true,x:2100,y:1440,device:'UAV-1',dist:320},
+    'TGT-003':{type:'地雷',threat:'medium',conf:78,detected:true,x:3400,y:1200,device:'UAV-2',dist:540},
+    'TGT-004':{type:'待检测',threat:'unknown',conf:0,detected:false,x:2800,y:2100,device:'-',dist:0},
+    'TGT-005':{type:'待检测',threat:'unknown',conf:0,detected:false,x:4100,y:900,device:'-',dist:0}
+  };
+  const threatText={'high':'● 高','medium':'● 中','unknown':'● 未知'};
+
+  // ===== DOM 引用 =====
+  const leftPane=document.getElementById('leftPane');
+  const lpToggle=document.getElementById('lpToggle');
+  const tdPanel=document.getElementById('tdPanel');
+  const tdClose=document.getElementById('tdClose');
+  const tdDetailRows=document.getElementById('tdDetailRows');
+  const tdActions=document.getElementById('tdActions');
+  const tdPendingMsg=document.getElementById('tdPendingMsg');
+  const tdFeedback=document.getElementById('tdFeedback');
+  const tdAssignDropdown=document.getElementById('tdAssignDropdown');
+  const tdHistoryList=document.getElementById('tdHistoryList');
+  const tdId=document.querySelector('[data-testid="SIT-TD-ID"]');
+  const tdType=document.querySelector('[data-testid="SIT-TD-TYPE"]');
+  const tdThreat=document.querySelector('[data-testid="SIT-TD-THREAT"]');
+  const tdConfText=document.querySelector('[data-testid="SIT-TD-CONF-TEXT"]');
+  const tdConfBar=document.querySelector('[data-testid="SIT-TD-CONF-BAR"]');
+  const tdCoord=document.querySelector('[data-testid="SIT-TD-COORD"]');
+  const tdDevice=document.querySelector('[data-testid="SIT-TD-DEVICE"]');
+  const tdDist=document.querySelector('[data-testid="SIT-TD-DIST"]');
+  const pip=document.getElementById('videoPip');
+  const pipTitlebar=document.getElementById('pipTitlebar');
+  const pipSwap=document.getElementById('pipSwap');
+  const pipMin=document.getElementById('pipMin');
+  const pipClose=document.getElementById('pipClose');
+  const pipResize=document.getElementById('pipResize');
+  const pipTimecode=document.getElementById('pipTimecode');
+  const pipTitle=document.getElementById('pipTitle');
+  const pipHudTL=document.getElementById('pipHudTL');
+  const mapPip=document.getElementById('mapPip');
+  const mapPipSwap=document.getElementById('mapPipSwap');
+  const tacticalMap=document.querySelector('.tactical-map');
+
+  // ===== 1. 左pane折叠/展开 =====
+  lpToggle.addEventListener('click',()=>{leftPane.classList.toggle('collapsed')});
+
+  // ===== 2. 目标选中联动 =====
+  function clearSelection(){
+    document.querySelectorAll('.map-target.selected,.map-device.selected').forEach(el=>el.classList.remove('selected'));
+    document.querySelectorAll('.data-table tbody tr.selected').forEach(tr=>tr.classList.remove('selected'));
   }
-  function updateStatusUI(){
-    const txt=statusText[targetState.status];
-    dcStatus.textContent='模拟状态：'+txt;
-    decStatus.textContent='[模拟] 目标状态：'+txt;
-    if(targetStatusCell)targetStatusCell.textContent='[模拟] '+txt;
+  function selectTarget(tgtId){
+    const t=targets[tgtId];
+    if(!t)return;
+    clearSelection();
+    // 地图标记高亮
+    const mapTgt=document.querySelector('.map-target[data-target="'+tgtId+'"]');
+    if(mapTgt)mapTgt.classList.add('selected');
+    // 左面板行高亮(展开态可见时)
+    const row=document.querySelector('tr[data-target="'+tgtId+'"]');
+    if(row)row.classList.add('selected');
+    // 详情浮层显示 + 内容更新
+    tdId.textContent=tgtId;
+    tdType.textContent=t.type;
+    tdType.className='td-type '+t.threat;
+    if(t.detected){
+      // 已检测:显示详情行+研判操作,隐藏待检测提示
+      tdDetailRows.style.display='';
+      tdActions.style.display='flex';
+      tdPendingMsg.style.display='none';
+      tdThreat.textContent=threatText[t.threat]||'● 未知';
+      tdThreat.className='td-value '+(t.threat==='unknown'?'':t.threat);
+      tdConfText.textContent=t.conf+'%';
+      tdConfBar.style.width=t.conf+'%';
+      tdCoord.textContent='X:'+t.x+' Y:'+t.y;
+      tdDevice.textContent=t.device;
+      tdDevice.className='td-value '+(t.device==='-'?'':'online');
+      tdDist.textContent=t.dist+'m';
+    }else{
+      // 待检测:隐藏详情行+研判操作,显示待检测提示
+      tdDetailRows.style.display='none';
+      tdActions.style.display='none';
+      tdPendingMsg.style.display='block';
+      tdThreat.textContent='';
+      tdConfText.textContent='-';
+      tdConfBar.style.width='0%';
+      tdCoord.textContent='-';
+      tdDevice.textContent='-';
+      tdDist.textContent='-';
+    }
+    // 重置研判反馈与下拉
+    tdFeedback.textContent='';
+    tdAssignDropdown.style.display='none';
+    tdHistoryList.style.display='none';
+    tdPanel.classList.add('visible');
   }
-  btnConfirm.addEventListener('click',()=>{targetState.status='Confirmed';updateStatusUI();updateButtons();appendLog('模拟确认：目标状态 -> 已确认')});
-  btnStart.addEventListener('click',()=>{targetState.status='Disposing';updateStatusUI();updateButtons();appendLog('模拟处置：目标状态 -> 处置中')});
-  btnComplete.addEventListener('click',()=>{targetState.status='Disposed';updateStatusUI();updateButtons();appendLog('模拟完成：目标状态 -> 已完成')});
-  // 搜索过滤
-  const search=document.querySelector('[data-testid="SIT-LP-SEARCH"]');
-  search.addEventListener('input',e=>{const q=e.target.value.toLowerCase();if(targetRow)targetRow.style.display=(!q||'反跑道雷target-demo-001'.includes(q))?'':'none'});
-  // 标签切换（同步显示对应表，隐藏其余）
-  const tabTableMap={'SIT-LP-PAGE-TARGET':'SIT-LP-TARGET-TABLE','SIT-LP-PAGE-MISSION':'SIT-LP-MISSION-TABLE','SIT-LP-PAGE-DEVICE':'SIT-LP-DEVICE-TABLE'};
-  document.querySelectorAll('.tab-bar .tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.tab-bar .tab').forEach(x=>x.classList.remove('selected'));t.classList.add('selected');const showId=tabTableMap[t.dataset.testid];document.querySelectorAll('.tab-content .data-table').forEach(tbl=>tbl.style.display=tbl.dataset.testid===showId?'':'none')})});
-  // 状态子标签切换
-  document.querySelectorAll('.status-tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.status-tab').forEach(x=>x.classList.remove('selected'));t.classList.add('selected')})});
-  // 视频分屏切换
-  document.querySelectorAll('.vsp-layout-btn').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.vsp-layout-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');const n=parseInt(b.textContent);const grid=document.querySelector('.vsp-grid');grid.className='vsp-grid layout-'+n;grid.querySelectorAll('.vsp-cell').forEach((c,i)=>c.style.display=i<n?'flex':'none')})});
-  // 单格全屏：点击 cell 上的"全"按钮或控制栏"全屏"按钮
-  const fsView=document.querySelector('.vsp-fullscreen-view');
-  const fsContent=fsView.querySelector('.vsp-fullscreen-content');
-  const fsExit=document.querySelector('[data-testid="SIT-VSP-EXIT"]');
-  function enterFullscreen(cellIndex){const srcCell=document.querySelector('[data-testid="SIT-VSP-CELL-'+cellIndex+'"]');if(!srcCell)return;const clone=srcCell.cloneNode(true);clone.style.display='flex';clone.style.height='100%';fsContent.innerHTML='';fsContent.appendChild(clone);fsView.classList.add('visible')}
-  function exitFullscreen(){fsView.classList.remove('visible');fsContent.innerHTML=''}
-  document.querySelectorAll('[data-testid^="SIT-VSP-CELL-"][data-testid$="-FULLSCREEN"]').forEach(btn=>{btn.addEventListener('click',e=>{e.stopPropagation();const cellId=btn.closest('.vsp-cell').dataset.testid;const idx=cellId.replace('SIT-VSP-CELL-','').replace(/-FULLSCREEN$/,'');enterFullscreen(parseInt(idx))})});
-  document.querySelector('[data-testid="SIT-VSP-FULLSCREEN"]').addEventListener('click',()=>enterFullscreen(0));
-  fsExit.addEventListener('click',exitFullscreen);
-  // 目标行点击
-  if(targetRow)targetRow.addEventListener('click',()=>{document.querySelectorAll('.data-table tbody tr').forEach(r=>r.classList.remove('selected'));targetRow.classList.add('selected')});
-  // 导航切换（仅高亮）
-  document.querySelectorAll('.nav-item').forEach(n=>{n.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));n.classList.add('selected')})});
-  // 刷新按钮
-  document.querySelector('[data-testid="SIT-LP-REFRESH"]').addEventListener('click',()=>{const b=this.event?.currentTarget;b&&setTimeout(()=>{},200);appendLog('刷新：重新读取模拟工作流')});
-  // REC 计时器更新
-  setInterval(()=>{const t=now();document.querySelectorAll('.vsp-placeholder').forEach((p,i)=>{p.innerHTML='● REC '+(i+1)+'<br>'+t})},1000);
+  // 绑定地图目标标记
+  document.querySelectorAll('.map-target[data-target]').forEach(m=>{
+    m.addEventListener('click',e=>{e.stopPropagation();selectTarget(m.dataset.target)});
+  });
+  // 绑定左面板表格行
+  document.querySelectorAll('.data-table tbody tr[data-target]').forEach(tr=>{
+    tr.addEventListener('click',()=>selectTarget(tr.dataset.target));
+  });
+
+  // ===== 3. 详情浮层关闭 =====
+  tdClose.addEventListener('click',e=>{e.stopPropagation();tdPanel.classList.remove('visible');clearSelection()});
+
+  // ===== 4. 研判操作(模拟反馈) =====
+  // 创建处置任务
+  document.getElementById('tdBtnTask').addEventListener('click',e=>{
+    e.stopPropagation();
+    const taskId='TASK-'+String(Math.floor(Math.random()*900)+100);
+    tdFeedback.textContent='✓ 已创建 '+taskId+'(模拟)';
+    tdAssignDropdown.style.display='none';
+    tdHistoryList.style.display='none';
+  });
+  // 指派设备 -> 展开下拉
+  document.getElementById('tdBtnAssign').addEventListener('click',e=>{
+    e.stopPropagation();
+    tdHistoryList.style.display='none';
+    tdAssignDropdown.style.display=tdAssignDropdown.style.display==='none'?'block':'none';
+  });
+  document.querySelectorAll('.td-assign-option').forEach(opt=>{
+    opt.addEventListener('click',e=>{
+      e.stopPropagation();
+      tdFeedback.textContent='✓ 已指派 '+opt.dataset.device+'(模拟)';
+      tdAssignDropdown.style.display='none';
+    });
+  });
+  // 查看历史检测 -> 展开历史列表(模拟)
+  document.getElementById('tdBtnHistory').addEventListener('click',e=>{
+    e.stopPropagation();
+    tdAssignDropdown.style.display='none';
+    if(tdHistoryList.style.display==='none'){
+      const id=tdId.textContent;
+      const t=targets[id];
+      // 模拟历史检测记录
+      const hist=t.detected?[
+        {time:'14:30:25',dev:t.device,conf:t.conf+'%'},
+        {time:'14:28:10',dev:t.device,conf:(t.conf-4)+'%'},
+        {time:'14:25:00',dev:'UAV-2',conf:(t.conf-8)+'%'}
+      ]:[];
+      tdHistoryList.innerHTML=hist.map(h=>'<div class="td-history-item"><span class="h-time">'+h.time+'</span><span>'+h.dev+'</span><span>置信度 '+h.conf+'</span></div>').join('')||'<div class="td-history-item">无历史记录(模拟)</div>';
+      tdHistoryList.style.display='block';
+    }else{
+      tdHistoryList.style.display='none';
+    }
+  });
+
+  // ===== 5. 视频PiP:主次切换/最小化/关闭/拖动/缩放 =====
+  let pipMainMode=false;
+  function togglePipMain(){
+    pipMainMode=!pipMainMode;
+    if(pipMainMode){pip.classList.add('main-mode');mapPip.classList.add('visible')}
+    else{pip.classList.remove('main-mode');mapPip.classList.remove('visible')}
+  }
+  pipSwap.addEventListener('click',e=>{e.stopPropagation();togglePipMain()});
+  pipTitlebar.addEventListener('dblclick',e=>{if(!e.target.closest('.pip-btn'))togglePipMain()});
+  mapPipSwap.addEventListener('click',togglePipMain);
+  pipMin.addEventListener('click',e=>{e.stopPropagation();pip.classList.toggle('minimized')});
+  pipClose.addEventListener('click',e=>{e.stopPropagation();pip.classList.add('hidden')});
+
+  // 拖动(标题栏) -- 初始化时把 CSS bottom 定位转为 top,避免拖动跳位
+  let dragStart=null;
+  function initPipPosition(){
+    if(!tacticalMap)return;
+    const initTop=tacticalMap.clientHeight-pip.offsetHeight-16;
+    pip.style.bottom='auto';
+    pip.style.top=initTop+'px';
+    pip.style.left='16px';
+  }
+  pipTitlebar.addEventListener('mousedown',e=>{
+    if(e.target.closest('.pip-btn'))return;
+    if(pipMainMode)return;
+    dragStart={x:e.clientX,y:e.clientY,px:pip.offsetLeft,py:pip.offsetTop};
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragStart)return;
+    const dx=e.clientX-dragStart.x;
+    const dy=e.clientY-dragStart.y;
+    const maxX=tacticalMap.clientWidth-pip.offsetWidth;
+    const maxY=tacticalMap.clientHeight-pip.offsetHeight;
+    pip.style.left=Math.max(0,Math.min(maxX,dragStart.px+dx))+'px';
+    pip.style.top=Math.max(0,Math.min(maxY,dragStart.py+dy))+'px';
+  });
+  document.addEventListener('mouseup',()=>{dragStart=null});
+  // 缩放(右下角拖动,16:9约束,240-800px范围)
+  let resizeStart=null;
+  pipResize.addEventListener('mousedown',e=>{
+    resizeStart={x:e.clientX,y:e.clientY,w:pip.offsetWidth,h:pip.offsetHeight};
+    e.preventDefault();e.stopPropagation();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!resizeStart)return;
+    const dx=e.clientX-resizeStart.x;
+    const newW=Math.max(240,Math.min(800,resizeStart.w+dx));
+    const newH=newW*9/16+24; // 16:9 + 标题栏
+    pip.style.width=newW+'px';
+    pip.style.height=newH+'px';
+  });
+  document.addEventListener('mouseup',()=>{resizeStart=null});
+
+  // ===== 6. 设备资源条点击 -> 打开/切换PiP视频源 =====
+  function switchPipSource(dev){
+    // 标记选中卡片
+    document.querySelectorAll('.device-card').forEach(c=>c.classList.toggle('selected',c.dataset.device===dev));
+    // 打开PiP(如已关闭)
+    pip.classList.remove('hidden');
+    // 更新标题与HUD(模拟)
+    pipTitle.textContent=dev+(dev==='UAV-1'?' 侦察无人机':' 排爆机器人');
+    pipHudTL.innerHTML=dev+'<br>'+(dev==='UAV-1'?'ALT: 120m<br>SPD: 15m/s':'POS: 待命<br>状态: 就绪');
+  }
+  document.querySelectorAll('.device-card').forEach(card=>{
+    card.addEventListener('click',()=>switchPipSource(card.dataset.device));
+  });
+  // 地图设备标记也可点击调看视频
+  document.querySelectorAll('.map-device[data-device]').forEach(m=>{
+    m.addEventListener('click',e=>{e.stopPropagation();switchPipSource(m.dataset.device)});
+  });
+
+  // ===== 7. 导航/菜单/状态标签 仅高亮,不路由 =====
+  document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));
+    n.classList.add('selected');
+  }));
+  document.querySelectorAll('.menu-bar button:not([data-disabled="true"])').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.menu-bar button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+  }));
+  document.querySelectorAll('.status-tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.status-tab').forEach(x=>x.classList.remove('selected'));
+    t.classList.add('selected');
+  }));
+
+  // ===== 8. 工具栏视角复位(模拟:把PiP与浮层复位) =====
+  document.querySelector('[data-testid="SIT-TB-RESET"]').addEventListener('click',()=>{
+    if(pipMainMode)togglePipMain();
+    tdPanel.classList.remove('visible');
+    clearSelection();
+    pip.classList.remove('hidden','minimized');
+    initPipPosition();
+  });
+
+  // ===== 9. PiP时间码实时更新(走表,模拟) =====
+  setInterval(()=>{
+    const d=new Date();
+    pipTimecode.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+  },1000);
+
+  // ===== 初始化 =====
+  initPipPosition();
+  window.addEventListener('resize',()=>{if(!pipMainMode)initPipPosition()});
 });
 </script>
 </body>

@@ -79,9 +79,10 @@ ctest --test-dir build --output-on-failure
 | CTest | 证明的能力 | 不证明的能力 |
 |-------|------------|--------------|
 | `startup_visible` | 主窗口可见、标题正确、模拟模式标识可见 | 配置、日志、数据库、通信初始化有效 |
-| `demo_scenario_provider` | 固定场景含 1 目标、1 任务、至少 2 设备，引用关系正确 | 多场景、文件加载、数据变化 |
+| `demo_scenario_provider` | 固定场景含 0 目标（空起步）、1 任务、至少 2 设备、无人机航线、检测数据、机场边界 | 多场景、文件加载、数据变化 |
 | `simulation_workflow` | 目标选择、四状态顺序、拒绝路径、日志顺序和重置 | 任务、设备、指派、持久化 |
-| `simulation_workflow_ui` | 真实点击目标和三步按钮后，目标表、流程面板、决策状态标签与日志同步 | 3D 渲染结果、导航、视频、任务分配、设备联动、告警交互、状态栏紧急停止 |
+| `simulation_workflow_ui` | 目标表、流程面板、决策状态标签与日志同步；目标表与 2D 战术地图双向高亮 | 真实视频文件渲染；3D 渲染结果；导航；任务分配；设备联动；状态栏紧急停止 |
+| `video_render_capture` | XCB 实际窗口中视频帧推进、侧栏目标选择、结束后回到 0s 并保留目标状态 | 其他显示后端；真实设备视频 |
 | `mos_validation` | MOS P0 输入包络规则（L/W/K/expand/step/minLength/minWidth/backfill/uxoHours/tiers 与弹坑、UXO 范围）的合法/非法/边界判定 | 真实业务阈值、真实安全边界、领域参数选型 |
 | `mos_fixture` | 确定性 fixture 生成与合成估算在五个种子向量下与冻结 oracle 一致 | 真实损毁分布、真实修复参数、外部数据 |
 | `mos_planner` | MOS 规划器任务规划流程与输出契约（简化 X 全投影 + Y 固定全宽算法） | 完整 Y 轴 1m 离散化算法、斜向搜索 |
@@ -94,7 +95,7 @@ ctest --test-dir build --output-on-failure
 | `mos_ui_closure` | 生成器浮点半径、合成参数措辞与 controller-owned 导出 | 真实导出目标、外部存储、网络 |
 | `mos_runway_closure` | 快照参数化几何、缩放/平移、选中档位单方案命中，以及 `influenceRadius × pxPerM` 影响圆半径契约 | 真实跑道几何、3D 渲染、真实安全距离 |
 
-测试通过只能证明表中列出的行为，不能用于声明整个客户端或某个未覆盖面板已完成。离屏 UI 测试中的 Qt3D 上下文警告不影响当前断言，因此全部测试通过也不证明三维场景成功渲染。
+测试通过只能证明表中列出的行为，不能用于声明整个客户端或某个未覆盖面板已完成。离屏 UI 测试中的 Qt3D 上下文警告不影响当前断言，因此全部测试通过也不证明三维场景成功渲染。`video_render_capture` 必须在 XCB 和可见显示环境中运行。
 
 ## 5. 当前构建目标
 

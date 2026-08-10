@@ -31,13 +31,13 @@ flowchart LR
 | 构建目标 | 源码位置 | 当前责任 | 直接项目依赖 |
 |----------|----------|----------|--------------|
 | `UXOMissionControl` | `src/App/`、`include/App/` | `main.cpp`、CURRENT `Application` 生命周期类与窗口创建 | `MainWindow` |
-| `MainWindow` | `src/MainWindow/`、`include/MainWindow/` | 15 个 UI 源文件、面板、态势视图、状态栏、导航；承担 UI 组合与大部分协调 | `Common`、`Core` |
-| `Core` | `src/Core/`、`include/Core/` | AirportData、AirportSceneFactory、DemoScenarioProvider、SimulationWorkflow；MOS 合成数据模型（MosTypes）、输入包络校验（MosValidation）、确定性合成 fixture 生成器（MosFixtureGenerator）、合成修复估算器（MosEstimator）、合成规划器（MosPlanner）、规划会话（MosPlanningSession） | 无项目依赖 |
+| `MainWindow` | `src/MainWindow/`、`include/MainWindow/` | 21 个已编译 UI 源文件：检测阶段控件（MainWindow、LeftPanelWidget、StatusBarWidget、NavigationWidget、VideoStreamPanel、VideoOverlayWidget、TacticalMapWidget、DeviceResourceBar、TargetDetailOverlay）+ MOS 决策模块（DecisionView 及其 Layout/Snapshot/Tier 辅助、MosPlanningController、MosRunwayWidget 及其 Interaction、MosParamsPanel、MosGeneratorDialog、TargetCardWidget、PlanCardWidget、AlertPanel）；承担 UI 组合与大部分协调 | `Common`、`Core` |
+| `Core` | `src/Core/`、`include/Core/` | AirportData、AirportSceneFactory、DemoScenarioProvider、SimulationWorkflow、DroneTelemetrySimulator、DetectionSimulator；MOS 合成数据模型（MosTypes）、输入包络校验（MosValidation）、确定性合成 fixture 生成器（MosFixtureGenerator）、合成修复估算器（MosEstimator）、合成规划器（MosPlanner/MosPlannerProgressive）、规划会话（MosPlanningSession） | 无项目依赖 |
 | `Common` | `src/Common/`、`include/Common/` | GlobalStyle（UI 样式）、MockDataGenerator（无当前调用方） | 无项目依赖（注：`Core` 不链接 `Common`；`Common` 通过公共头文件目录引用 `Core/Data/Types.h`，构成隐藏依赖） |
 
-外部依赖：根 CMake 查找 `Qt5::Network` 与 `Qt5::Sql`，但无生产目标链接使用；ZeroMQ、PostgreSQL 只做可选探测；当前没有 MQTT 依赖。根 CMake 另定义 15 个测试目标，测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
+外部依赖：根 CMake 查找 `Qt5::Network` 与 `Qt5::Sql`，但无生产目标链接使用；ZeroMQ、PostgreSQL 只做可选探测；当前没有 MQTT 依赖。根 CMake 另定义 16 个测试目标（5 个检测/通用 + 11 个 MOS），测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
 
-`MainWindow` 库内 `MosPlanningController` 拥有同步 `MosReplanWorker`（值持有，`Qt::DirectConnection` 直连），不引入生产 `QThread`；worker 调用 plain Core `MosPlanner::planProgressive` 后同步返回完成结果。`DecisionView` 只持有 `MosPlanningSnapshot` 副本，不拥有会话状态、不发起规划、不联网。`MosRunwayWidget` 的 P0 渲染只绘制并命中当前选中档位（`m_selectedTier`），在单一共享坐标系下使用各向同性 `pxPerM`（X/Y 共用同一比例），障碍物影响圆像素半径 = `influenceRadius × pxPerM`，绘制与命中测试共用同一公式且无钳制或系数。`VideoStreamPanel` 为静态本地模拟占位（固定文本 `● REC [模拟视频]`，不随时间刷新，不引入定时器）。
+`MainWindow` 库内 `MosPlanningController` 拥有同步 `MosReplanWorker`（值持有，`Qt::DirectConnection` 直连），不引入生产 `QThread`；worker 调用 plain Core `MosPlanner::planProgressive` 后同步返回完成结果。`DecisionView` 只持有 `MosPlanningSnapshot` 副本，不拥有会话状态、不发起规划、不联网。`MosRunwayWidget` 的 P0 渲染只绘制并命中当前选中档位（`m_selectedTier`），在单一共享坐标系下使用各向同性 `pxPerM`（X/Y 共用同一比例），障碍物影响圆像素半径 = `influenceRadius × pxPerM`，绘制与命中测试共用同一公式且无钳制或系数。
 
 ## 3. CURRENT 启动与对象装配
 
@@ -61,9 +61,9 @@ sequenceDiagram
     Window->>Ctrl: bootstrap seed=42 revision=1
     Ctrl-->>Window: 首次 fixture/plan/tier1 已就绪
     Window->>Demo: create()
-    Demo-->>Window: 1目标 + 1任务 + 2设备
-    Window->>Flow: reset(targets)
-    Window->>Panels: 下发targets/missions/devices
+    Demo-->>Window: 2设备 + 1任务 + 无人机航线 + 检测数据 + 机场边界（空起步：0 目标）
+    Window->>Flow: reset(空目标列表)
+    Window->>Panels: 下发missions/devices/航线/检测数据/机场边界
     Window->>Panels: 下发首次 MOS 快照(DecisionView)
     App->>Window: show()
     Main->>App: run()
@@ -93,9 +93,17 @@ MainWindow
 ├── m_missions（任务，静态）
 ├── m_devices（设备，静态）
 ├── SimulationWorkflow（按值持有）
-│   ├── targets（目标）
+│   ├── targets（目标，空起步：探测阶段由 DetectionSimulator 动态注入）
 │   ├── 当前选择
 │   └── logEntries（操作日志）
+├── DroneTelemetrySimulator（无人机遥测模拟器）
+├── DetectionSimulator（检测结果模拟器，由视频位置驱动检测时机，输出 DetectionResult）
+├── m_evidenceByTargetId（冻结标注证据，内存 QMap<QString, DetectionEvidence>）
+├── m_tacticalMap（2D 战术地图目标列表）
+├── VideoStreamPanel（视频 PiP 面板，QMediaPlayer + QVideoWidget + QVideoProbe，播放本地视频文件）
+├── VideoOverlayWidget（HUD 叠加层，VideoStreamPanel 子 widget，无业务状态）
+├── DeviceResourceBar（设备资源条，36px，显示设备在线状态，无业务状态）
+├── TargetDetailOverlay（目标详情浮层，340px 不透明面板，显示选中目标的冻结标注证据）
 └── MosPlanningController（QObject 子对象）
     ├── MosPlanningSession（按值持有，plain Core）
     │   ├── committedFixture / params / result / selectedTier（按值）
@@ -112,7 +120,11 @@ DecisionView（持有 MosPlanningSnapshot 副本，不拥有会话状态）
 
 | 状态 | 当前权威位置 | 复制/展示位置 | 问题 |
 |------|--------------|--------------|------|
-| 目标、当前选择、操作日志 | `SimulationWorkflow` | LeftPanel、DecisionPanel、SituationView、DetectionControlPanel 日志 | 需 MainWindow 手工同步到各 UI |
+| 目标、当前选择、操作日志 | `SimulationWorkflow` | LeftPanel、DecisionPanel、TacticalMap、DetectionControlPanel 日志 | 需 MainWindow 手工同步到各 UI |
+| 探测阶段遥测与检测模拟 | `DroneTelemetrySimulator`、`DetectionSimulator` | 视频位置/遥测 -> MainWindow 四区同步；2D 地图为 aspect-fit 卫星图共享 WGS84 叠加矩形，无人机沿跑道轴向本地模拟巡航，目标偏移按 UAV 航向旋转后转 WGS84 | 本地模拟数据，非真实 GIS/飞控；真实接入不在当前范围 |
+| 视频管线 | `VideoStreamPanel`（QMediaPlayer + QVideoWidget + QVideoProbe） | 播放本地视频文件驱动检测时机；QVideoProbe 探测帧用于冻结证据捕获 | 本地文件回放，非真实视频流；无真实视频分析或 AI 推理 |
+| 冻结标注证据 | `MainWindow::m_evidenceByTargetId`（内存 QMap）+ `TargetDetailOverlay` 显示 | 检测时捕获并标注，选中目标时在详情浮层显示 | 由 MainWindow 在检测事件中捕获、选择事件中下发到详情浮层 |
+| 2D 地图目标列表 | `TacticalMapWidget` 内部 m_items | 与目标表保持同步 | 副本，由 MainWindow 手工同步 |
 | 任务 | `MainWindow::m_missions` | LeftPanel、DecisionPanel | 静态，不随目标处置变化 |
 | 设备 | `MainWindow::m_devices` | LeftPanel、DeviceStatusPanel、StatusBar | 静态，不随任务变化 |
 | 告警展示数据 | `AlertPanel` 与 `StatusBarWidget` 各自保存 | 两套 UI | 启动时注入，无统一告警状态 |

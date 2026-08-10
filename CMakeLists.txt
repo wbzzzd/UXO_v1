@@ -20,6 +20,8 @@ find_package(Qt5 REQUIRED COMPONENTS
     Network
     Sql
     Test
+    Multimedia
+    MultimediaWidgets
 )
 
 find_package(ZeroMQ QUIET)
@@ -98,6 +100,25 @@ add_test(NAME simulation_workflow_ui COMMAND UXOMissionControlSimulationWorkflow
 set_tests_properties(simulation_workflow_ui PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
 )
+
+# 真实 XCB 行为验证：视频渲染、证据细节叠加层状态与结束/重置回退。
+add_executable(UXOMissionControlVideoRenderCaptureTest
+    tests/video_render_capture_test.cpp
+)
+target_include_directories(UXOMissionControlVideoRenderCaptureTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlVideoRenderCaptureTest
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    Qt5::Test
+    MainWindow
+    Core
+    Common
+)
+if(DEFINED ENV{DISPLAY} AND NOT "$ENV{DISPLAY}" STREQUAL "")
+    add_test(NAME video_render_capture COMMAND UXOMissionControlVideoRenderCaptureTest)
+    set_tests_properties(video_render_capture PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=xcb")
+endif()
 
 # 巡检员：随机点击 + 自洽性检查，独立进程循环运行。
 # 默认关闭，不影响主程序和现有测试构建。需显式开启：

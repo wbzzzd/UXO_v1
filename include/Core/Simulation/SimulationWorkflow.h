@@ -14,7 +14,8 @@ namespace Core::Simulation {
 enum class SimulationOperationType {
     TargetSelected,
     StatusChanged,
-    ActionRejected
+    ActionRejected,
+    TargetDetected  // 探测阶段新目标被"探测"到 (阶段4 探测脚本驱动)
 };
 
 // 内存日志使用序号保证顺序，不依赖系统时钟排序。
@@ -35,6 +36,10 @@ public:
     void reset(const QVector<Core::TargetInfo> &targets);
     bool selectTarget(const QString &targetId);
     bool requestSelectedTargetStatus(Core::TargetStatus requestedStatus);
+
+    // 阶段4 探测脚本驱动: 运行时插入新探测目标并追加探测日志
+    // target 为新探测到的目标; 追加一条 "[模拟] 探测到目标 TGT-XXX" 日志
+    void addTarget(const Core::TargetInfo &target);
 
     bool hasSelectedTarget() const;
     QString selectedTargetId() const;

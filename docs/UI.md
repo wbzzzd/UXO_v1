@@ -33,27 +33,22 @@ MainWindow 中心区由 `QStackedWidget` 承载，按导航索引切换页面：
 ```text
 MainWindow
 ├── MenuBar
-├── ToolBar（态势页可见；进入决策页时隐藏旧工具栏，仅保留 MOS 工具栏）
+
 ├── NavigationWidget（80px）
-├── LeftPanelWidget（320px）
+├── LeftPanelWidget（320px，目标/任务/设备三表 + 搜索 + 状态计数）
 ├── CenterArea
-│   ├── QStackedWidget
-│   │   ├── index0 SituationView（live）
-│   │   ├── index2 DecisionView（live，MOS P0 已实现）
-│   │   └── index1/3/4/5 态势占位（未实现页面回退）
-│   └── InfoArea（仅态势页显示）
-│       ├── AlertPanel
-│       ├── DetectionControlPanel
-│       └── BatchOperationBar（隐藏）
-├── RightPanelWidget（360~420px）
-│   ├── SituationView
-│   ├── DeviceStatusPanel
-│   └── DecisionSuggestionPanel（态势页只读子组件，非决策页）
-├── DecisionView（独立页面，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）
+│   ├── DeviceResourceBar（36px，设备资源条）
+│   ├── m_mapContainer（地图主舞台）
+│   │   ├── TacticalMapWidget（2D 战术地图，卫星底图 aspect-fit）
+│   │   ├── VideoStreamPanel（视频 PiP，左下浮动 480×294）
+│   │   └── TargetDetailOverlay（目标详情浮层，右上浮动 340px 不透明）
+│   └── m_mapToolbar（探测工具栏：重置/开始/结束）
 └── StatusBarWidget
 ```
 
-默认尺寸 1920×1080，最小尺寸 1280×720。决策页历史三视口几何证据见 `.omo/evidence/mos-p0-qt-closure-final/REPORT.md`；该证据采集于本轮单档位渲染修正之前，不能作为修正后的 fresh 多视口证据。该验证仅覆盖决策页，不覆盖态势页右面板的旧 `DecisionSuggestionPanel`。
+> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已编译但未在 MainWindow 中实例化。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）。
+
+默认尺寸 1920×1080，最小尺寸 1280×720。决策页历史三视口几何证据见 `.omo/evidence/mos-p0-qt-closure-final/REPORT.md`；该证据采集于本轮单档位渲染修正之前，不能作为修正后的 fresh 多视口证据。1280×720 下决策面板存在约 5px 底部溢出，当前记录为已知问题。
 
 ## 4. CURRENT 可见功能矩阵
 
@@ -85,8 +80,7 @@ MainWindow
 | 筛选按钮 | 占位 | 连接到空函数 | 无类型、威胁或状态筛选 |
 | 刷新按钮 | 部分完成 | 从当前内存状态重新下发各表和右侧设备 | 不重新加载场景，不解决多副本问题 |
 | 待处置/处置中/已完成计数 | 部分完成 | 根据静态任务状态显示数量 | 按钮不可切换筛选；任务状态不变化 |
-| 目标表选择 | 已完成 | 发出目标选择，驱动模拟工作流和右侧目标状态 | 只验证一个目标；复选框无批量用途 |
-| 目标表双击 | 部分完成 | 等同单击选择 | 不打开详情页 |
+| 目标表选择 | 已完成 | 单击发出目标选择，驱动模拟工作流、地图标点高亮和详情浮层证据显示 | 只验证一个目标；无双击事件 |
 | 任务表选择 | 占位 | 发出 `missionSelected` | MainWindow 无消费者 |
 | 设备表选择 | 占位 | 发出 `deviceSelected` | MainWindow 无消费者 |
 
@@ -94,10 +88,12 @@ MainWindow
 
 | 区域 | 状态 | 实际行为 | 缺口 |
 |------|------|----------|------|
-| 视频 1~4 分屏 | 部分完成 | 支持分屏数量和单格全屏 | 显示静态 `REC` 文本标签（无定时器），不接视频源 |
-| 模拟告警列表 | 部分完成 | 显示启动时生成的 3 条模拟告警和计数 | 告警不更新；条目点击 TODO；无确认和检索 |
+| 2D 战术地图 | 部分完成 | 卫星底图（用户提供 2000×1800 北朝上 PNG）aspect-fit 铺放，不裁剪，与 WGS84 叠加层共享同一显示矩形（机场边界四角对齐底图四角）；WGS84 经纬度本地线性映射，非真实 GIS；无人机沿观察到的跑道轴向 out-and-back 巡航（本地模拟航点，非真实飞控）；目标红点 + 脉冲动画 + ID 标签，目标坐标由检测画面偏移按 UAV 航向旋转后转 WGS84 推算；点击红点与目标表双向高亮 | 设备/路径渲染；多目标重叠处理；无真实 GIS/相机姿态+DEM 精确投影 |
+| 探测阶段视频面板 | 部分完成 | QMediaPlayer + QVideoWidget 播放本地演示视频；探测工具栏 [开始]/[结束]/[重置] 控制视频与模拟器 | 真实视频分析；多路分屏 |
+| 视频叠加层 | 已完成 | HUD-only（十字准星、REC 指示、遥测 LAT/LON/ALT/HDG、时间码）；不绘制检测框；鼠标事件透传给下层视频控件 | 真实检测算法接入 |
+| 模拟告警列表 | 部分完成 | 启动时 3 条模拟告警 + 探测阶段每目标追加 1 条 [模拟] 告警，计数同步 | 条目点击 TODO；无确认和检索 |
 | 模拟确认/处置/完成 | 已完成 | 按目标状态启用按钮，推进四状态工作流 | 不联动任务和设备 |
-| 模拟操作日志 | 部分完成 | 显示目标选择、状态变化和拒绝操作 | 仅内存；无筛选、导出或回放 |
+| 模拟操作日志 | 部分完成 | 显示目标选择、状态变化和拒绝操作；探测阶段目标注入追加日志 | 仅内存；无筛选、导出或回放 |
 | 批量操作栏 | 占位 | 类中有分配任务和标记忽略按钮 | 默认隐藏；无选择输入；信号无人消费 |
 
 ### 4.4 右侧面板与状态栏

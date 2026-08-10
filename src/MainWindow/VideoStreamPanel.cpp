@@ -1,289 +1,290 @@
 #include "MainWindow/VideoStreamPanel.h"
+#include "MainWindow/VideoOverlayWidget.h"
 #include "Common/GlobalStyle.h"
 
+#include <QVideoWidget>
+#include <QVideoProbe>
+#include <QVideoFrame>
+#include <QWidget>
+#include <QLabel>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QGridLayout>
-#include <QStackedWidget>
-#include <QLabel>
 #include <QPushButton>
-#include <QStyle>
-#include <QPainter>
-#include <QPaintEvent>
+#include <QEvent>
+
+// 标题栏高度 (像素, 对齐原型 --pip-titlebar-h: 24px)
+static constexpr int kTitleBarHeight = 24;
 
 VideoStreamPanel::VideoStreamPanel(QWidget *parent)
     : QWidget(parent)
-    , m_stackWidget(nullptr)
-    , m_gridContainer(nullptr)
-    , m_gridLayout(nullptr)
-    , m_singleContainer(nullptr)
-    , m_singleLayout(nullptr)
-    , m_streamCount(4)
-    , m_currentLayout(4)
-    , m_fullscreenIndex(-1)
-    , m_controlBar(nullptr)
-    , m_fullscreenExitBtn(nullptr)
+    , m_titleBar(nullptr)
+    , m_statusDot(nullptr)
+    , m_titleLabel(nullptr)
+    , m_swapBtn(nullptr)
+    , m_minimizeBtn(nullptr)
+    , m_closeBtn(nullptr)
+    , m_player(nullptr)
+    , m_videoWidget(nullptr)
+    , m_probe(nullptr)
+    , m_overlay(nullptr)
+    , m_videoArea(nullptr)
 {
     setupUi();
 }
 
 VideoStreamPanel::~VideoStreamPanel()
 {
+    if (m_player) {
+        // 先停止播放再释放媒体资源，确保 GStreamer 管道被正确清理
+        // 防止进程退出后 GStreamer 资源残留导致无法重新启动
+        m_player->stop();
+        m_player->setMedia(QMediaContent());
+    }
 }
 
 void VideoStreamPanel::setupUi()
 {
-    setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::Background));
+    setStyleSheet(QString("background-color: %1;")
+                  .arg(GlobalStyle::Colors::Background));
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
-    m_stackWidget = new QStackedWidget(this);
-    mainLayout->addWidget(m_stackWidget, 1);
+    // === 标题栏 ===
+    createTitleBar();
+    mainLayout->addWidget(m_titleBar);
 
-    m_gridContainer = new QWidget(this);
-    m_gridContainer->setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::Background));
-    m_gridLayout = new QGridLayout(m_gridContainer);
-    m_gridLayout->setContentsMargins(2, 2, 2, 2);
-    m_gridLayout->setSpacing(2);
+    // === 视频区: QVideoWidget + VideoOverlayWidget 叠加 ===
+    // overlay 作为 QVideoWidget 的子 widget, 避免非原生 overlay 与原生
+    // QVideoWidget 之间的 backing store 合成冲突 (黑屏闪烁根因)
+    m_videoArea = new QWidget(this);
+    m_videoArea->setStyleSheet("background-color: #000000;");
 
-    m_singleContainer = new QWidget(this);
-    m_singleContainer->setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::Background));
-    m_singleLayout = new QVBoxLayout(m_singleContainer);
-    m_singleLayout->setContentsMargins(2, 2, 2, 2);
-    m_singleLayout->setSpacing(0);
+    QVBoxLayout *videoLayout = new QVBoxLayout(m_videoArea);
+    videoLayout->setContentsMargins(0, 0, 0, 0);
+    videoLayout->setSpacing(0);
 
-    m_fullscreenExitBtn = new QPushButton("退出全屏", m_singleContainer);
-    m_fullscreenExitBtn->setFixedSize(80, 28);
-    // 固定尺寸视频按钮需覆盖全局最小宽度和内边距，确保留在控制栏内。
-    m_fullscreenExitBtn->setStyleSheet(QString(
-        "QPushButton { background-color: rgba(0,0,0,150); color: %1; border: none; border-radius: 4px; min-width: 0px; padding: 0px; font-size: 12px; }"
-        "QPushButton:hover { background-color: rgba(0,0,0,200); }")
+    m_videoWidget = new QVideoWidget(m_videoArea);
+    m_videoWidget->setStyleSheet("background-color: #000000;");
+    videoLayout->addWidget(m_videoWidget);
+
+    // HUD 叠加层 (透明, 作为 QVideoWidget 子 widget, 同一原生渲染面)
+    m_overlay = new VideoOverlayWidget(m_videoWidget);
+    m_overlay->setDeviceInfo(QStringLiteral("UAV-1"), QStringLiteral("UAV-1 侦察无人机"));
+
+    m_videoWidget->installEventFilter(this);
+    m_overlay->setGeometry(m_videoWidget->rect());
+
+    mainLayout->addWidget(m_videoArea, 1);
+
+    // QMediaPlayer: 输出到 QVideoWidget (原生渲染)
+    m_player = new QMediaPlayer(this);
+    m_player->setVideoOutput(m_videoWidget);
+    // 静音: 真实使用不需要音频, 同时消除 A/V 同步开销减少卡顿
+    m_player->setMuted(true);
+
+    // QVideoProbe: 拦截视频帧用于检测证据截图
+    m_probe = new QVideoProbe(this);
+    m_probe->setSource(m_player);
+    connect(m_probe, &QVideoProbe::videoFrameProbed,
+            this, &VideoStreamPanel::onFrameProbed);
+    connect(m_player, &QMediaPlayer::positionChanged,
+            this, &VideoStreamPanel::onPositionChanged);
+    connect(m_player, &QMediaPlayer::durationChanged,
+            this, &VideoStreamPanel::onDurationChanged);
+    connect(m_player, &QMediaPlayer::stateChanged,
+            this, &VideoStreamPanel::onStateChanged);
+    connect(m_player, &QMediaPlayer::mediaStatusChanged,
+            this, &VideoStreamPanel::onMediaStatusChanged);
+}
+
+void VideoStreamPanel::createTitleBar()
+{
+    m_titleBar = new QWidget(this);
+    m_titleBar->setObjectName(QStringLiteral("pipTitleBar"));
+    m_titleBar->setFixedHeight(kTitleBarHeight);
+    m_titleBar->setStyleSheet(
+        QStringLiteral("QWidget#pipTitleBar { background-color: %1; }")
+        .arg(GlobalStyle::Colors::ToolbarBackground));
+
+    QHBoxLayout *layout = new QHBoxLayout(m_titleBar);
+    layout->setContentsMargins(8, 0, 4, 0);
+    layout->setSpacing(6);
+
+    // 绿色在线状态点
+    m_statusDot = new QLabel(m_titleBar);
+    m_statusDot->setFixedSize(8, 8);
+    m_statusDot->setStyleSheet(
+        QStringLiteral("background-color: %1; border-radius: 4px;")
+        .arg(GlobalStyle::Colors::StatusOnline));
+    layout->addWidget(m_statusDot);
+
+    // 设备名称
+    m_titleLabel = new QLabel(QStringLiteral("UAV-1 侦察无人机"), m_titleBar);
+    m_titleLabel->setStyleSheet(
+        QStringLiteral("color: %1; font-size: 11px; border: none;")
         .arg(GlobalStyle::Colors::TextPrimary));
-    m_fullscreenExitBtn->hide();
-    connect(m_fullscreenExitBtn, &QPushButton::clicked, this, [this]() {
-        setFullscreenIndex(-1);
-    });
+    layout->addWidget(m_titleLabel);
 
-    m_stackWidget->addWidget(m_gridContainer);
-    m_stackWidget->addWidget(m_singleContainer);
+    layout->addStretch();
 
-    createVideoCells();
-    updateLayout();
-
-    m_controlBar = new QWidget(this);
-    m_controlBar->setFixedHeight(32);
-    m_controlBar->setStyleSheet(QString("background-color: %1; border-top: 1px solid %2;")
-        .arg(GlobalStyle::Colors::ToolbarBackground)
-        .arg(GlobalStyle::Colors::Border));
-
-    QHBoxLayout *controlLayout = new QHBoxLayout(m_controlBar);
-    controlLayout->setContentsMargins(8, 2, 8, 2);
-    controlLayout->setSpacing(4);
-
-    QLabel *layoutLabel = new QLabel("分屏:", m_controlBar);
-    layoutLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(GlobalStyle::Colors::TextSecondary));
-    controlLayout->addWidget(layoutLabel);
-
-    for (int count : {1, 2, 3, 4}) {
-        QPushButton *btn = new QPushButton(QString::number(count), m_controlBar);
-        btn->setFixedSize(28, 24);
-        btn->setProperty("layoutCount", count);
-        btn->setStyleSheet(QString(
-            "QPushButton { background-color: %1; color: %2; border: 1px solid %3; border-radius: 3px; min-width: 0px; padding: 0px; font-size: 12px; }"
-            "QPushButton:hover { background-color: %3; }"
-            "QPushButton[active=\"true\"] { background-color: %4; color: %2; border: 1px solid %4; }")
-            .arg(GlobalStyle::Colors::Background)
-            .arg(GlobalStyle::Colors::TextPrimary)
-            .arg(GlobalStyle::Colors::Border)
-            .arg(GlobalStyle::Colors::PrimaryGreen));
-        if (count == m_currentLayout) {
-            btn->setProperty("active", true);
-        }
-        connect(btn, &QPushButton::clicked, this, [this, count]() {
-            onLayoutButtonClicked(count);
-        });
-        controlLayout->addWidget(btn);
-        m_layoutButtons.append(btn);
-    }
-
-    controlLayout->addStretch();
-
-    QPushButton *fullscreenBtn = new QPushButton("全屏", m_controlBar);
-    fullscreenBtn->setFixedSize(48, 24);
-    fullscreenBtn->setStyleSheet(QString(
-        "QPushButton { background-color: %1; color: %2; border: 1px solid %3; border-radius: 3px; min-width: 0px; padding: 0px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %3; }")
-        .arg(GlobalStyle::Colors::Background)
+    const QString btnStyle = QString(
+        "QPushButton { background-color: transparent; color: %1; border: none; "
+        "padding: 2px 6px; font-size: 12px; }"
+        "QPushButton:hover { background-color: %2; }")
         .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::Border));
-    connect(fullscreenBtn, &QPushButton::clicked, this, [this]() {
-        if (m_fullscreenIndex < 0 && !m_cells.isEmpty()) {
-            setFullscreenIndex(0);
-        }
-    });
-    controlLayout->addWidget(fullscreenBtn);
+        .arg(GlobalStyle::Colors::Border);
 
-    mainLayout->addWidget(m_controlBar);
+    // 主次切换按钮
+    m_swapBtn = new QPushButton(QStringLiteral("⇄"), m_titleBar);
+    m_swapBtn->setObjectName(QStringLiteral("pipSwapButton"));
+    m_swapBtn->setToolTip(QStringLiteral("主次切换"));
+    m_swapBtn->setStyleSheet(btnStyle);
+    m_swapBtn->setFixedSize(24, 20);
+    layout->addWidget(m_swapBtn);
+
+    // 最小化按钮
+    m_minimizeBtn = new QPushButton(QStringLiteral("-"), m_titleBar);
+    m_minimizeBtn->setObjectName(QStringLiteral("pipMinimizeButton"));
+    m_minimizeBtn->setToolTip(QStringLiteral("最小化"));
+    m_minimizeBtn->setStyleSheet(btnStyle);
+    m_minimizeBtn->setFixedSize(24, 20);
+    layout->addWidget(m_minimizeBtn);
+
+    // 关闭按钮
+    m_closeBtn = new QPushButton(QStringLiteral("✕"), m_titleBar);
+    m_closeBtn->setObjectName(QStringLiteral("pipCloseButton"));
+    m_closeBtn->setToolTip(QStringLiteral("关闭"));
+    m_closeBtn->setStyleSheet(QString(
+        "QPushButton { background-color: transparent; color: %1; border: none; "
+        "padding: 2px 6px; font-size: 12px; }"
+        "QPushButton:hover { background-color: %2; color: %3; }")
+        .arg(GlobalStyle::Colors::TextPrimary)
+        .arg(GlobalStyle::Colors::DangerRed)
+        .arg(GlobalStyle::Colors::TextPrimary));
+    m_closeBtn->setFixedSize(24, 20);
+    layout->addWidget(m_closeBtn);
+
+    connect(m_swapBtn, &QPushButton::clicked, this, &VideoStreamPanel::swapRequested);
+    connect(m_minimizeBtn, &QPushButton::clicked, this, &VideoStreamPanel::minimizeRequested);
+    connect(m_closeBtn, &QPushButton::clicked, this, &VideoStreamPanel::closeRequested);
 }
 
-void VideoStreamPanel::createVideoCells()
+bool VideoStreamPanel::eventFilter(QObject *watched, QEvent *event)
 {
-    QStringList streamNames = {"UAV-1 侦察无人机", "UAV-2 排爆无人机", "Robot-1 排爆机器人", "GPR-1 探地雷达"};
-    QStringList streamStatuses = {"在线 | 信号: 95%", "在线 | 信号: 88%", "在线 | 信号: 92%", "离线"};
+    if (watched == m_videoWidget && event->type() == QEvent::Resize) {
+        m_overlay->setGeometry(m_videoWidget->rect());
+    }
+    return QWidget::eventFilter(watched, event);
+}
 
-    for (int i = 0; i < m_streamCount; ++i) {
-        VideoCell cell;
+void VideoStreamPanel::setDeviceTitle(const QString& title)
+{
+    m_titleLabel->setText(title);
+    m_overlay->setDeviceInfo(title.left(title.indexOf(QLatin1Char(' '))),
+                             title);
+}
 
-        cell.widget = new QWidget(m_gridContainer);
-        cell.widget->setStyleSheet(QString(
-            "background-color: %1; border: 1px solid %2; border-radius: 2px;")
-            .arg("#1A1A1A")
-            .arg(GlobalStyle::Colors::Border));
+void VideoStreamPanel::setMinimized(bool minimized)
+{
+    m_videoArea->setVisible(!minimized);
+}
 
-        QVBoxLayout *cellLayout = new QVBoxLayout(cell.widget);
-        cellLayout->setContentsMargins(0, 0, 0, 0);
-        cellLayout->setSpacing(0);
+void VideoStreamPanel::loadVideo(const QString& path)
+{
+    if (path.isEmpty()) {
+        return;
+    }
+    m_player->setMedia(QUrl::fromLocalFile(path));
+}
 
-        cell.videoLabel = new QLabel(cell.widget);
-        cell.videoLabel->setAlignment(Qt::AlignCenter);
-        cell.videoLabel->setMinimumHeight(60);
-        cell.videoLabel->setStyleSheet("background-color: #0D0D0D; color: #666; font-size: 24px;");
-        // 静态本地模拟占位文本：不随时间刷新，避免引入非必要的定时器。
-        cell.videoLabel->setText(QString("● REC %1\n[模拟视频]").arg(i + 1));
-        cellLayout->addWidget(cell.videoLabel, 1);
+void VideoStreamPanel::play()
+{
+    m_player->play();
+    m_stopped = false;
+}
 
-        QWidget *infoBar = new QWidget(cell.widget);
-        infoBar->setFixedHeight(28);
-        infoBar->setStyleSheet(QString("background-color: rgba(0,0,0,180);"));
+void VideoStreamPanel::pause()
+{
+    m_player->pause();
+}
 
-        QHBoxLayout *infoLayout = new QHBoxLayout(infoBar);
-        infoLayout->setContentsMargins(8, 2, 8, 2);
+void VideoStreamPanel::stop()
+{
+    m_player->stop();
+    m_lastFrame = QImage();
+    m_stopped = true;
+}
 
-        QString name = (i < streamNames.size()) ? streamNames[i] : QString("视频 %1").arg(i + 1);
-        cell.nameLabel = new QLabel(name, infoBar);
-        cell.nameLabel->setStyleSheet(QString("color: %1; font-size: 11px; font-weight: bold;")
-            .arg(GlobalStyle::Colors::TextPrimary));
-        infoLayout->addWidget(cell.nameLabel);
+void VideoStreamPanel::seek(qint64 ms)
+{
+    m_player->setPosition(ms);
+}
 
-        infoLayout->addStretch();
+qint64 VideoStreamPanel::position() const
+{
+    return m_player->position();
+}
 
-        QString status = (i < streamStatuses.size()) ? streamStatuses[i] : "未知";
-        cell.statusLabel = new QLabel(status, infoBar);
-        QString statusColor = status.contains("离线") ? GlobalStyle::Colors::TextDisabled : GlobalStyle::Colors::StatusOnline;
-        cell.statusLabel->setStyleSheet(QString("color: %1; font-size: 10px;").arg(statusColor));
-        infoLayout->addWidget(cell.statusLabel);
+qint64 VideoStreamPanel::duration() const
+{
+    return m_player->duration();
+}
 
-        cell.fullscreenBtn = new QPushButton("全", infoBar);
-        cell.fullscreenBtn->setToolTip("全屏查看");
-        cell.fullscreenBtn->setFixedSize(20, 20);
-        cell.fullscreenBtn->setStyleSheet(
-            "QPushButton { background: transparent; color: #AAA; border: none; min-width: 0px; padding: 0px; font-size: 14px; }"
-            "QPushButton:hover { color: white; }");
-        connect(cell.fullscreenBtn, &QPushButton::clicked, this, [this, i]() {
-            setFullscreenIndex(i);
-        });
-        infoLayout->addWidget(cell.fullscreenBtn);
+QImage VideoStreamPanel::currentFrameSnapshot() const
+{
+    return m_lastFrame;
+}
 
-        cellLayout->addWidget(infoBar);
+bool VideoStreamPanel::hasFrame() const
+{
+    return !m_lastFrame.isNull();
+}
 
-        m_cells.append(cell);
+VideoOverlayWidget* VideoStreamPanel::overlay() const
+{
+    return m_overlay;
+}
+
+void VideoStreamPanel::onPositionChanged(qint64 ms)
+{
+    emit positionChanged(ms);
+}
+
+void VideoStreamPanel::onDurationChanged(qint64 ms)
+{
+    emit durationChanged(ms);
+}
+
+void VideoStreamPanel::onStateChanged(QMediaPlayer::State state)
+{
+    emit stateChanged(state);
+}
+
+void VideoStreamPanel::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
+{
+    // 媒体到达结尾: 暂停播放并发出 videoEnded 信号
+    if (status == QMediaPlayer::EndOfMedia) {
+        m_player->pause();
+        emit videoEnded();
     }
 }
 
-void VideoStreamPanel::updateLayout()
+void VideoStreamPanel::onFrameProbed(const QVideoFrame &frame)
 {
-    while (m_gridLayout->count() > 0) {
-        QLayoutItem *item = m_gridLayout->takeAt(0);
-        if (item->widget()) {
-            item->widget()->hide();
-        }
-        delete item;
+    // 停止状态下不接收帧，避免在 stop() 后仍写入 m_lastFrame
+    if (m_stopped) {
+        return;
     }
-
-    int visibleCount = qMin(m_currentLayout, m_streamCount);
-
-    if (visibleCount == 1) {
-        m_gridLayout->addWidget(m_cells[0].widget, 0, 0);
-        m_cells[0].widget->show();
-        for (int i = 1; i < m_cells.size(); ++i) {
-            m_cells[i].widget->hide();
-        }
-    } else if (visibleCount == 2) {
-        m_gridLayout->addWidget(m_cells[0].widget, 0, 0);
-        m_gridLayout->addWidget(m_cells[1].widget, 0, 1);
-        for (int i = 0; i < 2; ++i) m_cells[i].widget->show();
-        for (int i = 2; i < m_cells.size(); ++i) m_cells[i].widget->hide();
-    } else if (visibleCount == 3) {
-        m_gridLayout->addWidget(m_cells[0].widget, 0, 0, 1, 2);
-        m_gridLayout->addWidget(m_cells[1].widget, 1, 0);
-        m_gridLayout->addWidget(m_cells[2].widget, 1, 1);
-        for (int i = 0; i < 3; ++i) m_cells[i].widget->show();
-        for (int i = 3; i < m_cells.size(); ++i) m_cells[i].widget->hide();
-    } else {
-        m_gridLayout->addWidget(m_cells[0].widget, 0, 0);
-        m_gridLayout->addWidget(m_cells[1].widget, 0, 1);
-        m_gridLayout->addWidget(m_cells[2].widget, 1, 0);
-        m_gridLayout->addWidget(m_cells[3].widget, 1, 1);
-        for (int i = 0; i < 4 && i < m_cells.size(); ++i) m_cells[i].widget->show();
-        for (int i = 4; i < m_cells.size(); ++i) m_cells[i].widget->hide();
+    QVideoFrame copy(frame);
+    if (!copy.map(QAbstractVideoBuffer::ReadOnly)) {
+        return;
     }
-
-    for (QPushButton *btn : m_layoutButtons) {
-        bool active = btn->property("layoutCount").toInt() == m_currentLayout;
-        btn->setProperty("active", active);
-        btn->style()->unpolish(btn);
-        btn->style()->polish(btn);
+    const QImage::Format fmt = QVideoFrame::imageFormatFromPixelFormat(copy.pixelFormat());
+    if (fmt != QImage::Format_Invalid) {
+        m_lastFrame = QImage(copy.bits(), copy.width(), copy.height(),
+                             copy.bytesPerLine(), fmt).copy();
     }
-}
-
-void VideoStreamPanel::setStreamCount(int count)
-{
-    m_streamCount = count;
-    updateLayout();
-}
-
-int VideoStreamPanel::streamCount() const
-{
-    return m_streamCount;
-}
-
-void VideoStreamPanel::setFullscreenIndex(int index)
-{
-    m_fullscreenIndex = index;
-
-    if (index >= 0 && index < m_cells.size()) {
-        m_cells[index].widget->setParent(m_singleContainer);
-        m_singleLayout->insertWidget(0, m_cells[index].widget, 1);
-        m_cells[index].widget->show();
-        m_fullscreenExitBtn->raise();
-        m_fullscreenExitBtn->show();
-        m_stackWidget->setCurrentIndex(1);
-        m_controlBar->hide();
-        emit fullscreenRequested(index);
-    } else {
-        m_fullscreenIndex = -1;
-        for (int i = 0; i < m_cells.size(); ++i) {
-            m_cells[i].widget->setParent(m_gridContainer);
-        }
-        m_fullscreenExitBtn->hide();
-        m_stackWidget->setCurrentIndex(0);
-        m_controlBar->show();
-        updateLayout();
-    }
-}
-
-int VideoStreamPanel::fullscreenIndex() const
-{
-    return m_fullscreenIndex;
-}
-
-void VideoStreamPanel::onLayoutButtonClicked(int count)
-{
-    m_currentLayout = count;
-    if (m_fullscreenIndex >= 0) {
-        setFullscreenIndex(-1);
-    }
-    updateLayout();
+    copy.unmap();
 }

@@ -6,13 +6,14 @@
 #include <QString>
 #include "Core/Data/Types.h"
 
-class QTabWidget;
 class QTableWidget;
 class QTableWidgetItem;
 class QLineEdit;
-class QComboBox;
 class QPushButton;
+class QLabel;
 
+// 左侧目标列表面板：可折叠，仅列威胁目标物（不含任务/设备 tab）。
+// 折叠态 40px 窄条，展开态 320px 完整列表。默认折叠。
 class LeftPanelWidget : public QWidget
 {
     Q_OBJECT
@@ -22,49 +23,50 @@ public:
     ~LeftPanelWidget();
 
     void setTargets(const QVector<Core::TargetInfo>& targets);
-    // 仅更新权威模拟目标副本及其状态单元格。
     void updateTargetStatus(const QString& targetId, Core::TargetStatus status);
-    void setMissions(const QVector<Core::MissionInfo>& missions);
-    void setDevices(const QVector<Core::DeviceInfo>& devices);
+    void addTargetRow(const Core::TargetInfo& target);
+    void selectTargetRow(const QString& targetId);
+
+    // 可折叠控制
+    void setCollapsed(bool collapsed);
+    bool isCollapsed() const;
 
 signals:
     void targetSelected(const Core::TargetInfo& target);
-    void targetDoubleClicked(const Core::TargetInfo& target);
     void refreshSimulationRequested();
-    void missionSelected(const Core::MissionInfo& mission);
-    void deviceSelected(const Core::DeviceInfo& device);
+    void collapseChanged(bool collapsed);
 
 public slots:
     void onRefreshTargets();
-    void onFilterChanged();
     void onSearchTextChanged(const QString& text);
+
+protected:
+    // 折叠态窄条整体可点击：捕获 m_collapsedLabel 及其子控件的鼠标按下事件，触发展开
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void setupUi();
     void setupTargetList();
-    void setupMissionList();
-    void setupDeviceList();
     void populateTargetList();
-    void populateMissionList();
-    void populateDeviceList();
-    void updateStatusTabs();  // 根据实际数据更新状态标签计数
+    void updateStatusTabs();
+    void appendTargetRow(int row, const Core::TargetInfo& target);
+    // 应用折叠/展开的视觉态（宽度、按钮文案、内容可见性）
+    void applyCollapseState();
 
-    QTabWidget *m_tabWidget;
     QTableWidget *m_targetTable;
-    QTableWidget *m_missionTable;
-    QTableWidget *m_deviceTable;
-
     QLineEdit *m_searchEdit;
-    QComboBox *m_typeFilterCombo;
-    QComboBox *m_threatFilterCombo;
 
-    QPushButton *m_statusTabPending;    // 待处置
-    QPushButton *m_statusTabExecuting; // 处置中
-    QPushButton *m_statusTabCompleted;  // 已完成
+    QPushButton *m_statusTabPending;
+    QPushButton *m_statusTabExecuting;
+    QPushButton *m_statusTabCompleted;
+
+    QPushButton *m_collapseBtn;
+    QWidget *m_collapsedLabel;
+    QWidget *m_contentWidget;
+
+    bool m_collapsed;
 
     QVector<Core::TargetInfo> m_targets;
-    QVector<Core::MissionInfo> m_missions;
-    QVector<Core::DeviceInfo> m_devices;
 };
 
 #endif

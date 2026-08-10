@@ -451,11 +451,6 @@ void MosDecisionUiTest::scenarioContract()
     QCOMPARE(pageStack->currentWidget(), decisionPage);
     QVERIFY2(decisionPage->isVisible(), "导航到决策页后决策页应可见");
 
-    // MOS 决策页（导航 index 2）须隐藏态势遗留工具栏，由 MOS 工具栏独占
-    auto *situationToolBar = window->findChild<QWidget *>(QStringLiteral("mainSituationToolBar"));
-    QVERIFY2(situationToolBar != nullptr, "mainSituationToolBar 缺失");
-    QVERIFY2(!situationToolBar->isVisible(), "MOS 决策页应隐藏态势遗留工具栏");
-
     // 视口缩放生命周期契约：showEvent 在页面变可见时触发 applyViewportScale，
     // 4K 下缩放必须 >=1.9；1280x720 下 clamp 至 1.0。保存并恢复原始尺寸，不干扰后续证据与溢出断言。
     auto *scaleView = findDecisionView(*window);
@@ -520,10 +515,6 @@ void MosDecisionUiTest::scenarioContract()
     auto *navDecisionAfterReturn = window->findChild<QAbstractButton *>(QStringLiteral("DEC-NAV-03"));
     QVERIFY2(navDecisionAfterReturn != nullptr, "DEC-NAV-03 缺失");
     QCOMPARE(navDecisionAfterReturn->property("selected").toBool(), false);
-    // 返回态势页后态势遗留工具栏应重新可见
-    auto *situationToolBarAfterReturn = window->findChild<QWidget *>(QStringLiteral("mainSituationToolBar"));
-    QVERIFY2(situationToolBarAfterReturn != nullptr, "mainSituationToolBar 缺失");
-    QVERIFY2(situationToolBarAfterReturn->isVisible(), "态势页应显示态势遗留工具栏");
     QVERIFY2(captureVisualEvidence(*window,
                                     QStringLiteral("mos-decision-%1-situation-return.png").arg(m_scenario)),
              qPrintable(QStringLiteral("态势返回证据抓取失败：mos-decision-%1-situation-return.png").arg(m_scenario)));
