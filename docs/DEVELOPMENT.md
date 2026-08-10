@@ -82,8 +82,19 @@ ctest --test-dir build --output-on-failure
 | `demo_scenario_provider` | 固定场景含 1 目标、1 任务、至少 2 设备，引用关系正确 | 多场景、文件加载、数据变化 |
 | `simulation_workflow` | 目标选择、四状态顺序、拒绝路径、日志顺序和重置 | 任务、设备、指派、持久化 |
 | `simulation_workflow_ui` | 真实点击目标和三步按钮后，目标表、流程面板、决策状态标签与日志同步 | 3D 渲染结果、导航、视频、任务分配、设备联动、告警交互、状态栏紧急停止 |
+| `mos_validation` | MOS P0 输入包络规则（L/W/K/expand/step/minLength/minWidth/backfill/uxoHours/tiers 与弹坑、UXO 范围）的合法/非法/边界判定 | 真实业务阈值、真实安全边界、领域参数选型 |
+| `mos_fixture` | 确定性 fixture 生成与合成估算在五个种子向量下与冻结 oracle 一致 | 真实损毁分布、真实修复参数、外部数据 |
+| `mos_planner` | MOS 规划器任务规划流程与输出契约（简化 X 全投影 + Y 固定全宽算法） | 完整 Y 轴 1m 离散化算法、斜向搜索 |
+| `mos_session` | MOS 规划会话编排与 MainWindow 控制器契约 | 跨线程并发、持久化、外部通信 |
+| `mos_decision_view` | 决策页 DEC-* 稳定对象名与被动信号契约（离屏） | 真实交互回流、3D 渲染、外部数据 |
+| `mos_decision_ui` | 通过 MainWindow 外壳验证页面栈、导航与决策页接线（happy/invalid/no-solution/no-output/route-regression） | 外壳未接线的场景、真实外部数据、3D 渲染 |
+| `mos_performance` | 5 个测量进程（100 预热 + 1000 样本）、100 个哈希进程、点击到渲染、10ms 心跳、内存上限与陈旧/重复/丢失断言 | 真实安全时限（数值为合成本地 fixture 语义） |
+| `mos_contract_closure` | 浮点生成器包络、规范字节与可见半径估算闭合 | 真实业务合同、外部存储 |
+| `mos_planner_closure` | 独立穷举 oracle、supplied-tier 校验与完成结果重算守卫 | 完整 Y 轴离散化算法、斜向搜索 |
+| `mos_ui_closure` | 生成器浮点半径、合成参数措辞与 controller-owned 导出 | 真实导出目标、外部存储、网络 |
+| `mos_runway_closure` | 快照参数化几何、缩放/平移、选中档位单方案命中，以及 `influenceRadius × pxPerM` 影响圆半径契约 | 真实跑道几何、3D 渲染、真实安全距离 |
 
-测试通过只能证明表中列出的行为，不能用于声明整个客户端或某个未覆盖面板已完成。离屏 UI 测试中的 Qt3D 上下文警告不影响当前断言，因此 4/4 通过也不证明三维场景成功渲染。
+测试通过只能证明表中列出的行为，不能用于声明整个客户端或某个未覆盖面板已完成。离屏 UI 测试中的 Qt3D 上下文警告不影响当前断言，因此全部测试通过也不证明三维场景成功渲染。
 
 ## 5. 当前构建目标
 

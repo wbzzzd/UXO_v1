@@ -9,6 +9,7 @@
 #include <QStatusBar>
 #include <QSplitter>
 
+class QStackedWidget;
 class SituationView;
 class StatusBarWidget;
 class NavigationWidget;
@@ -18,6 +19,11 @@ class RightPanelWidget;
 class AlertPanel;
 class DetectionControlPanel;
 class BatchOperationBar;
+class DecisionView;
+
+namespace Core::MOS {
+class MosPlanningController;
+}
 
 class MainWindow : public QMainWindow
 {
@@ -71,9 +77,19 @@ private:
     BatchOperationBar *m_batchOperationBar;
     StatusBarWidget *m_statusBarWidget;
 
+    // 态势页遗留工具栏：MOS 决策页（导航 index 2）须隐藏，由 MOS 工具栏独占
+    QToolBar *m_mainToolBar = nullptr;
+
     QSplitter *m_mainSplitter;
     QSplitter *m_centerSplitter;
     QWidget *m_centerArea;
+
+    // P0 最小页面栈：index 0 = 态势工作区，index 1 = MOS 决策页
+    QStackedWidget *m_pageStack;
+    QWidget *m_situationPage;
+    DecisionView *m_decisionView;
+    // MOS P0 规划控制器（应用拥有，本地合成 fixture 驱动）
+    Core::MOS::MosPlanningController *m_mosController;
 
     // 工作流持有唯一可变模拟目标集合；任务和设备仅供刷新只读面板。
     Core::Simulation::SimulationWorkflow m_simulationWorkflow;

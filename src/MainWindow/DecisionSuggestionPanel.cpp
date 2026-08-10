@@ -28,12 +28,13 @@ void DecisionSuggestionPanel::setupUi()
 {
     setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
 
+    // 1280x720 低分辨率下决策区纵向空间有限，紧凑边距与间距保证模拟声明末行完整显示
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(8, 8, 8, 8);
-    mainLayout->setSpacing(8);
+    mainLayout->setContentsMargins(4, 4, 4, 4);
+    mainLayout->setSpacing(2);
 
     QWidget *header = new QWidget(this);
-    header->setFixedHeight(28);
+    header->setFixedHeight(22);
     QHBoxLayout *headerLayout = new QHBoxLayout(header);
     headerLayout->setContentsMargins(4, 0, 4, 0);
 
@@ -51,8 +52,8 @@ void DecisionSuggestionPanel::setupUi()
         .arg(GlobalStyle::Colors::ToolbarBackground));
 
     QVBoxLayout *contentLayout = new QVBoxLayout(contentWidget);
-    contentLayout->setContentsMargins(12, 12, 12, 12);
-    contentLayout->setSpacing(10);
+    contentLayout->setContentsMargins(6, 6, 6, 6);
+    contentLayout->setSpacing(4);
 
     // 决策区仅展示本地模拟状态，不提供处置操作入口。
     m_simulationStatusLabel = new QLabel("[模拟] 目标状态：未选择", contentWidget);

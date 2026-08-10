@@ -3,6 +3,7 @@
 #include "MainWindow/MainWindow.h"
 #include "MainWindow/DetectionControlPanel.h"
 #include "MainWindow/DeviceStatusPanel.h"
+#include "MainWindow/LeftPanelWidget.h"
 
 #include <QtTest>
 
@@ -11,6 +12,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QFont>
+#include <QFontMetrics>
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -292,6 +295,7 @@ private slots:
     void validActionsUpdateAllUiState();
     void operationLogPreservesSimulationOrder();
     void newWindowStartsWithFreshWorkflow();
+    void targetTableColumnsPreserveCjkAndCoordinates();
 };
 
 void SimulationWorkflowUiTest::initialSurfaceIsSimulationOnly()
@@ -510,6 +514,53 @@ void SimulationWorkflowUiTest::newWindowStartsWithFreshWorkflow()
     QTRY_COMPARE(confirmButton->isEnabled(), false);
     QTRY_COMPARE(startButton->isEnabled(), false);
     QTRY_COMPARE(completeButton->isEnabled(), false);
+}
+
+// 校验目标表类型列与位置列在 320px 固定面板内不折行、不触发横向滚动，
+// 且 CJK 类型名"模拟反跑道雷"和坐标"X:108 Y:0"作为完整单元格文本保留；
+// 同时校验拉伸状态列实际宽度足以容纳"[模拟] 已发现"加内边距。
+void SimulationWorkflowUiTest::targetTableColumnsPreserveCjkAndCoordinates()
+{
+    auto window = createOffscreenWindow();
+
+    auto *targetTable = contractWidget<QTableWidget>(*window, "targetTable");
+    QVERIFY2(targetTable != nullptr, "缺少对象 targetTable，无法校验列宽与单元格文本");
+
+    const int typeColumn = columnWithHeader(targetTable, QStringLiteral("类型"));
+    const int positionColumn = columnWithHeader(targetTable, QStringLiteral("位置"));
+    const int statusColumn = columnWithHeader(targetTable, QStringLiteral("状态"));
+    QVERIFY2(typeColumn >= 0, "targetTable 必须提供类型列");
+    QVERIFY2(positionColumn >= 0, "targetTable 必须提供位置列");
+    QVERIFY2(statusColumn >= 0, "targetTable 必须提供可见的模拟状态列");
+
+    QCOMPARE(targetTable->columnWidth(typeColumn), 80);
+    QCOMPARE(targetTable->columnWidth(positionColumn), 72);
+    QCOMPARE(targetTable->wordWrap(), false);
+    QCOMPARE(targetTable->horizontalScrollBarPolicy(), Qt::ScrollBarAlwaysOff);
+
+    const QTableWidgetItem *typeItem = targetTable->item(0, typeColumn);
+    const QTableWidgetItem *positionItem = targetTable->item(0, positionColumn);
+    QVERIFY2(typeItem != nullptr, "targetTable 第一行类型单元格必须存在");
+    QVERIFY2(positionItem != nullptr, "targetTable 第一行位置单元格必须存在");
+    QCOMPARE(typeItem->text(), QStringLiteral("模拟反跑道雷"));
+    QCOMPARE(positionItem->text(), QStringLiteral("X:108 Y:0"));
+
+    auto *leftPanel = window->findChild<LeftPanelWidget *>();
+    QVERIFY2(leftPanel != nullptr, "主窗口必须包含 LeftPanelWidget 以校验固定面板宽度");
+    // min/max 均锁死 320px，无需布局事件即可校验固定面板约束。
+    QCOMPARE(leftPanel->minimumWidth(), 320);
+    QCOMPARE(leftPanel->maximumWidth(), 320);
+
+    // 同步处理已入队布局事件，使拉伸状态列宽度收敛后再测量（不引入定时器/等待）。
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+    const int statusWidth = targetTable->columnWidth(statusColumn);
+    // 状态列需容纳"[模拟] 已发现"文本宽度加 2px 内边距（item padding 已减至 2px）。
+    const QFontMetrics fontMetrics(targetTable->font());
+    const int requiredStatusWidth = fontMetrics.horizontalAdvance(QStringLiteral("[模拟] 已发现")) + 4;
+    QVERIFY2(statusWidth >= requiredStatusWidth,
+             qPrintable(QStringLiteral("状态列实际宽度 %1 不足以容纳\"[模拟] 已发现\"所需 %2")
+                            .arg(statusWidth)
+                            .arg(requiredStatusWidth)));
 }
 
 QTEST_MAIN(SimulationWorkflowUiTest)

@@ -3,6 +3,9 @@ set(MAINWINDOW_SOURCES
     SituationView.cpp
     DeviceControlView.cpp
     DecisionView.cpp
+    DecisionViewLayout.cpp
+    DecisionViewSnapshot.cpp
+    DecisionViewTier.cpp
     StatusBarWidget.cpp
     LeftPanelWidget.cpp
     TargetDetailPanel.cpp
@@ -14,6 +17,13 @@ set(MAINWINDOW_SOURCES
     AlertPanel.cpp
     DetectionControlPanel.cpp
     BatchOperationBar.cpp
+    MosPlanningController.cpp
+    MosRunwayWidget.cpp
+    MosRunwayWidgetInteraction.cpp
+    MosParamsPanel.cpp
+    MosGeneratorDialog.cpp
+    TargetCardWidget.cpp
+    PlanCardWidget.cpp
 )
 
 set(MAINWINDOW_HEADERS
@@ -32,6 +42,12 @@ set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/AlertPanel.h
     ${HEADERS_DIR}/MainWindow/DetectionControlPanel.h
     ${HEADERS_DIR}/MainWindow/BatchOperationBar.h
+    ${HEADERS_DIR}/MainWindow/MosPlanningController.h
+    ${HEADERS_DIR}/MainWindow/MosRunwayWidget.h
+    ${HEADERS_DIR}/MainWindow/MosParamsPanel.h
+    ${HEADERS_DIR}/MainWindow/MosGeneratorDialog.h
+    ${HEADERS_DIR}/MainWindow/TargetCardWidget.h
+    ${HEADERS_DIR}/MainWindow/PlanCardWidget.h
 )
 
 set(CMAKE_AUTOMOC ON)

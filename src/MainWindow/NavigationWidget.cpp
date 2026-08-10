@@ -40,6 +40,7 @@ void NavigationWidget::setupUi()
     layout->setAlignment(Qt::AlignTop);
 
     QLabel *logoLabel = new QLabel("UXO", this);
+    logoLabel->setObjectName(QStringLiteral("DEC-NAV-LOGO"));
     logoLabel->setFixedHeight(40);
     logoLabel->setAlignment(Qt::AlignCenter);
     logoLabel->setStyleSheet(QString(
@@ -88,6 +89,8 @@ void NavigationWidget::setupUi()
     for (int i = 0; i < m_navItems.size(); ++i) {
         QPushButton *btn = new QPushButton(
             m_navItems[i].icon + "\n" + m_navItems[i].label, this);
+        // 稳定对象名 DEC-NAV-01..06 供集成 UI 测试与可访问性工具定位
+        btn->setObjectName(QStringLiteral("DEC-NAV-%1").arg(i + 1, 2, 10, QLatin1Char('0')));
         btn->setFixedHeight(56);
         btn->setProperty("navIndex", i);
         btn->setStyleSheet(i == 0 ? selectedStyle : normalStyle);

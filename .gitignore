@@ -25,6 +25,7 @@ obj/
 /bin/
 /lib/
 build/
+build-*/
 
 # Qt build folders
 cmake-build-*/

@@ -1,6 +1,6 @@
 # docs/dev 保留草稿索引
 
-本文分类列出五份旧基线（`current-state.md`、`build-and-run.md`、`mvp-scope.md`、`architecture-boundaries.md`、`simulation-policy.md`）迁入 [`../archive/development/`](../archive/development/) 之后，`docs/dev/` 保留的全部文件与子目录。本目录所有内容均为历史决策、`Draft` 草稿、来源或设计输入，不得作为当前实现依据。
+本文分类列出五份旧基线（`current-state.md`、`build-and-run.md`、`mvp-scope.md`、`architecture-boundaries.md`、`simulation-policy.md`）迁入 [`../archive/development/`](../archive/development/) 之后，`docs/dev/` 保留的全部文件与子目录。本目录所有内容均为历史决策、`Draft` 草稿、来源或设计输入，不得作为当前实现依据。原合并 PRD `incremental-prd-uxo-recognition-and-mos.md` 已拆分为 [`prd-mos.md`](prd-mos.md) 与 [`prd-uxr.md`](prd-uxr.md)，合并版本已删除。
 
 关联基线：[`../PRODUCT.md`](../PRODUCT.md) · [`../ARCHITECTURE.md`](../ARCHITECTURE.md) · [`../UI.md`](../UI.md) · [`../DEVELOPMENT.md`](../DEVELOPMENT.md) · [`../../AGENTS.md`](../../AGENTS.md)
 
@@ -13,15 +13,18 @@
 
 ## 2. UXR/MOS 草稿与图（Draft/来源/设计输入）
 
-以下文件均为 `Draft` 或来源/设计输入，不得直接指导实现。
+以下文件均为 `Draft` 或来源/设计输入，不得直接指导实现。原合并增量 PRD 已拆分为独立的 MOS PRD 与 UXR PRD。
 
 | 文件 | 说明 |
 |------|------|
-| [`incremental-prd-uxo-recognition-and-mos.md`](incremental-prd-uxo-recognition-and-mos.md) | UXR/MOS 合并增量 PRD 草稿（Draft/来源输入） |
-| [`architecture-uxo-recognition-and-mos.md`](architecture-uxo-recognition-and-mos.md) | UXO 识别与 MOS 架构草稿 |
+| [`prd-mos.md`](prd-mos.md) | MOS 规划 PRD 草稿（从原合并 PRD 拆分，`Draft`/来源资料） |
+| [`prd-uxr.md`](prd-uxr.md) | 未爆弹识别 PRD 草稿（从原合并 PRD 拆分，`Draft`/来源资料） |
+| [`architecture-uxo-recognition-and-mos.md`](architecture-uxo-recognition-and-mos.md) | UXO 识别与 MOS 架构草稿（`Draft`/来源资料） |
 | [`class-diagram-uxo-mos.mermaid`](class-diagram-uxo-mos.mermaid) | UXO/MOS 类图草稿 |
 | [`sequence-diagram-mos.mermaid`](sequence-diagram-mos.mermaid) | MOS 时序图草稿 |
 | [`sequence-diagram-recognition.mermaid`](sequence-diagram-recognition.mermaid) | 识别时序图草稿 |
+
+MOS 候选功能设计见 [`../features/mos-planning.md`](../features/mos-planning.md)（`Draft`），关联需求 REQ-007 见 [`../PRODUCT.md`](../PRODUCT.md) 第 9.3 节（`Draft`）。两者均未获批准，不直接指导实现。
 
 ## 3. UI 拥有文件（本索引不管理）
 
