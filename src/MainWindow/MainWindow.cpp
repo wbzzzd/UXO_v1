@@ -362,28 +362,30 @@ void MainWindow::createConnections()
     connect(m_targetDetailOverlay, &TargetDetailOverlay::viewHistoryRequested,
             this, &MainWindow::onViewHistoryRequested);
 
-    // MOS P0 决策页接线：controller 单一状态通知 <-> DecisionView 请求（本地合成 fixture）
-    connect(m_mosController, &Core::MOS::MosPlanningController::mosStateChanged,
-            this, [this]() {
-        if (m_decisionView) {
-            m_decisionView->setSnapshot(m_mosController->snapshot());
-        }
-    });
+    // MOS P0 决策页接线
+    // mosStateChanged 不自动触发 setSnapshot：档位选择 emit 该信号后同步全量重建会
+    // 在 PlanCardWidget 信号链中删除发信控件。改为 requestReplan/replaceObstacles 后
+    // 显式推送快照，档位选择仅刷新视觉态。
     connect(m_mosController, &Core::MOS::MosPlanningController::replanActivityChanged,
             m_decisionView, &DecisionView::setPlanning);
     connect(m_decisionView, &DecisionView::replanRequested,
             this, [this]() {
         m_mosController->requestReplan(m_decisionView->currentObstacles(),
                                         m_decisionView->currentParams());
+        m_decisionView->setSnapshot(m_mosController->snapshot());
     });
     connect(m_decisionView, &DecisionView::tierSelected,
-            m_mosController, &Core::MOS::MosPlanningController::selectTier);
+            this, [this](int tierIndex) {
+        m_mosController->selectTier(tierIndex);
+        m_decisionView->selectTier(tierIndex);
+    });
     connect(m_decisionView, &DecisionView::generatorApplied,
             this, [this](const Core::MOS::MosGeneratorParams &genParams, qint32 seed) {
         const auto runwayParams = m_decisionView->currentParams();
         const auto obstacles = Core::MOS::MosFixtureGenerator::generate(runwayParams, genParams, seed);
         // 仅替换障碍物，不自动规划；用户点击重新规划按钮后才执行 MOS 规划
         m_mosController->replaceObstacles(obstacles, runwayParams);
+        m_decisionView->setSnapshot(m_mosController->snapshot());
     });
     connect(m_decisionView, &DecisionView::exportRequested,
             this, [this](const QString &path) {
@@ -432,14 +434,14 @@ void MainWindow::loadMockData()
     // 检测模拟器: 加载检测数据
     m_detectionSimulator->loadDetections(scenario.detections);
 
-    // MOS 初始规划：seed=42 生成确定性 fixture，同步触发首次 replan
-    // requestReplan 同步触发 worker，完成后 mosStateChanged 自动把快照推给 DecisionView
+    // MOS 初始规划：seed=42 生成确定性 fixture，同步触发首次 replan 后显式推送快照
     if (m_decisionView && m_mosController) {
         Core::MOS::MosRunwayParams runwayParams;
         Core::MOS::MosGeneratorParams genParams;
         const qint32 seed = 42;
         const auto obstacles = Core::MOS::MosFixtureGenerator::generate(runwayParams, genParams, seed);
         m_mosController->requestReplan(obstacles, runwayParams);
+        m_decisionView->setSnapshot(m_mosController->snapshot());
     }
 }
 
