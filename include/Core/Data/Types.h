@@ -4,6 +4,7 @@
 #include <QString>
 #include <QVector>
 #include <QVector3D>
+#include <QRectF>
 #include <QDateTime>
 #include <QtMath>
 
@@ -59,6 +60,19 @@ struct TargetInfo {
         , confidence(0.0)
         , threatLevel(ThreatLevel::Unknown)
         , status(TargetStatus::Unknown)
+    {}
+};
+
+// 检测结果：检测模拟器输出的单次检测结果
+// 接口贴合真实检测器输出，真实系统替换为 AI 推理引擎即可
+struct DetectionResult {
+    TargetType type;        // 目标类型
+    QRectF videoRect;       // 画面红框归一化坐标 [0,1]
+    double confidence;      // 置信度 0.0-1.0
+
+    DetectionResult()
+        : type(TargetType::Unknown)
+        , confidence(0.0)
     {}
 };
 

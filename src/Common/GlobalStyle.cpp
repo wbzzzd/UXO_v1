@@ -207,12 +207,12 @@ QString getMainWindowStyle()
         QListWidget::item, QTableWidget::item {
             padding: 8px;
         }
+        QListWidget::item:hover, QTableWidget::item:hover {
+            background-color: %14;
+        }
         QListWidget::item:selected, QTableWidget::item:selected {
             background-color: %13;
             color: %3;
-        }
-        QListWidget::item:hover, QTableWidget::item:hover {
-            background-color: %14;
         }
 
         /* 表头 */
@@ -317,8 +317,8 @@ QString getMainWindowStyle()
         .arg(Colors::TextDisabled)
         .arg(Colors::DangerRed)
         .arg(Colors::DangerRedHover)
-        .arg("#2A3F54")
-        .arg("#2A2A2A")
+        .arg(Colors::RowSelected)
+        .arg(Colors::RowHover)
         .arg(Colors::PanelBackground);
 }
 
@@ -416,11 +416,11 @@ QString getTableWidgetStyle()
             padding: 8px;
             border-bottom: 1px solid %3;
         }
-        QTableWidget::item:selected {
-            background-color: %5;
-        }
         QTableWidget::item:hover {
             background-color: %6;
+        }
+        QTableWidget::item:selected {
+            background-color: %5;
         }
         QHeaderView::section {
             background-color: %7;
@@ -435,8 +435,8 @@ QString getTableWidgetStyle()
         .arg(Colors::TextPrimary)
         .arg(Colors::Border)
         .arg(Fonts::BodySize)
-        .arg("#2A3F54")
-        .arg("#2A2A2A")
+        .arg(Colors::RowSelected)
+        .arg(Colors::RowHover)
         .arg(Colors::ToolbarBackground);
 }
 

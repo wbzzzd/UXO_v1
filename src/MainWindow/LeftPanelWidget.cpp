@@ -3,28 +3,31 @@
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QTabWidget>
 #include <QTableWidget>
 #include <QHeaderView>
 #include <QLineEdit>
-#include <QComboBox>
 #include <QPushButton>
 #include <QLabel>
 #include <QTableWidgetItem>
-#include <QDebug>
+#include <QEvent>
+#include <QMouseEvent>
 
 namespace {
 
-constexpr int kTargetCheckColumn = 0;
-constexpr int kTargetTypeColumn = 1;
-constexpr int kTargetConfidenceColumn = 2;
-constexpr int kTargetPositionColumn = 3;
-constexpr int kTargetStatusColumn = 4;
+// 目标表格列定义（去掉任务/设备 tab 后仅保留此一张表）
+constexpr int kTargetTypeColumn = 0;
+constexpr int kTargetConfidenceColumn = 1;
+constexpr int kTargetPositionColumn = 2;
+constexpr int kTargetStatusColumn = 3;
 
-constexpr int kTargetCheckColumnWidth = 28;
-constexpr int kTargetTypeColumnWidth = 52;
-constexpr int kTargetConfidenceColumnWidth = 48;
-constexpr int kTargetPositionColumnWidth = 72;
+// 列宽基于 320px 面板与 4px item padding 实测：类型列 4 个 CJK（"反跑道雷"），位置列 "X:123 Y:0"，
+// 置信度列 56px 容纳 "88%" 与表头"置信度"；位置列 88（原 100）补偿置信度增宽，状态列 stretch
+constexpr int kTargetTypeColumnWidth = 92;
+constexpr int kTargetConfidenceColumnWidth = 56;
+constexpr int kTargetPositionColumnWidth = 88;
+
+// 折叠态宽度（窄条）；展开态使用 GlobalStyle::Sizes::LeftPanelWidth（320px）
+constexpr int kCollapsedWidth = 40;
 
 QString simulationTargetStatusText(Core::TargetStatus status)
 {
@@ -42,20 +45,22 @@ QString simulationTargetStatusText(Core::TargetStatus status)
     }
 }
 
-}
+} // namespace
 
 LeftPanelWidget::LeftPanelWidget(QWidget *parent)
     : QWidget(parent)
-    , m_tabWidget(nullptr)
     , m_targetTable(nullptr)
-    , m_missionTable(nullptr)
-    , m_deviceTable(nullptr)
     , m_searchEdit(nullptr)
-    , m_typeFilterCombo(nullptr)
-    , m_threatFilterCombo(nullptr)
+    , m_statusTabPending(nullptr)
+    , m_statusTabExecuting(nullptr)
+    , m_statusTabCompleted(nullptr)
+    , m_collapseBtn(nullptr)
+    , m_collapsedLabel(nullptr)
+    , m_contentWidget(nullptr)
+    , m_collapsed(false) // 默认展开：探测阶段需可见目标列表
 {
     setupUi();
-    // 数据由 MainWindow::loadMockData() 通过 setTargets/setMissions/setDevices 注入
+    applyCollapseState();
 }
 
 LeftPanelWidget::~LeftPanelWidget()
@@ -64,25 +69,50 @@ LeftPanelWidget::~LeftPanelWidget()
 
 void LeftPanelWidget::setupUi()
 {
-    setMinimumWidth(GlobalStyle::Sizes::LeftPanelWidth);
-    setMaximumWidth(GlobalStyle::Sizes::LeftPanelWidth);
+    // 折叠/展开宽度均固定，避免布局挤压主地图区
     setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(8, 8, 8, 8);
-    mainLayout->setSpacing(8);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
 
-    // 添加搜索和筛选工具栏
-    QWidget *toolBar = new QWidget(this);
-    toolBar->setStyleSheet(QString("background-color: %1; border-radius: 4px; margin-bottom: 8px;")
-        .arg(GlobalStyle::Colors::ToolbarBackground));
-    QHBoxLayout *toolBarLayout = new QHBoxLayout(toolBar);
-    toolBarLayout->setContentsMargins(8, 6, 8, 6);
-    toolBarLayout->setSpacing(8);
+    // === 展开态内容容器 ===
+    m_contentWidget = new QWidget(this);
+    m_contentWidget->setFixedWidth(GlobalStyle::Sizes::LeftPanelWidth);
+    QVBoxLayout *contentLayout = new QVBoxLayout(m_contentWidget);
+    contentLayout->setContentsMargins(8, 8, 8, 8);
+    contentLayout->setSpacing(8);
+
+    // 顶部标题栏 + 折叠按钮
+    QWidget *header = new QWidget(m_contentWidget);
+    header->setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
+    QHBoxLayout *headerLayout = new QHBoxLayout(header);
+    headerLayout->setContentsMargins(0, 0, 0, 0);
+    headerLayout->setSpacing(8);
+
+    QLabel *title = new QLabel(QStringLiteral("目标列表"), header);
+    title->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold; background: transparent;")
+        .arg(GlobalStyle::Colors::TextPrimary));
+    headerLayout->addWidget(title);
+    headerLayout->addStretch();
+
+    m_collapseBtn = new QPushButton(QStringLiteral("◀"), header);
+    m_collapseBtn->setFixedSize(24, 24);
+    m_collapseBtn->setToolTip(QStringLiteral("收起面板"));
+    m_collapseBtn->setStyleSheet(QString(
+        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; font-size: 12px; }"
+        "QPushButton:hover { background-color: %3; }")
+        .arg(GlobalStyle::Colors::ToolbarBackground)
+        .arg(GlobalStyle::Colors::TextSecondary)
+        .arg(GlobalStyle::Colors::Border));
+    connect(m_collapseBtn, &QPushButton::clicked, this, [this]() { setCollapsed(true); });
+    headerLayout->addWidget(m_collapseBtn);
+
+    contentLayout->addWidget(header);
 
     // 搜索框
-    m_searchEdit = new QLineEdit(toolBar);
-    m_searchEdit->setPlaceholderText("搜索目标...");
+    m_searchEdit = new QLineEdit(m_contentWidget);
+    m_searchEdit->setPlaceholderText(QStringLiteral("搜索目标..."));
     m_searchEdit->setStyleSheet(QString(
         "QLineEdit { background-color: %1; color: %2; border: 1px solid %3; border-radius: 4px; padding: 4px 8px; }"
         "QLineEdit:focus { border: 1px solid %4; }"
@@ -94,37 +124,11 @@ void LeftPanelWidget::setupUi()
         .arg(GlobalStyle::Colors::TextDisabled));
     m_searchEdit->setFixedHeight(28);
     connect(m_searchEdit, &QLineEdit::textChanged, this, &LeftPanelWidget::onSearchTextChanged);
-    toolBarLayout->addWidget(m_searchEdit, 1);
+    contentLayout->addWidget(m_searchEdit);
 
-    // 筛选按钮
-    QPushButton *filterBtn = new QPushButton("筛选", toolBar);
-    filterBtn->setFixedSize(50, 28);
-    filterBtn->setStyleSheet(QString(
-        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %3; }")
-        .arg(GlobalStyle::Colors::ToolbarBackground)
-        .arg(GlobalStyle::Colors::TextSecondary)
-        .arg(GlobalStyle::Colors::Border));
-    connect(filterBtn, &QPushButton::clicked, this, &LeftPanelWidget::onFilterChanged);
-    toolBarLayout->addWidget(filterBtn);
-
-    // 刷新按钮
-    QPushButton *refreshBtn = new QPushButton("刷新", toolBar);
-    refreshBtn->setFixedSize(50, 28);
-    refreshBtn->setStyleSheet(QString(
-        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %3; }")
-        .arg(GlobalStyle::Colors::PrimaryGreen)
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::PrimaryGreenHover));
-    connect(refreshBtn, &QPushButton::clicked, this, &LeftPanelWidget::onRefreshTargets);
-    toolBarLayout->addWidget(refreshBtn);
-
-    mainLayout->addWidget(toolBar);
-
-    // 状态子标签（待处置/处置中/已完成）
-    QWidget *statusTabs = new QWidget(this);
-    statusTabs->setStyleSheet(QString("background-color: %1; border-radius: 4px; margin-bottom: 8px;")
+    // 状态子标签（按目标计数：待检测/处置中/已完成）
+    QWidget *statusTabs = new QWidget(m_contentWidget);
+    statusTabs->setStyleSheet(QString("background-color: %1; border-radius: 4px;")
         .arg(GlobalStyle::Colors::ToolbarBackground));
     QHBoxLayout *statusLayout = new QHBoxLayout(statusTabs);
     statusLayout->setContentsMargins(4, 4, 4, 4);
@@ -139,74 +143,88 @@ void LeftPanelWidget::setupUi()
         .arg(GlobalStyle::Colors::TextPrimary)
         .arg(GlobalStyle::Colors::PrimaryGreen);
 
-    // 计数来自任务数据，三个等宽按钮需在 320px 左栏内明确显示“任务”语义。
-    m_statusTabPending = new QPushButton("待处置任务 0", statusTabs);
+    m_statusTabPending = new QPushButton(QStringLiteral("待检测 0"), statusTabs);
     m_statusTabPending->setProperty("selected", true);
     m_statusTabPending->setStyleSheet(statusTabStyle);
     statusLayout->addWidget(m_statusTabPending, 1);
 
-    m_statusTabExecuting = new QPushButton("处置中任务 0", statusTabs);
+    m_statusTabExecuting = new QPushButton(QStringLiteral("处置中 0"), statusTabs);
     m_statusTabExecuting->setStyleSheet(statusTabStyle);
     statusLayout->addWidget(m_statusTabExecuting, 1);
 
-    m_statusTabCompleted = new QPushButton("已完成任务 0", statusTabs);
+    m_statusTabCompleted = new QPushButton(QStringLiteral("已完成 0"), statusTabs);
     m_statusTabCompleted->setStyleSheet(statusTabStyle);
     statusLayout->addWidget(m_statusTabCompleted, 1);
 
-    mainLayout->addWidget(statusTabs);
+    contentLayout->addWidget(statusTabs);
 
-    m_tabWidget = new QTabWidget(this);
-    m_tabWidget->setStyleSheet(R"(
-        QTabWidget::pane {
-            border: none;
-            background-color: #252526;
-        }
-        QTabBar::tab {
-            background-color: #2D2D2D;
-            color: #AAAAAA;
-            padding: 8px 16px;
-            border: none;
-        }
-        QTabBar::tab:selected {
-            background-color: #252526;
-            color: #FFFFFF;
-            border-bottom: 2px solid #4A7A4C;
-        }
-        QTabBar::tab:hover {
-            background-color: #3C3C3C;
-        }
-    )");
-
-    m_targetTable = new QTableWidget(this);
+    // 目标表格
+    m_targetTable = new QTableWidget(m_contentWidget);
     m_targetTable->setObjectName(QStringLiteral("targetTable"));
-    m_missionTable = new QTableWidget(this);
-    m_deviceTable = new QTableWidget(this);
-
     setupTargetList();
-    setupMissionList();
-    setupDeviceList();
+    contentLayout->addWidget(m_targetTable, 1);
 
-    m_tabWidget->addTab(m_targetTable, "目标");
-    m_tabWidget->addTab(m_missionTable, "任务");
-    m_tabWidget->addTab(m_deviceTable, "设备");
+    // 刷新按钮（底部）
+    QPushButton *refreshBtn = new QPushButton(QStringLiteral("刷新"), m_contentWidget);
+    refreshBtn->setFixedHeight(28);
+    refreshBtn->setStyleSheet(QString(
+        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; font-size: 12px; }"
+        "QPushButton:hover { background-color: %3; }")
+        .arg(GlobalStyle::Colors::PrimaryGreen)
+        .arg(GlobalStyle::Colors::TextPrimary)
+        .arg(GlobalStyle::Colors::PrimaryGreenHover));
+    connect(refreshBtn, &QPushButton::clicked, this, &LeftPanelWidget::onRefreshTargets);
+    contentLayout->addWidget(refreshBtn);
 
-    mainLayout->addWidget(m_tabWidget);
+    mainLayout->addWidget(m_contentWidget);
+
+    // === 折叠态窄条容器 ===
+    m_collapsedLabel = new QWidget(this);
+    m_collapsedLabel->setFixedWidth(kCollapsedWidth);
+    m_collapsedLabel->setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
+    QVBoxLayout *collapsedLayout = new QVBoxLayout(m_collapsedLabel);
+    collapsedLayout->setContentsMargins(0, 8, 0, 8);
+    collapsedLayout->setSpacing(8);
+    collapsedLayout->setAlignment(Qt::AlignHCenter);
+
+    QPushButton *expandBtn = new QPushButton(QStringLiteral("▶"), m_collapsedLabel);
+    expandBtn->setFixedSize(24, 24);
+    expandBtn->setToolTip(QStringLiteral("展开目标列表"));
+    expandBtn->setStyleSheet(QString(
+        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; font-size: 12px; }"
+        "QPushButton:hover { background-color: %3; }")
+        .arg(GlobalStyle::Colors::ToolbarBackground)
+        .arg(GlobalStyle::Colors::TextSecondary)
+        .arg(GlobalStyle::Colors::Border));
+    connect(expandBtn, &QPushButton::clicked, this, [this]() { setCollapsed(false); });
+    collapsedLayout->addWidget(expandBtn, 0, Qt::AlignHCenter);
+
+    // 纵向文字 "目标列表"：逐字换行实现，避免旋转绘制的复杂度
+    QLabel *vertLabel = new QLabel(QStringLiteral("目\n标\n列\n表"), m_collapsedLabel);
+    vertLabel->setAlignment(Qt::AlignCenter);
+    vertLabel->setStyleSheet(QString("color: %1; font-size: 12px; background: transparent;")
+        .arg(GlobalStyle::Colors::TextSecondary));
+    collapsedLayout->addWidget(vertLabel, 1, Qt::AlignHCenter);
+
+    mainLayout->addWidget(m_collapsedLabel);
+
+    // 折叠态窄条整体可点击：容器和纵向文字均安装事件过滤器
+    m_collapsedLabel->installEventFilter(this);
+    vertLabel->installEventFilter(this);
 }
 
 void LeftPanelWidget::setupTargetList()
 {
-    m_targetTable->setColumnCount(5);
-    m_targetTable->setHorizontalHeaderLabels({"", "类型", "置信度", "位置", "模拟状态"});
+    m_targetTable->setColumnCount(4);
+    m_targetTable->setHorizontalHeaderLabels({QStringLiteral("类型"),
+                                              QStringLiteral("置信度"), QStringLiteral("位置"),
+                                              QStringLiteral("模拟状态")});
     QHeaderView *targetHeader = m_targetTable->horizontalHeader();
     targetHeader->setStyleSheet("QHeaderView::section { background-color: #2D2D2D; color: #FFFFFF; padding: 4px; }");
-    // 固定压缩前四列共 200px，末列拉伸占满余量，保证 320px 面板内模拟状态可读。
-    targetHeader->setMinimumSectionSize(kTargetCheckColumnWidth);
-    targetHeader->setSectionResizeMode(kTargetCheckColumn, QHeaderView::Fixed);
     targetHeader->setSectionResizeMode(kTargetTypeColumn, QHeaderView::Fixed);
     targetHeader->setSectionResizeMode(kTargetConfidenceColumn, QHeaderView::Fixed);
     targetHeader->setSectionResizeMode(kTargetPositionColumn, QHeaderView::Fixed);
     targetHeader->setSectionResizeMode(kTargetStatusColumn, QHeaderView::Stretch);
-    m_targetTable->setColumnWidth(kTargetCheckColumn, kTargetCheckColumnWidth);
     m_targetTable->setColumnWidth(kTargetTypeColumn, kTargetTypeColumnWidth);
     m_targetTable->setColumnWidth(kTargetConfidenceColumn, kTargetConfidenceColumnWidth);
     m_targetTable->setColumnWidth(kTargetPositionColumn, kTargetPositionColumnWidth);
@@ -215,98 +233,50 @@ void LeftPanelWidget::setupTargetList()
     m_targetTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_targetTable->setSelectionMode(QAbstractItemView::SingleSelection);
     m_targetTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_targetTable->setAlternatingRowColors(true);
-    m_targetTable->setStyleSheet(R"(
-        QTableWidget {
-            background-color: #252526;
-            color: #FFFFFF;
-            gridline-color: #3C3C3C;
-            border: none;
-        }
-        QTableWidget::item {
-            padding: 4px;
-        }
-        QTableWidget::item:selected {
-            background-color: #2A3F54;
-        }
-        QTableWidget::item:hover {
-            background-color: #2A2A2A;
-        }
-        QScrollBar:vertical {
-            background: #2D2D2D;
-            width: 8px;
-        }
-        QScrollBar::handle:vertical {
-            background: #555555;
-            border-radius: 4px;
-        }
-    )");
+    // 关闭交替行：未选中行统一 PanelBackground 单一底色，避免奇偶行两种未选中底
+    m_targetTable->setAlternatingRowColors(false);
+    m_targetTable->setStyleSheet(QString(
+        "QTableWidget {"
+        "  background-color: %1;"          // 表格整体底色 = PanelBackground
+        "  color: %2;"
+        "  gridline-color: %3;"
+        "  border: none;"
+        "}"
+        "QTableWidget::item {"
+        "  padding: 4px;"
+        "  background-color: %1;"          // 未选中行统一底色，配合 alternatingRowColors=false
+        "}"
+        "QTableWidget::item:selected {"
+        "  background-color: %4;"          // 唯一绿色选中态（RowSelected）
+        "  color: %2;"
+        "}"
+        // 覆盖全局 getMainWindowStyle 的 ::item:hover（RowHover #2A2A2A）：
+        // 未选中 hover 仍用 PanelBackground，不引入第二种未选中底色
+        "QTableWidget::item:hover {"
+        "  background-color: %1;"
+        "}"
+        // 选中行 hover 保持绿色，避免被上一条 :hover 拉回 PanelBackground
+        "QTableWidget::item:selected:hover {"
+        "  background-color: %4;"
+        "}"
+        "QScrollBar:vertical {"
+        "  background: %5;"
+        "  width: 8px;"
+        "}"
+        "QScrollBar::handle:vertical {"
+        "  background: #555555;"
+        "  border-radius: 4px;"
+        "}"
+        )
+        .arg(GlobalStyle::Colors::PanelBackground)    // %1
+        .arg(GlobalStyle::Colors::TextPrimary)         // %2
+        .arg(GlobalStyle::Colors::Border)              // %3
+        .arg(GlobalStyle::Colors::RowSelected)         // %4
+        .arg(GlobalStyle::Colors::ToolbarBackground)); // %5
 
     connect(m_targetTable, &QTableWidget::itemClicked, this, [this](QTableWidgetItem *item) {
         if (item && item->row() >= 0 && item->row() < m_targets.size()) {
             emit targetSelected(m_targets[item->row()]);
-        }
-    });
-
-    connect(m_targetTable, &QTableWidget::itemDoubleClicked, this, [this](QTableWidgetItem *item) {
-        if (item && item->row() >= 0 && item->row() < m_targets.size()) {
-            emit targetDoubleClicked(m_targets[item->row()]);
-        }
-    });
-}
-
-void LeftPanelWidget::setupMissionList()
-{
-    m_missionTable->setColumnCount(4);
-    m_missionTable->setHorizontalHeaderLabels({"优先级", "任务编号", "执行设备", "状态"});
-    m_missionTable->horizontalHeader()->setStyleSheet("QHeaderView::section { background-color: #2D2D2D; color: #FFFFFF; padding: 4px; }");
-    m_missionTable->verticalHeader()->setVisible(false);
-    m_missionTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_missionTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_missionTable->setAlternatingRowColors(true);
-    m_missionTable->setStyleSheet(R"(
-        QTableWidget {
-            background-color: #252526;
-            color: #FFFFFF;
-            gridline-color: #3C3C3C;
-            border: none;
-        }
-        QTableWidget::item:selected {
-            background-color: #2A3F54;
-        }
-    )");
-
-    connect(m_missionTable, &QTableWidget::itemClicked, this, [this](QTableWidgetItem *item) {
-        if (item && item->row() >= 0 && item->row() < m_missions.size()) {
-            emit missionSelected(m_missions[item->row()]);
-        }
-    });
-}
-
-void LeftPanelWidget::setupDeviceList()
-{
-    m_deviceTable->setColumnCount(3);
-    m_deviceTable->setHorizontalHeaderLabels({"设备名称", "状态", "电量"});
-    m_deviceTable->horizontalHeader()->setStyleSheet("QHeaderView::section { background-color: #2D2D2D; color: #FFFFFF; padding: 4px; }");
-    m_deviceTable->verticalHeader()->setVisible(false);
-    m_deviceTable->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_deviceTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_deviceTable->setAlternatingRowColors(true);
-    m_deviceTable->setStyleSheet(R"(
-        QTableWidget {
-            background-color: #252526;
-            color: #FFFFFF;
-            gridline-color: #3C3C3C;
-            border: none;
-        }
-        QTableWidget::item:selected {
-            background-color: #2A3F54;
-        }
-    )");
-
-    connect(m_deviceTable, &QTableWidget::itemClicked, this, [this](QTableWidgetItem *item) {
-        if (item && item->row() >= 0 && item->row() < m_devices.size()) {
-            emit deviceSelected(m_devices[item->row()]);
         }
     });
 }
@@ -316,147 +286,101 @@ void LeftPanelWidget::populateTargetList()
     m_targetTable->setRowCount(m_targets.size());
 
     for (int i = 0; i < m_targets.size(); ++i) {
-        const Core::TargetInfo &target = m_targets[i];
-
-        QColor threatColor;
-        switch (target.threatLevel) {
-            case Core::ThreatLevel::High: threatColor = QColor("#FF5252"); break;
-            case Core::ThreatLevel::Medium: threatColor = QColor("#FFB74D"); break;
-            case Core::ThreatLevel::Low: threatColor = QColor("#FFF176"); break;
-            default: threatColor = QColor("#888888");
-        }
-
-        QTableWidgetItem *checkItem = new QTableWidgetItem();
-        checkItem->setFlags(Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
-        checkItem->setCheckState(Qt::Unchecked);
-        m_targetTable->setItem(i, 0, checkItem);
-
-        QTableWidgetItem *typeItem = new QTableWidgetItem(target.typeName);
-        typeItem->setForeground(threatColor);
-        m_targetTable->setItem(i, 1, typeItem);
-
-        QTableWidgetItem *confItem = new QTableWidgetItem(QString::number(target.confidence * 100, 'f', 0) + "%");
-        m_targetTable->setItem(i, 2, confItem);
-
-        QString posStr = QString("X:%1 Y:%2").arg(int(target.position.x())).arg(int(target.position.z()));
-        m_targetTable->setItem(i, 3, new QTableWidgetItem(posStr));
-        m_targetTable->setItem(i, kTargetStatusColumn,
-                               new QTableWidgetItem(simulationTargetStatusText(target.status)));
-
-        m_targetTable->setRowHeight(i, 40);
-    }
-}
-
-void LeftPanelWidget::populateMissionList()
-{
-    m_missionTable->setRowCount(m_missions.size());
-
-    for (int i = 0; i < m_missions.size(); ++i) {
-        const Core::MissionInfo &mission = m_missions[i];
-
-        QString priorityStr;
-        QColor priorityColor;
-        switch (mission.priority) {
-            case 0: priorityStr = "P0"; priorityColor = QColor("#FF5252"); break;
-            case 1: priorityStr = "P1"; priorityColor = QColor("#FFB74D"); break;
-            default: priorityStr = "P2"; priorityColor = QColor("#FFF176");
-        }
-
-        QTableWidgetItem *priItem = new QTableWidgetItem(priorityStr);
-        priItem->setForeground(priorityColor);
-        m_missionTable->setItem(i, 0, priItem);
-
-        m_missionTable->setItem(i, 1, new QTableWidgetItem(mission.id));
-        m_missionTable->setItem(i, 2, new QTableWidgetItem(mission.deviceId));
-
-        QString statusStr;
-        switch (mission.status) {
-            case Core::MissionStatus::Planned: statusStr = "规划中"; break;
-            case Core::MissionStatus::PendingApproval: statusStr = "待审批"; break;
-            case Core::MissionStatus::Approved: statusStr = "已批准"; break;
-            case Core::MissionStatus::Executing: statusStr = "执行中"; break;
-            case Core::MissionStatus::Completed: statusStr = "已完成"; break;
-            case Core::MissionStatus::Failed: statusStr = "失败"; break;
-            default: statusStr = "未知";
-        }
-        m_missionTable->setItem(i, 3, new QTableWidgetItem(statusStr));
-
-        m_missionTable->setRowHeight(i, 40);
+        appendTargetRow(i, m_targets[i]);
     }
 
     updateStatusTabs();
 }
 
-// 根据实际任务数据更新状态标签计数
+// 按目标状态计数（替代旧版按任务计数）：Detected/Confirmed=待检测，Disposing=处置中，Disposed=已完成
 void LeftPanelWidget::updateStatusTabs()
 {
     int pending = 0, executing = 0, completed = 0;
-    for (const Core::MissionInfo& m : m_missions) {
-        switch (m.status) {
-            case Core::MissionStatus::Planned:
-            case Core::MissionStatus::PendingApproval:
-            case Core::MissionStatus::Approved:
-                pending++;
-                break;
-            case Core::MissionStatus::Executing:
-            case Core::MissionStatus::Paused:
-                executing++;
-                break;
-            case Core::MissionStatus::Completed:
-            case Core::MissionStatus::Failed:
-            case Core::MissionStatus::Cancelled:
-                completed++;
-                break;
-            default:
-                pending++;
+    for (const Core::TargetInfo &t : m_targets) {
+        switch (t.status) {
+        case Core::TargetStatus::Detected:
+        case Core::TargetStatus::Confirmed:
+            pending++;
+            break;
+        case Core::TargetStatus::Disposing:
+            executing++;
+            break;
+        case Core::TargetStatus::Disposed:
+            completed++;
+            break;
+        default:
+            pending++;
         }
     }
-    m_statusTabPending->setText(QString("待处置任务 %1").arg(pending));
-    m_statusTabExecuting->setText(QString("处置中任务 %1").arg(executing));
-    m_statusTabCompleted->setText(QString("已完成任务 %1").arg(completed));
+    m_statusTabPending->setText(QString("待检测 %1").arg(pending));
+    m_statusTabExecuting->setText(QString("处置中 %1").arg(executing));
+    m_statusTabCompleted->setText(QString("已完成 %1").arg(completed));
 }
 
-void LeftPanelWidget::populateDeviceList()
+void LeftPanelWidget::appendTargetRow(int row, const Core::TargetInfo &target)
 {
-    m_deviceTable->setRowCount(m_devices.size());
-
-    for (int i = 0; i < m_devices.size(); ++i) {
-        const Core::DeviceInfo &device = m_devices[i];
-
-        QTableWidgetItem *nameItem = new QTableWidgetItem(device.name);
-        m_deviceTable->setItem(i, 0, nameItem);
-
-        QString statusStr;
-        QColor statusColor;
-        switch (device.status) {
-            case Core::DeviceStatus::Online:
-            case Core::DeviceStatus::Idle: statusStr = "在线"; statusColor = QColor("#4CAF50"); break;
-            case Core::DeviceStatus::Busy: statusStr = "任务中"; statusColor = QColor("#FFB74D"); break;
-            case Core::DeviceStatus::Offline: statusStr = "离线"; statusColor = QColor("#888888"); break;
-            case Core::DeviceStatus::Error: statusStr = "故障"; statusColor = QColor("#FF5252"); break;
-            default: statusStr = "未知"; statusColor = QColor("#888888");
-        }
-        QTableWidgetItem *statusItem = new QTableWidgetItem(statusStr);
-        statusItem->setForeground(statusColor);
-        m_deviceTable->setItem(i, 1, statusItem);
-
-        QString batteryStr = QString::number(device.batteryLevel, 'f', 0) + "%";
-        QColor batteryColor;
-        if (device.batteryLevel > 60) batteryColor = QColor("#4CAF50");
-        else if (device.batteryLevel > 20) batteryColor = QColor("#FFB74D");
-        else batteryColor = QColor("#FF5252");
-        QTableWidgetItem *batteryItem = new QTableWidgetItem(batteryStr);
-        batteryItem->setForeground(batteryColor);
-        m_deviceTable->setItem(i, 2, batteryItem);
-
-        m_deviceTable->setRowHeight(i, 40);
+    QColor threatColor;
+    switch (target.threatLevel) {
+        case Core::ThreatLevel::High: threatColor = QColor("#FF5252"); break;
+        case Core::ThreatLevel::Medium: threatColor = QColor("#FFB74D"); break;
+        case Core::ThreatLevel::Low: threatColor = QColor("#FFF176"); break;
+        default: threatColor = QColor("#888888");
     }
+
+    // 清除默认 ItemIsUserCheckable，保持其余默认标志不变
+    auto clearCheckable = [](QTableWidgetItem *item) {
+        item->setFlags(item->flags() & ~Qt::ItemIsUserCheckable);
+    };
+
+    QTableWidgetItem *typeItem = new QTableWidgetItem(target.typeName);
+    typeItem->setForeground(threatColor);
+    clearCheckable(typeItem);
+    m_targetTable->setItem(row, kTargetTypeColumn, typeItem);
+
+    QTableWidgetItem *confItem = new QTableWidgetItem(QString::number(target.confidence * 100, 'f', 0) + "%");
+    clearCheckable(confItem);
+    m_targetTable->setItem(row, kTargetConfidenceColumn, confItem);
+
+    QString posStr = QString("X:%1 Y:%2").arg(int(target.position.x())).arg(int(target.position.z()));
+    QTableWidgetItem *posItem = new QTableWidgetItem(posStr);
+    clearCheckable(posItem);
+    m_targetTable->setItem(row, kTargetPositionColumn, posItem);
+
+    QTableWidgetItem *statusItem = new QTableWidgetItem(simulationTargetStatusText(target.status));
+    clearCheckable(statusItem);
+    m_targetTable->setItem(row, kTargetStatusColumn, statusItem);
+
+    m_targetTable->setRowHeight(row, 40);
 }
 
 void LeftPanelWidget::setTargets(const QVector<Core::TargetInfo> &targets)
 {
     m_targets = targets;
     populateTargetList();
+}
+
+void LeftPanelWidget::addTargetRow(const Core::TargetInfo &target)
+{
+    // 视频驱动目标注入：追加单行，避免全表重置闪烁
+    m_targets.append(target);
+    const int row = m_targetTable->rowCount();
+    m_targetTable->insertRow(row);
+    appendTargetRow(row, target);
+    updateStatusTabs();
+}
+
+void LeftPanelWidget::selectTargetRow(const QString &targetId)
+{
+    if (targetId.isEmpty()) {
+        m_targetTable->clearSelection();
+        return;
+    }
+    for (int i = 0; i < m_targets.size(); ++i) {
+        if (m_targets[i].id == targetId) {
+            m_targetTable->selectRow(i);
+            return;
+        }
+    }
 }
 
 void LeftPanelWidget::updateTargetStatus(const QString &targetId, Core::TargetStatus status)
@@ -472,30 +396,52 @@ void LeftPanelWidget::updateTargetStatus(const QString &targetId, Core::TargetSt
         if (statusItem != nullptr) {
             statusItem->setText(simulationTargetStatusText(status));
         }
+        updateStatusTabs();
         return;
     }
 }
 
-void LeftPanelWidget::setMissions(const QVector<Core::MissionInfo> &missions)
+bool LeftPanelWidget::isCollapsed() const
 {
-    m_missions = missions;
-    populateMissionList();
+    return m_collapsed;
 }
 
-void LeftPanelWidget::setDevices(const QVector<Core::DeviceInfo> &devices)
+void LeftPanelWidget::setCollapsed(bool collapsed)
 {
-    m_devices = devices;
-    populateDeviceList();
+    if (m_collapsed == collapsed) {
+        return;
+    }
+    m_collapsed = collapsed;
+    applyCollapseState();
+    emit collapseChanged(m_collapsed);
 }
 
-// 刷新仅请求权威工作流同步，面板不重置本地选择。
+// 应用折叠/展开视觉态：切换可见容器 + 固定宽度
+void LeftPanelWidget::applyCollapseState()
+{
+    if (m_collapsed) {
+        m_contentWidget->setVisible(false);
+        m_collapsedLabel->setVisible(true);
+        setFixedWidth(kCollapsedWidth);
+    } else {
+        m_contentWidget->setVisible(true);
+        m_collapsedLabel->setVisible(false);
+        setFixedWidth(GlobalStyle::Sizes::LeftPanelWidth);
+    }
+}
+
+bool LeftPanelWidget::eventFilter(QObject *watched, QEvent *event)
+{
+    if (m_collapsed && event->type() == QEvent::MouseButtonPress) {
+        setCollapsed(false);
+        return true;
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
 void LeftPanelWidget::onRefreshTargets()
 {
     emit refreshSimulationRequested();
-}
-
-void LeftPanelWidget::onFilterChanged()
-{
 }
 
 void LeftPanelWidget::onSearchTextChanged(const QString &text)

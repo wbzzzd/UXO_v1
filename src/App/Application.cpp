@@ -3,7 +3,6 @@
 
 #include "App/Application.h"
 #include "MainWindow/MainWindow.h"
-#include <QDebug>
 
 Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)

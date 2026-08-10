@@ -50,6 +50,10 @@ namespace Colors {
     const QString Border = "#3C3C3C";            ///< 控件边框
     const QString BorderFocus = "#4A7A4C";        ///< 聚焦边框
 
+    // 行交互态
+    const QString RowHover = "#2A2A2A";           ///< 列表/表格行 hover 背景
+    const QString RowSelected = "#2E3D2F";         ///< 单一绿色选中态背景
+
     // 状态颜色
     const QString StatusOnline = "#4CAF50";       ///< 在线状态 - 绿色
     const QString StatusOffline = "#888888";      ///< 离线状态 - 灰色

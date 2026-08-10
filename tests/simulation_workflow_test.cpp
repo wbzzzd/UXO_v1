@@ -9,10 +9,15 @@ namespace {
 
 constexpr auto kTargetId = "target-demo-001";
 
+// 测试不依赖 DemoScenarioProvider 的初始目标（空起步），
+// 手动构造 1 个测试目标用于验证 SimulationWorkflow 状态流转。
 Core::Simulation::SimulationWorkflow createWorkflow()
 {
     Core::Simulation::SimulationWorkflow workflow;
-    workflow.reset(Core::Simulation::DemoScenarioProvider::create().targets);
+    Core::TargetInfo target;
+    target.id = QString::fromLatin1(kTargetId);
+    target.status = Core::TargetStatus::Detected;
+    workflow.reset(QVector<Core::TargetInfo>{target});
     return workflow;
 }
 
@@ -35,10 +40,10 @@ private slots:
 
 void SimulationWorkflowTest::providerStartsAtDetected()
 {
+    // DemoScenarioProvider 已改为空起步（0 目标），目标由 DetectionSimulator 动态注入。
     const auto scenario = Core::Simulation::DemoScenarioProvider::create();
 
-    QCOMPARE(scenario.targets.size(), 1);
-    QCOMPARE(scenario.targets.first().status, Core::TargetStatus::Detected);
+    QCOMPARE(scenario.targets.size(), 0);
 }
 
 void SimulationWorkflowTest::validTransitionsFollowRequiredSequence()
@@ -179,8 +184,11 @@ void SimulationWorkflowTest::resetDoesNotPersistState()
     QVERIFY(workflow.requestSelectedTargetStatus(Core::TargetStatus::Disposing));
     QVERIFY(workflow.requestSelectedTargetStatus(Core::TargetStatus::Disposed));
 
-    const auto freshScenario = Core::Simulation::DemoScenarioProvider::create();
-    workflow.reset(freshScenario.targets);
+    // 重置时手动注入新的测试目标（与 createWorkflow 相同），验证 reset 清除状态
+    Core::TargetInfo freshTarget;
+    freshTarget.id = QString::fromLatin1(kTargetId);
+    freshTarget.status = Core::TargetStatus::Detected;
+    workflow.reset(QVector<Core::TargetInfo>{freshTarget});
 
     QVERIFY(!workflow.hasSelectedTarget());
     QVERIFY(workflow.selectedTarget() == nullptr);
