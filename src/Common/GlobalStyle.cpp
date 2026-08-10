@@ -90,6 +90,12 @@ QString getMainWindowStyle()
             background-color: %4;
             color: %10;
         }
+        /* 选中态按钮：复用列表/卡片选中令牌，保证工具栏档位按钮 checked 与卡片选中视觉一致 */
+        QPushButton:checked {
+            background-color: %16;
+            color: %3;
+            border: 2px solid %17;
+        }
 
         /* 主要按钮（军绿色） */
         QPushButton[primary="true"] {
@@ -107,8 +113,8 @@ QString getMainWindowStyle()
             background-color: %12;
         }
 
-        /* 输入框 */
-        QLineEdit, QTextEdit, QPlainTextEdit {
+        /* 输入框与数值步进框（QSpinBox/QDoubleSpinBox 共用同一组令牌） */
+        QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox {
             background-color: %1;
             color: %3;
             border: 1px solid %4;
@@ -118,8 +124,35 @@ QString getMainWindowStyle()
             selection-background-color: %6;
             selection-color: %3;
         }
-        QLineEdit:focus, QTextEdit:focus {
+        QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {
             border: 1px solid %6;
+        }
+        /* 步进框上下箭头按钮遵循主按钮令牌，避免默认原生样式破坏暗色基调 */
+        QSpinBox::up-button, QSpinBox::down-button,
+        QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+            background-color: %2;
+            border: none;
+            width: 18px;
+        }
+        QSpinBox::up-button:hover, QSpinBox::down-button:hover,
+        QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
+            background-color: %4;
+        }
+        QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled,
+        QSpinBox:disabled, QDoubleSpinBox:disabled {
+            background-color: %2;
+            color: %10;
+            border: 1px solid %4;
+        }
+
+        /* 标签：统一主文本色与字号，避免默认色在暗色背景上对比不足 */
+        QLabel {
+            color: %3;
+            background: transparent;
+            font-size: %5px;
+        }
+        QLabel:disabled {
+            color: %10;
         }
 
         /* 下拉框 */
@@ -319,7 +352,9 @@ QString getMainWindowStyle()
         .arg(Colors::DangerRedHover)
         .arg(Colors::RowSelected)
         .arg(Colors::RowHover)
-        .arg(Colors::PanelBackground);
+        .arg(Colors::PanelBackground)
+        .arg(Colors::SelectionBackground)
+        .arg(Colors::SelectionBorder);
 }
 
 QString getButtonStyle(bool isPrimary)

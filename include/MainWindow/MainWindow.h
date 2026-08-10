@@ -11,6 +11,7 @@
 class QPushButton;
 class QLabel;
 
+class QStackedWidget;
 class StatusBarWidget;
 class NavigationWidget;
 class VideoStreamPanel;
@@ -18,6 +19,12 @@ class LeftPanelWidget;
 class TacticalMapWidget;
 class DeviceResourceBar;
 class TargetDetailOverlay;
+class AlertPanel;
+class DecisionView;
+
+namespace Core::MOS {
+class MosPlanningController;
+}
 
 namespace Core::Simulation {
 class DroneTelemetrySimulator;
@@ -125,6 +132,14 @@ private:
     Core::Simulation::DroneTelemetrySimulator *m_droneSimulator;
     Core::Simulation::DetectionSimulator *m_detectionSimulator;
 
+    // P0 最小页面栈：index 0 = 态势工作区，index 1 = MOS 决策页
+    QStackedWidget *m_pageStack;
+    QWidget *m_situationPage;
+    DecisionView *m_decisionView;
+    // MOS P0 规划控制器（应用拥有，本地合成 fixture 驱动）
+    Core::MOS::MosPlanningController *m_mosController;
+
+    // 工作流持有唯一可变模拟目标集合；任务和设备仅供刷新只读面板。
     Core::Simulation::SimulationWorkflow m_simulationWorkflow;
     QVector<Core::MissionInfo> m_missions;
     QVector<Core::DeviceInfo> m_devices;

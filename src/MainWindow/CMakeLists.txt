@@ -1,5 +1,9 @@
 set(MAINWINDOW_SOURCES
     MainWindow.cpp
+    DecisionView.cpp
+    DecisionViewLayout.cpp
+    DecisionViewSnapshot.cpp
+    DecisionViewTier.cpp
     StatusBarWidget.cpp
     LeftPanelWidget.cpp
     NavigationWidget.cpp
@@ -8,10 +12,19 @@ set(MAINWINDOW_SOURCES
     TacticalMapWidget.cpp
     DeviceResourceBar.cpp
     TargetDetailOverlay.cpp
+    AlertPanel.cpp
+    MosPlanningController.cpp
+    MosRunwayWidget.cpp
+    MosRunwayWidgetInteraction.cpp
+    MosParamsPanel.cpp
+    MosGeneratorDialog.cpp
+    TargetCardWidget.cpp
+    PlanCardWidget.cpp
 )
 
 set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/MainWindow.h
+    ${HEADERS_DIR}/MainWindow/DecisionView.h
     ${HEADERS_DIR}/MainWindow/StatusBarWidget.h
     ${HEADERS_DIR}/MainWindow/LeftPanelWidget.h
     ${HEADERS_DIR}/MainWindow/NavigationWidget.h
@@ -20,6 +33,13 @@ set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/TacticalMapWidget.h
     ${HEADERS_DIR}/MainWindow/DeviceResourceBar.h
     ${HEADERS_DIR}/MainWindow/TargetDetailOverlay.h
+    ${HEADERS_DIR}/MainWindow/AlertPanel.h
+    ${HEADERS_DIR}/MainWindow/MosPlanningController.h
+    ${HEADERS_DIR}/MainWindow/MosRunwayWidget.h
+    ${HEADERS_DIR}/MainWindow/MosParamsPanel.h
+    ${HEADERS_DIR}/MainWindow/MosGeneratorDialog.h
+    ${HEADERS_DIR}/MainWindow/TargetCardWidget.h
+    ${HEADERS_DIR}/MainWindow/PlanCardWidget.h
 )
 
 set(CMAKE_AUTOMOC ON)

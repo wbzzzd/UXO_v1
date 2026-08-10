@@ -7,11 +7,14 @@
 #include "MainWindow/TacticalMapWidget.h"
 #include "MainWindow/DeviceResourceBar.h"
 #include "MainWindow/TargetDetailOverlay.h"
+#include "MainWindow/DecisionView.h"
+#include "MainWindow/MosPlanningController.h"
 
 #include "Core/Data/Types.h"
 #include "Core/Simulation/DemoScenarioProvider.h"
 #include "Core/Simulation/DroneTelemetrySimulator.h"
 #include "Core/Simulation/DetectionSimulator.h"
+#include "Core/MOS/MosFixtureGenerator.h"
 #include "Common/GlobalStyle.h"
 
 #include <QMenuBar>
@@ -23,6 +26,7 @@
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QShowEvent>
+#include <QStackedWidget>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QEvent>
@@ -71,6 +75,10 @@ MainWindow::MainWindow(QWidget *parent)
     , m_resetBtn(nullptr)
     , m_droneSimulator(nullptr)
     , m_detectionSimulator(nullptr)
+    , m_pageStack(nullptr)
+    , m_situationPage(nullptr)
+    , m_decisionView(nullptr)
+    , m_mosController(nullptr)
     , m_currentDroneLat(0.0)
     , m_currentDroneLng(0.0)
     , m_currentDroneAlt(0.0)
@@ -96,6 +104,10 @@ void MainWindow::setupUi()
     resize(1920, 1080);
 
     setStyleSheet(GlobalStyle::getMainWindowStyle());
+
+    // MOS P0 控制器在 UI 构造前创建，确保 createConnections 可接线
+    m_mosController = new Core::MOS::MosPlanningController(this);
+    m_mosController->setObjectName(QStringLiteral("mosPlanningController"));
 
     createMenuBar();
     createMainLayout();
@@ -153,12 +165,23 @@ void MainWindow::createMainLayout()
     m_navigationWidget = new NavigationWidget(centralWidget);
     mainLayout->addWidget(m_navigationWidget);
 
+    // P0 页面栈：index 0 = 态势工作区（左+中），index 1 = MOS 决策页
+    m_pageStack = new QStackedWidget(centralWidget);
+    m_pageStack->setObjectName(QStringLiteral("mainPageStack"));
+
+    // 态势工作区页：包裹左面板 + 中心区
+    m_situationPage = new QWidget(m_pageStack);
+    m_situationPage->setObjectName(QStringLiteral("situationWorkspacePage"));
+    QHBoxLayout *situationLayout = new QHBoxLayout(m_situationPage);
+    situationLayout->setContentsMargins(0, 0, 0, 0);
+    situationLayout->setSpacing(0);
+
     // 2. 左 pane: 可折叠目标列表
-    m_leftPanel = new LeftPanelWidget(centralWidget);
-    mainLayout->addWidget(m_leftPanel);
+    m_leftPanel = new LeftPanelWidget(m_situationPage);
+    situationLayout->addWidget(m_leftPanel);
 
     // 3. 中心区: 设备资源条 + 地图工具栏 + 地图主舞台
-    QWidget *centerArea = new QWidget(centralWidget);
+    QWidget *centerArea = new QWidget(m_situationPage);
     QVBoxLayout *centerLayout = new QVBoxLayout(centerArea);
     centerLayout->setContentsMargins(0, 0, 0, 0);
     centerLayout->setSpacing(0);
@@ -189,7 +212,16 @@ void MainWindow::createMainLayout()
 
     centerLayout->addWidget(m_mapContainer, 1);
 
-    mainLayout->addWidget(centerArea, 1);
+    // 中心区加入态势工作区布局
+    situationLayout->addWidget(centerArea, 1);
+
+    // MOS 决策页：页面栈 index 1
+    m_decisionView = new DecisionView;
+    m_decisionView->setObjectName(QStringLiteral("mosDecisionPage"));
+    m_pageStack->addWidget(m_situationPage);
+    m_pageStack->addWidget(m_decisionView);
+    m_pageStack->setCurrentIndex(0);
+    mainLayout->addWidget(m_pageStack, 1);
 
     setCentralWidget(centralWidget);
 }
@@ -329,6 +361,34 @@ void MainWindow::createConnections()
             this, &MainWindow::onAssignDeviceRequested);
     connect(m_targetDetailOverlay, &TargetDetailOverlay::viewHistoryRequested,
             this, &MainWindow::onViewHistoryRequested);
+
+    // MOS P0 决策页接线：controller 单一状态通知 <-> DecisionView 请求（本地合成 fixture）
+    connect(m_mosController, &Core::MOS::MosPlanningController::mosStateChanged,
+            this, [this]() {
+        if (m_decisionView) {
+            m_decisionView->setSnapshot(m_mosController->snapshot());
+        }
+    });
+    connect(m_mosController, &Core::MOS::MosPlanningController::replanActivityChanged,
+            m_decisionView, &DecisionView::setPlanning);
+    connect(m_decisionView, &DecisionView::replanRequested,
+            this, [this]() {
+        m_mosController->requestReplan(m_decisionView->currentObstacles(),
+                                        m_decisionView->currentParams());
+    });
+    connect(m_decisionView, &DecisionView::tierSelected,
+            m_mosController, &Core::MOS::MosPlanningController::selectTier);
+    connect(m_decisionView, &DecisionView::generatorApplied,
+            this, [this](const Core::MOS::MosGeneratorParams &genParams, qint32 seed) {
+        const auto runwayParams = m_decisionView->currentParams();
+        const auto obstacles = Core::MOS::MosFixtureGenerator::generate(runwayParams, genParams, seed);
+        // 仅替换障碍物，不自动规划；用户点击重新规划按钮后才执行 MOS 规划
+        m_mosController->replaceObstacles(obstacles, runwayParams);
+    });
+    connect(m_decisionView, &DecisionView::exportRequested,
+            this, [this](const QString &path) {
+        m_mosController->exportFixture(path);
+    });
 }
 
 // 加载模拟演示场景：设备/任务/航线/检测数据/卫星图/视频
@@ -371,6 +431,16 @@ void MainWindow::loadMockData()
 
     // 检测模拟器: 加载检测数据
     m_detectionSimulator->loadDetections(scenario.detections);
+
+    // MOS 初始规划：seed=42 生成确定性 fixture，同步触发首次 replan
+    // requestReplan 同步触发 worker，完成后 mosStateChanged 自动把快照推给 DecisionView
+    if (m_decisionView && m_mosController) {
+        Core::MOS::MosRunwayParams runwayParams;
+        Core::MOS::MosGeneratorParams genParams;
+        const qint32 seed = 42;
+        const auto obstacles = Core::MOS::MosFixtureGenerator::generate(runwayParams, genParams, seed);
+        m_mosController->requestReplan(obstacles, runwayParams);
+    }
 }
 
 // [开始]: 播放视频 + 启动遥测和检测模拟器
@@ -630,6 +700,12 @@ void MainWindow::annotateEvidenceImage(QImage& image, const Core::DetectionResul
 void MainWindow::onNavigationChanged(int index)
 {
     qDebug() << "Navigation changed to:" << index;
+
+    // P0 路由：导航 index 2（决策）切到 MOS 决策页，其余 index 保持态势工作区
+    if (!m_pageStack) {
+        return;
+    }
+    m_pageStack->setCurrentIndex(index == 2 ? 1 : 0);
 }
 
 void MainWindow::onRefreshSimulationRequested()

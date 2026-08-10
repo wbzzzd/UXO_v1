@@ -46,6 +46,11 @@ namespace Colors {
     const QString TextSecondary = "#AAAAAA";      ///< 辅助文本色
     const QString TextDisabled = "#888888";        ///< 禁用文本色
 
+    // 交互态扩展色
+    const QString SelectionBackground = "#2A3F54";  ///< 列表/表格行选中背景
+    const QString SelectionBorder = "#3A5F7A";      ///< 选中态边框
+    const QString TierBlue = "#42A5F5";              ///< 档位高亮蓝（区别于威胁色阶）
+
     // 边框色
     const QString Border = "#3C3C3C";            ///< 控件边框
     const QString BorderFocus = "#4A7A4C";        ///< 聚焦边框
@@ -110,6 +115,16 @@ namespace Sizes {
     const int ButtonHeight = 32;
     const int IconButtonSize = 24;
     const int ToolbarButtonHeight = 32;
+
+    // 决策页视口缩放策略：clamp(min(w/1920, h/1080), 1.0, 2.0)
+    // 1.0 覆盖 1280x720 与 1920x1080；2.0 覆盖 3840x2160；不乘 devicePixelRatio
+    const double DecisionViewportScaleMin = 1.0;  ///< 决策页视口缩放下限
+    const double DecisionViewportScaleMax = 2.0;  ///< 决策页视口缩放上限
+    const int DecisionReferenceWidth = 1920;      ///< 决策页缩放参考宽度
+    const int DecisionReferenceHeight = 1080;     ///< 决策页缩放参考高度
+    const int DecisionToolbarBaseHeight = 40;     ///< 决策页工具栏基础高度
+    const int DecisionLeftPanelBaseWidth = 260;   ///< 决策页左面板基础宽度
+    const int DecisionRightPanelBaseWidth = 380;  ///< 决策页右面板基础宽度
 }
 
 /**

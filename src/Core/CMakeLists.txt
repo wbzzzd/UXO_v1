@@ -5,6 +5,13 @@ set(CORE_SOURCES
     Simulation/SimulationWorkflow.cpp
     Simulation/DroneTelemetrySimulator.cpp
     Simulation/DetectionSimulator.cpp
+    MOS/MosTypes.cpp
+    MOS/MosValidation.cpp
+    MOS/MosFixtureGenerator.cpp
+    MOS/MosEstimator.cpp
+    MOS/MosPlanner.cpp
+    MOS/MosPlannerProgressive.cpp
+    MOS/MosPlanningSession.cpp
 )
 
 # AUTOMOC 需要扫描 Q_OBJECT 宏的 header (DroneTelemetrySimulator / DetectionSimulator 派生自 QObject)

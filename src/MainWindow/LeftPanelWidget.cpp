@@ -229,6 +229,8 @@ void LeftPanelWidget::setupTargetList()
     m_targetTable->setColumnWidth(kTargetConfidenceColumn, kTargetConfidenceColumnWidth);
     m_targetTable->setColumnWidth(kTargetPositionColumn, kTargetPositionColumnWidth);
     m_targetTable->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    // 关闭自动折行，确保"模拟反跑道雷"和"X:108 Y:0"等作为完整单元格显示，不产生孤字。
+    m_targetTable->setWordWrap(false);
     m_targetTable->verticalHeader()->setVisible(false);
     m_targetTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_targetTable->setSelectionMode(QAbstractItemView::SingleSelection);
