@@ -36,6 +36,8 @@ public:
     void setSnapshot(const Core::MOS::MosPlanningSnapshot &snapshot);
     // 进入/退出规划中状态（控制工具栏与状态栏）
     void setPlanning(bool planning);
+    // 切换档位选中态（被动入口，仅刷新视觉，不重建控件）
+    void selectTier(int tierIndex);
 
     // 读取当前参数栏表单值（合成参数）
     Core::MOS::MosRunwayParams currentParams() const;
@@ -68,7 +70,6 @@ protected:
 private:
     void setupUi();
     void rebuildTierButtons(int tierCount);
-    void selectTier(int tierIndex);
     void selectTarget(const QString &targetId);
     void openGenerator();
     // 按当前尺寸重算视口缩放并应用到工具栏/左右面板/跑道字体
