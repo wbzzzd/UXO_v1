@@ -22,7 +22,7 @@ private slots:
     void standoffLabelRejectsRealSafetyClaim();
     void generatorResizesAfterFourKTransition();
     void exportButtonUsesControllerCanonicalSnapshot();
-    void exportFixtureRejectsWhenNoCommittedResult();
+    void exportFixtureRejectsInvalidRunwayParams();
     void exportFixtureRejectsRelativePath();
     void exportFixtureRejectsWrongSuffix();
     void exportFixtureRejectsSymlinkTarget();
@@ -143,18 +143,21 @@ void MosUiClosureTest::exportButtonUsesControllerCanonicalSnapshot()
     QCOMPARE(Core::MOS::serializeObstacleSetBytes(after.obstacles), expected);
 }
 
-void MosUiClosureTest::exportFixtureRejectsWhenNoCommittedResult()
+void MosUiClosureTest::exportFixtureRejectsInvalidRunwayParams()
 {
-    // Given: 未提交任何 replan 的独立控制器与一个合法的绝对 .json 目标。
+    // Given: 独立控制器与一个合法的绝对 .json 目标。
     Core::MOS::MosPlanningController controller;
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
-    const QString target = QDir(directory.path()).absoluteFilePath(QStringLiteral("no-commit.json"));
+    const QString target = QDir(directory.path()).absoluteFilePath(QStringLiteral("bad-params.json"));
 
-    // When: 直接请求导出。
-    const auto result = controller.exportFixture(target);
+    // When: 传入非法跑道参数（L=0 超出校验范围 100..6000）。
+    Core::MOS::MosRunwayParams badParams;
+    badParams.L = 0.0;
+    const auto result = controller.exportFixture(
+        target, badParams, Core::MOS::MosGeneratorParams{}, 42);
 
-    // Then: 因无已接受的提交快照，导出在写入前被拒，目标文件不落盘。
+    // Then: 参数校验拒绝，目标文件不落盘。
     QVERIFY(!result.success);
     QVERIFY(!QFile::exists(target));
 }
@@ -172,7 +175,8 @@ void MosUiClosureTest::exportFixtureRejectsRelativePath()
     QVERIFY(QDir::setCurrent(directory.path()));
 
     // When: 提供相对路径。
-    const auto result = controller->exportFixture(QStringLiteral("relative.json"));
+    const auto result = controller->exportFixture(
+        QStringLiteral("relative.json"), Core::MOS::MosRunwayParams{}, Core::MOS::MosGeneratorParams{}, 42);
 
     QVERIFY(QDir::setCurrent(originalPath));
 
@@ -193,7 +197,8 @@ void MosUiClosureTest::exportFixtureRejectsWrongSuffix()
     const QString target = QDir(directory.path()).absoluteFilePath(QStringLiteral("not-json.txt"));
 
     // When: 请求导出至非 .json 路径。
-    const auto result = controller->exportFixture(target);
+    const auto result = controller->exportFixture(
+        target, Core::MOS::MosRunwayParams{}, Core::MOS::MosGeneratorParams{}, 42);
 
     // Then: 后缀策略拒绝，目标不落盘。
     QVERIFY(!result.success);
@@ -220,7 +225,8 @@ void MosUiClosureTest::exportFixtureRejectsSymlinkTarget()
     QVERIFY(QFile::link(realFile, linkFile));
 
     // When: 请求导出至符号链接路径。
-    const auto result = controller->exportFixture(linkFile);
+    const auto result = controller->exportFixture(
+        linkFile, Core::MOS::MosRunwayParams{}, Core::MOS::MosGeneratorParams{}, 42);
 
     // Then: 符号链接策略拒绝，真实文件内容不被写穿。
     QVERIFY(!result.success);
@@ -243,7 +249,8 @@ void MosUiClosureTest::exportFixtureRejectsNonRegularTarget()
     QVERIFY(QDir().mkdir(dirTarget));
 
     // When: 请求导出至目录路径。
-    const auto result = controller->exportFixture(dirTarget);
+    const auto result = controller->exportFixture(
+        dirTarget, Core::MOS::MosRunwayParams{}, Core::MOS::MosGeneratorParams{}, 42);
 
     // Then: 非普通文件策略拒绝，目录保持空。
     QVERIFY(!result.success);
@@ -266,7 +273,8 @@ void MosUiClosureTest::exportFixtureWritesValidAbsoluteJsonAndLeavesStateUnchang
     const QString target = QDir(directory.path()).absoluteFilePath(QStringLiteral("valid.json"));
 
     // When: 直接调用 exportFixture 写入合法绝对路径。
-    const auto result = controller->exportFixture(target);
+    const auto result = controller->exportFixture(
+        target, Core::MOS::MosRunwayParams{}, Core::MOS::MosGeneratorParams{}, 42);
 
     // Then: 写出 canonical 字节，权威会话状态/revision/日志/障碍物完全不变。
     QVERIFY(result.success);

@@ -6,6 +6,7 @@
 #include "MainWindow/DecisionView.h"
 #include "MainWindow/MosGeneratorDialog.h"
 #include "MainWindow/MosParamsPanel.h"
+#include "MainWindow/MosPlanningController.h"
 #include "MainWindow/MosRunwayWidget.h"
 #include "Common/GlobalStyle.h"
 
@@ -281,8 +282,6 @@ void DecisionView::setupUi()
             this, [this](const Core::MOS::MosGeneratorParams &p, qint32 s){
         emit generatorApplied(p, s);
     });
-    connect(m_generatorDialog, &MosGeneratorDialog::jsonExportRequested,
-            this, [this](const QString &path){ emit exportRequested(path); });
     // +/- 按钮与滚轮共用 m_runway->zoomBy，缩放显示由 zoomChanged 信号回填
     connect(m_zoomIn, &QPushButton::clicked, this, [this](){ m_runway->zoomBy(0.25); });
     connect(m_zoomOut, &QPushButton::clicked, this, [this](){ m_runway->zoomBy(-0.25); });
@@ -307,5 +306,12 @@ void DecisionView::setupUi()
 
 void DecisionView::openGenerator()
 {
+    m_generatorDialog->setRunwayParams(currentParams());
     m_generatorDialog->exec();
+}
+
+void DecisionView::setMosController(Core::MOS::MosPlanningController *controller)
+{
+    m_generatorDialog->setController(controller);
+    m_generatorDialog->setRunwayParams(currentParams());
 }

@@ -43,6 +43,9 @@ Makefile*
 *.bak
 *.cache
 
+# Test runtime artifacts (MOS 导出产物等运行时生成文件)
+mos-sim-scenario-*.json
+
 # Logs
 logs/
 

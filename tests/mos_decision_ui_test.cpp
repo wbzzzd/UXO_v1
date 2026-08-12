@@ -739,7 +739,8 @@ void MosDecisionUiTest::runNoOutput(MainWindow &window)
     QTemporaryDir dir;
     QVERIFY2(dir.isValid(), "无法创建临时导出目录");
     const QString exportPath = dir.path() + QStringLiteral("/mos-no-output.json");
-    const auto result = controller->exportFixture(exportPath);
+    const auto result = controller->exportFixture(
+        exportPath, Core::MOS::MosRunwayParams{}, Core::MOS::MosGeneratorParams{}, 42);
     QVERIFY2(result.success,
              qPrintable(QStringLiteral("no-output 导出应成功，消息：%1").arg(result.message)));
     QVERIFY2(QFile::exists(exportPath), "no-output 导出文件应存在");
