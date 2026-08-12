@@ -1,8 +1,9 @@
 // MOS-015 模拟损毁分布生成器模态实现：种子化本地随机生成弹坑与 UXO 分布参数表单。
-// 不联网、不持久化到数据库；JSON 按钮仅请求 controller 单向导出已提交 fixture。
+// 不联网、不持久化到数据库；JSON 按钮直接调用 controller 导出实时生成 fixture。
 // 所有参数均为合成本地 fixture 语义，非真实探测或真实装药。
 
 #include "MainWindow/MosGeneratorDialog.h"
+#include "MainWindow/MosPlanningController.h"
 #include "Common/GlobalStyle.h"
 #include "Core/MOS/MosValidation.h"
 
@@ -151,6 +152,16 @@ qint32 MosGeneratorDialog::currentSeed() const
     return static_cast<qint32>(m_seed->value());
 }
 
+void MosGeneratorDialog::setController(Core::MOS::MosPlanningController *controller)
+{
+    m_controller = controller;
+}
+
+void MosGeneratorDialog::setRunwayParams(const Core::MOS::MosRunwayParams &params)
+{
+    m_runwayParams = params;
+}
+
 void MosGeneratorDialog::revalidate()
 {
     const auto params = currentParams();
@@ -173,10 +184,11 @@ void MosGeneratorDialog::revalidate()
 
 void MosGeneratorDialog::doExportJson()
 {
+    if (!m_controller) return;
     const qint32 seed = currentSeed();
     const QString fileName = QStringLiteral("mos-sim-scenario-seed%1-prototype.json").arg(seed);
     const QString path = QDir::currentPath() + QDir::separator() + fileName;
-    emit jsonExportRequested(path);
+    m_controller->exportFixture(path, m_runwayParams, currentParams(), seed);
 }
 
 void MosGeneratorDialog::onApply()

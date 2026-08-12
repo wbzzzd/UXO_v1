@@ -1,6 +1,6 @@
 # UI 设计文档入口
 
-状态：`TARGET / Draft / 设计评审原型 / 本地模拟`
+状态：`TARGET / 设计评审原型 / 本地模拟`（决策页 P0 已 `Approved` 2026-08-03，其余页面与范围仍 `Draft`）
 关联基线：[docs/UI.md](../UI.md) · [docs/PRODUCT.md](../PRODUCT.md) · [docs/ARCHITECTURE.md](../ARCHITECTURE.md) · [docs/DEVELOPMENT.md](../DEVELOPMENT.md) · [AGENTS.md](../../AGENTS.md)
 
 > 本目录是排弹抢修指挥系统六页 UI 的设计文档与 HTML 原型集合。读者先看本文了解整体结构与阅读顺序，再按需进入子文档查阅设计系统、应用壳或某一页的详细规格。所有内容均为设计评审原型，对应行为用本地模拟数据演示，不连接真实设备、不执行真实排爆动作。
@@ -13,7 +13,7 @@
 |--------------|---------|--------------|----------|----------|----------|
 | 态势 | Situation | `SIT-` | 详细清单已交付 | 已交付 | 已交付 |
 | 探测 | Detection | `DET-` | 详细清单已交付 | 已交付 | 已交付 |
-| 决策 | Decision | `DEC-` | 详细清单已交付 | 已交付 | 已交付 |
+| 决策 | Decision | `DEC-` | P0 Approved（2026-08-03） | 已交付 | 已交付 |
 | 设备 | Devices | `DEV-` | 详细清单已交付 | 已交付 | 已交付 |
 | 统计 | Statistics | `STA-` | 详细清单已交付 | 已交付 | 已交付 |
 | 配置 | Configuration | `CFG-` | 详细清单已交付 | 已交付 | 已交付 |
@@ -85,7 +85,7 @@ HTML 原型已通过 GitHub Pages 托管，无需 clone 仓库，点击下方链
 
 - 不发送真实设备控制命令，不执行真实排爆或抢修动作。
 - 不写入真实数据库或外部系统，不接入未授权通信链路。
-- 不实现登录、角色切换、外部通信、持久化、UXR、MOS。
+- 本目录不构成 Qt 实现，亦不授权 UXR、P1/P2 MOS、真实集成或执行；登录、角色切换、外部通信与持久化仍不在本目录范围。
 - UI 中的模拟操作和结果必须明确标注"模拟"或"演示"。
 - 不把模拟状态描述为真实设备状态。
 
@@ -123,7 +123,7 @@ HTML 原型已通过 GitHub Pages 托管，无需 clone 仓库，点击下方链
 | 1920×1080 | 默认与权威截图 | 默认设计尺寸，整体图按此视口生成 |
 | 3840×2160 | 4K | 控件密度与间距按 token 等比放大，不出现大片留白或控件过小 |
 
-CURRENT 在 1280×720 下决策面板存在约 5px 底部溢出（见 `UI.md` 第 3 节已知问题）。TARGET 将该问题纳入设计修正目标。
+CURRENT 在 1280×720 下态势页右面板旧 `DecisionSuggestionPanel` 仍存在约 5px 底部溢出（见 `UI.md` 第 3 节已知问题）。该问题属于态势页壳，与决策页 `DecisionView` 无关：`DecisionView` 三视口（1280×720/1920×1080/3840×2160）几何 TSV 全部 `overflow_rows=0`，证据见 `.omo/evidence/mos-p0-qt-final/REPORT.md`。TARGET 将态势页溢出纳入设计修正目标。
 
 ## 8. 后续任务
 
@@ -168,4 +168,4 @@ CURRENT 在 1280×720 下决策面板存在约 5px 底部溢出（见 `UI.md` �
 
 ## 10. 完成条件
 
-本轮文档整改完成的判定：读者只看 `README.md` 能了解目录整体结构与阅读顺序；查阅 `pages/index.md` 能知道六页各是什么、关键区域、控件 ID 前缀与截图路径；查阅 `design-system.md` 与 `application-shell.md` 能知道六页共用的视觉与壳契约；查阅 `pages/<page>.md` 能知道对应页每个控件的完整规格。没有 Approved/Implemented、真实状态或真实控制表述。
+本轮文档整改完成的判定：读者只看 `README.md` 能了解目录整体结构与阅读顺序；查阅 `pages/index.md` 能知道六页各是什么、关键区域、控件 ID 前缀与截图路径；查阅 `design-system.md` 与 `application-shell.md` 能知道六页共用的视觉与壳契约；查阅 `pages/<page>.md` 能知道对应页每个控件的完整规格。除决策页 P0 TARGET 设计契约与 HTML 原型已于 2026-08-03 获批为 `Approved` 外，其余页面与范围仍 `Draft`；任何文档不得出现虚假的 `Implemented`、CURRENT 实现或真实控制表述。

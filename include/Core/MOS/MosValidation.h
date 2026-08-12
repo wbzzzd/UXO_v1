@@ -33,6 +33,7 @@ enum class MosValidationReason {
     InfluenceRadius,   // 影响半径越界或非有限
     TotalObstacles,    // 总障碍物 N > 13
     ObstacleId,        // 障碍物 ID 空或重复
+    ObstacleCoordinate,// 障碍物坐标越界（x∉[0,L] 或 y∉[-40,40]）
     Seed               // 种子超出 signed int32 范围
 };
 
@@ -49,7 +50,7 @@ MosValidationResult validateRunwayParams(const MosRunwayParams &params);
 // 校验生成器参数（craterCount, craterRMin, craterRMax, uxoCount, uxoYMin, uxoYMax）
 MosValidationResult validateGeneratorParams(const MosGeneratorParams &params);
 
-// 校验障碍物集合（visibleRadius, syntheticYield, influenceRadius, N<=13, 唯一非空 ID）
+// 校验障碍物集合（visibleRadius, syntheticYield, influenceRadius, N<=13, 唯一非空 ID, 坐标）
 MosValidationResult validateObstacleSet(const MosObstacleSet &obstacles, const MosRunwayParams &params);
 
 // 校验种子（须在 signed int32 范围内）

@@ -58,7 +58,7 @@ sequenceDiagram
     Window->>Window: setupUi()
     Window->>Ctrl: new MosPlanningController(this)
     Note over Ctrl: 在 UI 构造完成前创建，<br/>controller 为 window 的 QObject 子对象
-    Window->>Ctrl: bootstrap seed=42 revision=1
+    Window->>Ctrl: requestReplan(obstacles, params) seed=42
     Ctrl-->>Window: 首次 fixture/plan/tier1 已就绪
     Window->>Demo: create()
     Demo-->>Window: 2设备 + 1任务 + 无人机航线 + 检测数据 + 机场边界（空起步：0 目标）
@@ -75,7 +75,7 @@ sequenceDiagram
 - CURRENT `Application` 生命周期类创建 `MainWindow` 并负责显示。
 - `MainWindow` 创建并按值拥有 `SimulationWorkflow`。
 - `MosPlanningController` 在 `MainWindow` 构造早期、UI 创建前创建，作为 `MainWindow` 的 `QObject` 子对象；它内部按值持有 plain Core `MosPlanningSession` 与同步 `MosReplanWorker`，不引入生产 `QThread`。
-- 启动期 controller 调用 `bootstrap(seed=42, revision=1)`，使用确定性 mulberry32 生成初始 fixture 与 tier1 规划，结果同步回 controller 与 `DecisionView` 快照；该 seed 只在 `MainWindow` 启动期使用，`MosGeneratorDialog` 中后续修改不持久化、不回写。
+- 启动期 `MainWindow::loadMockData()` 使用默认 `MosRunwayParams`/`MosGeneratorParams` 与 seed=42 调用 `MosFixtureGenerator::generate()` 生成初始障碍物，再调用 `controller->requestReplan(obstacles, params)` 同步触发首次规划，结果通过显式 `setSnapshot()` 推送到 `DecisionView`；该 seed 只在启动期使用，`MosGeneratorDialog` 中后续修改不持久化、不回写。
 - `DemoScenarioProvider` 只提供初始模拟数据，不参与运行时状态。
 - CURRENT `Application` 生命周期类的五个初始化函数（配置/日志/数据库/通信/模块）当前直接返回成功。
 - 配置文件和外部依赖没有进入装配流程。
@@ -200,11 +200,11 @@ sequenceDiagram
 
 通知语义事实：
 
-- 控制器接受提交或拒绝日志落盘后发出无载荷 `mosStateChanged()`；`MainWindow` 随后调用 `snapshot()` 拉取按值副本并交给 `DecisionView::setSnapshot`。陈旧或重复完成返回 `IgnoredStale`，不发状态通知。
+- 控制器接受提交或拒绝日志落盘后发出无载荷 `mosStateChanged()`；`MainWindow` 不自动在此信号上触发 `setSnapshot`（7f7ebc0 修复：档位选择 emit 该信号后同步全量重建会在 PlanCardWidget 信号链中删除发信控件），而是在 `requestReplan`/`replaceObstacles` 完成后显式推送快照，档位选择仅刷新视觉态。陈旧或重复完成返回 `IgnoredStale`，不发状态通知。
 - `MosPlanningSnapshot` 按值复制 fixture、params、result、selectedTier、committedRevision 与 sequencedLog；`DecisionView` 不持有控制器或会话指针，无法回写。
 - revision guard 完全同步：controller 在请求时分配单调 revision 并保存 pending 请求；只有完成 revision 与 pending 相等才可进入重算/提交，陈旧或重复完成直接忽略。worker 不写 session，controller 对接受结果按 supplied tiers 重算并逐位比对后才提交。当前实现不引入生产 `QThread`；若未来线程化必须保留同一 guard 与重算边界。
 - 合法无解是接受结果：复合结果仍提交，具体 tier 以 `rectangle.valid=false` 与 `NoFeasibleRectangle` 表示；它不是 `IgnoredStale`。
-- 导出链为 `MosGeneratorDialog` 请求 -> `DecisionView::exportRequested` -> `MainWindow` -> `MosPlanningController::exportFixture`。仅 controller 使用 `QSaveFile` 写出当前已提交障碍物的 canonical bytes；导出不改业务状态、revision、日志或通知计数，也无导入、网络或数据库路径。
+- 导出链为 `MosGeneratorDialog` 直接调用 `MosPlanningController::exportFixture(targetPath, runwayParams, generatorParams, seed)`（controller 由 `DecisionView::setMosController` 注入）；实时生成合成 fixture 障碍物并序列化到显式目标路径，使用 `QSaveFile` 原子写入。导出不改业务状态、revision、日志或通知计数，不依赖已提交快照，也无导入、网络或数据库路径。
 
 导航、任务选择、设备选择、批量操作、紧急停止和 3D 目标点击没有形成等价的完整消费链。
 

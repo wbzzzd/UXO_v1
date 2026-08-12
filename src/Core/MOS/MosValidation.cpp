@@ -197,7 +197,6 @@ MosValidationResult validateGeneratorParams(const MosGeneratorParams &params)
 MosValidationResult validateObstacleSet(const MosObstacleSet &obstacles,
                                         const MosRunwayParams &params)
 {
-    (void)params; // 当前校验不依赖跑道参数，保留接口供未来跨字段校验
     MosValidationResult result;
 
     // 总障碍物 N <= 13
@@ -227,6 +226,13 @@ MosValidationResult validateObstacleSet(const MosObstacleSet &obstacles,
             result.message = QStringLiteral("弹坑 influenceRadius 越界或非有限（0.1..6000）");
             return result;
         }
+        // 坐标：x∈[0,L], y∈[-40,40]
+        if (c.x < 0 || c.x > params.L || c.y < -40 || c.y > 40) {
+            result.valid = false;
+            result.reason = MosValidationReason::ObstacleCoordinate;
+            result.message = QStringLiteral("弹坑坐标越界（x∈[0,L], y∈[-40,40]）");
+            return result;
+        }
     }
 
     // UXO 字段校验
@@ -245,6 +251,13 @@ MosValidationResult validateObstacleSet(const MosObstacleSet &obstacles,
             result.valid = false;
             result.reason = MosValidationReason::InfluenceRadius;
             result.message = QStringLiteral("UXO influenceRadius 越界或非有限（0.1..6000）");
+            return result;
+        }
+        // 坐标：x∈[0,L], y∈[-40,40]
+        if (u.x < 0 || u.x > params.L || u.y < -40 || u.y > 40) {
+            result.valid = false;
+            result.reason = MosValidationReason::ObstacleCoordinate;
+            result.message = QStringLiteral("UXO 坐标越界（x∈[0,L], y∈[-40,40]）");
             return result;
         }
     }

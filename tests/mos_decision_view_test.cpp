@@ -10,6 +10,7 @@
 #include "Core/MOS/MosFixtureGenerator.h"
 #include "Core/MOS/MosPlanner.h"
 #include "Core/MOS/MosPlanningSession.h"
+#include "Core/MOS/MosTypes.h"
 
 #include <QtTest>
 
@@ -46,6 +47,7 @@ private slots:
     void initialSnapshotSelectsFirstCraterWithoutEmitting();
     void globalStyleCheckedButtonUsesSelectionTokens();
     void tierSelectionCheckedStateIsUnambiguous();
+    void tierCardEffortReflectsCoreDifficulty();
 
 private:
     Core::MOS::MosPlanningSnapshot makeSeedSnapshot();
@@ -320,10 +322,10 @@ Core::MOS::MosPlanningSnapshot makeNoFeasibleSnapshot()
     Core::MOS::MosCrater blocker;
     blocker.id = QStringLiteral("blocker");
     blocker.visibleRadius = 5.0;
-    blocker.x = 1500;
+    blocker.x = 150;
     blocker.y = 0;
     blocker.threat = Core::MOS::MosThreatLevel::High;
-    blocker.influenceRadius = 2000.0;
+    blocker.influenceRadius = 200.0;
     Core::MOS::MosObstacleSet obstacles;
     obstacles.craters.append(blocker);
     const auto result = Core::MOS::MosPlanner::planProgressive(obstacles, params);
@@ -603,6 +605,110 @@ void MosDecisionViewTest::tierSelectionCheckedStateIsUnambiguous()
     auto *invalidTier2 = view.findChild<QPushButton *>(QStringLiteral("DEC-TB-PLAN-2"));
     QVERIFY2(invalidTier2 != nullptr, "DEC-TB-PLAN-2 缺失");
     QVERIFY2(!invalidTier2->isChecked(), "无可行档位 DEC-TB-PLAN-2 不得 checked");
+}
+
+void MosDecisionViewTest::tierCardEffortReflectsCoreDifficulty()
+{
+    // 契约：DEC-RP-PLAN-N 候选卡片的工程量文案必须取自
+    // Core::MOS::difficultyToString(tier.estimate.difficulty)，而非按档位序号 i
+    // 派生的"无/中等/高/很高"标签。当前 DecisionViewSnapshot.cpp 用 i 推导 effort，
+    // 与 Core 难度权威不一致：本测试构造 5 档合法有解快照并显式覆写 difficulty，
+    // 使序号派生标签与 Core 标签必然冲突，从而锁定回归。
+    DecisionView view;
+    view.resize(1280, 720);
+
+    // 5 档合法有解快照：params.tiers=5 触发 MosPlanner 生成 5 个 tier
+    Core::MOS::MosRunwayParams params;
+    params.tiers = 5;
+    Core::MOS::MosGeneratorParams gen;
+    const qint32 seed = 42;
+    const auto obstacles = Core::MOS::MosFixtureGenerator::generate(params, gen, seed);
+    const auto result = Core::MOS::MosPlanner::planProgressive(obstacles, params);
+    QVERIFY2(result.accepted, "5 档快照必须被接受以生成候选卡片");
+    QVERIFY2(result.tiers.size() >= 4,
+             "需要至少 4 档以暴露序号派生与 Core 难度的冲突");
+
+    Core::MOS::MosPlanningSnapshot snap;
+    snap.obstacles = obstacles;
+    snap.params = params;
+    snap.result = result;
+    snap.hasResult = true;
+    snap.selectedTier = 0;
+    snap.committedRevision = 1;
+
+    // 显式覆写 estimate.difficulty，制造与序号派生标签必然冲突的预期值：
+    // 序号派生（当前 bug）：i=0->"无", i=1->"中等", i=2->"高", i>=3->"很高"
+    // Core 权威 difficultyToString：None->"无", Medium->"中等", High->"高"（永不含"很高"）
+    // 选 i=2 设为 None（序号"高" vs Core"无"）、i=3 设为 High（序号"很高" vs Core"高"），
+    // 两个档位均与序号派生冲突，任一卡片即可证伪当前实现
+    snap.result.tiers[2].estimate.difficulty = Core::MOS::MosDifficulty::None;
+    snap.result.tiers[3].estimate.difficulty = Core::MOS::MosDifficulty::High;
+
+    // 被校验档位必须有可行矩形，否则 PlanCardWidget 走 invalid 分支将工程量渲染为"--"，
+    // 无法暴露 effort 文案 bug
+    QVERIFY2(snap.result.tiers.at(2).rectangle.valid,
+             "tier 2 必须有可行矩形以渲染工程量文案");
+    QVERIFY2(snap.result.tiers.at(3).rectangle.valid,
+             "tier 3 必须有可行矩形以渲染工程量文案");
+
+    view.setSnapshot(snap);
+
+    auto *plansContainer = view.findChild<QWidget *>(QStringLiteral("DEC-RP-PLANS"));
+    QVERIFY2(plansContainer != nullptr, "DEC-RP-PLANS 容器缺失");
+    const auto cards = plansContainer->findChildren<PlanCardWidget *>(
+        QRegularExpression(QStringLiteral("^DEC-RP-PLAN-")));
+    QVERIFY2(cards.size() >= 4, "5 档快照应生成至少 4 张候选卡片");
+
+    // 按对象名定位 DEC-RP-PLAN-3 / DEC-RP-PLAN-4 卡片
+    auto findCard = [&cards](int tierOneBased) -> PlanCardWidget * {
+        const QString name = QStringLiteral("DEC-RP-PLAN-%1").arg(tierOneBased);
+        for (auto *c : cards) {
+            if (c->objectName() == name) {
+                return c;
+            }
+        }
+        return nullptr;
+    };
+
+    // DEC-RP-PLAN-3（tier index 2）：工程量应显示 difficultyToString(None)="无"，
+    // 当前实现按 i=2 派生"高"，断言必失败
+    auto *card3 = findCard(3);
+    QVERIFY2(card3 != nullptr, "DEC-RP-PLAN-3 卡片缺失");
+    const QString expectedEffort3 =
+        Core::MOS::difficultyToString(snap.result.tiers.at(2).estimate.difficulty);
+    {
+        const auto labels = card3->findChildren<QLabel *>();
+        bool found = false;
+        for (const auto *lbl : labels) {
+            if (lbl->text() == expectedEffort3) {
+                found = true;
+                break;
+            }
+        }
+        QVERIFY2(found,
+                 qPrintable(QStringLiteral("DEC-RP-PLAN-3 工程量应显示 Core 难度\"%1\"，"
+                                           "实际未找到（当前实现按序号 i=2 派生\"高\"）").arg(expectedEffort3)));
+    }
+
+    // DEC-RP-PLAN-4（tier index 3）：工程量应显示 difficultyToString(High)="高"，
+    // 当前实现按 i=3 派生"很高"，Core 永不返回"很高"，断言必失败
+    auto *card4 = findCard(4);
+    QVERIFY2(card4 != nullptr, "DEC-RP-PLAN-4 卡片缺失");
+    const QString expectedEffort4 =
+        Core::MOS::difficultyToString(snap.result.tiers.at(3).estimate.difficulty);
+    {
+        const auto labels = card4->findChildren<QLabel *>();
+        bool found = false;
+        for (const auto *lbl : labels) {
+            if (lbl->text() == expectedEffort4) {
+                found = true;
+                break;
+            }
+        }
+        QVERIFY2(found,
+                 qPrintable(QStringLiteral("DEC-RP-PLAN-4 工程量应显示 Core 难度\"%1\"，"
+                                           "实际未找到（当前实现按序号 i=3 派生\"很高\"）").arg(expectedEffort4)));
+    }
 }
 
 QTEST_MAIN(MosDecisionViewTest)

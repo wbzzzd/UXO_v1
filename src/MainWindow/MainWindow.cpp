@@ -366,6 +366,7 @@ void MainWindow::createConnections()
     // mosStateChanged 不自动触发 setSnapshot：档位选择 emit 该信号后同步全量重建会
     // 在 PlanCardWidget 信号链中删除发信控件。改为 requestReplan/replaceObstacles 后
     // 显式推送快照，档位选择仅刷新视觉态。
+    m_decisionView->setMosController(m_mosController);
     connect(m_mosController, &Core::MOS::MosPlanningController::replanActivityChanged,
             m_decisionView, &DecisionView::setPlanning);
     connect(m_decisionView, &DecisionView::replanRequested,
@@ -386,10 +387,6 @@ void MainWindow::createConnections()
         // 仅替换障碍物，不自动规划；用户点击重新规划按钮后才执行 MOS 规划
         m_mosController->replaceObstacles(obstacles, runwayParams);
         m_decisionView->setSnapshot(m_mosController->snapshot());
-    });
-    connect(m_decisionView, &DecisionView::exportRequested,
-            this, [this](const QString &path) {
-        m_mosController->exportFixture(path);
     });
 }
 

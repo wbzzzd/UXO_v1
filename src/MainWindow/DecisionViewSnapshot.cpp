@@ -189,10 +189,7 @@ void DecisionView::setSnapshot(const Core::MOS::MosPlanningSnapshot &snapshot)
             const QString cls = i == 0 ? QStringLiteral("green")
                                  : (i == 1 ? QStringLiteral("orange")
                                             : QStringLiteral("red"));
-            const QString effort = i == 0 ? QStringLiteral("无")
-                                : (i == 1 ? QStringLiteral("中等")
-                                           : (i >= 3 ? QStringLiteral("很高")
-                                                      : QStringLiteral("高")));
+            const QString effort = Core::MOS::difficultyToString(tier.estimate.difficulty);
             const double thumbLeftPct = (tier.rectangle.xStart / snapshot.params.L) * 100.0;
             const double thumbWidthPct = ((tier.rectangle.xEnd - tier.rectangle.xStart) / snapshot.params.L) * 100.0;
             card->setData(i, name, badge,
