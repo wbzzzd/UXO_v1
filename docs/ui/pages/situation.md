@@ -15,23 +15,29 @@ CURRENT 来源：
 - [`src/MainWindow/RightPanelWidget.cpp`](../../../src/MainWindow/RightPanelWidget.cpp)
 - [`src/MainWindow/SituationView.cpp`](../../../src/MainWindow/SituationView.cpp)
 - [`src/MainWindow/VideoStreamPanel.cpp`](../../../src/MainWindow/VideoStreamPanel.cpp)
+- [`src/MainWindow/DeviceResourceBar.cpp`](../../../src/MainWindow/DeviceResourceBar.cpp)
+- [`src/MainWindow/TargetDetailOverlay.cpp`](../../../src/MainWindow/TargetDetailOverlay.cpp)
 - [`src/MainWindow/DeviceStatusPanel.cpp`](../../../src/MainWindow/DeviceStatusPanel.cpp)
 - [`src/MainWindow/DecisionSuggestionPanel.cpp`](../../../src/MainWindow/DecisionSuggestionPanel.cpp)
 - [`include/MainWindow/VideoStreamPanel.h`](../../../include/MainWindow/VideoStreamPanel.h)
+- [`include/MainWindow/DeviceResourceBar.h`](../../../include/MainWindow/DeviceResourceBar.h)
+- [`include/MainWindow/TargetDetailOverlay.h`](../../../include/MainWindow/TargetDetailOverlay.h)
 - [`include/Core/Data/Types.h`](../../../include/Core/Data/Types.h)
 
 ## 1. 页面概述
 
-态势页面是系统默认页面（导航 `SIT-NAV-01` 默认选中）。它一屏呈现：左侧目标/任务/设备列表，中心视频流与告警/操作日志，右侧三维态势地图、设备状态、决策建议。所有数据来自本地模拟 fixture（`DemoScenarioProvider`），所有操作仅修改内存中的 `SimulationWorkflow`，不连接真实设备、不写入数据库、不执行排爆动作。
+态势页面是系统默认页面（导航 `SIT-NAV-01` 默认选中）。它一屏呈现：左侧目标/任务/设备列表，中心顶部设备资源条 + 战术地图（含视频 PiP 浮层与目标详情浮层）与告警/操作日志，右侧三维态势地图、设备状态、决策建议。所有数据来自本地模拟 fixture（`DemoScenarioProvider`），所有操作仅修改内存中的 `SimulationWorkflow`，不连接真实设备、不写入数据库、不执行排爆动作。
 
-页面整体布局由应用壳定义（见 `application-shell.md` 第 2 节）。本文档化页面内部的四个内容区域：
+页面整体布局由应用壳定义（见 `application-shell.md` 第 2 节）。本文档化页面内部的六个内容区域：
 
 | 区域 | 位置 | 内部组件 | CURRENT 主控件 |
 |------|------|----------|----------------|
 | A | 左面板 | 搜索栏、状态子标签、三标签表格 | `LeftPanelWidget` |
-| B | 中心上 | 视频流面板（模拟占位） | `VideoStreamPanel` |
+| B | 地图容器内浮层 | 视频 PiP 浮层（本地演示视频 + HUD-only） | `VideoStreamPanel` |
 | C | 中心下 | 告警面板、模拟流程与操作日志、批量操作条 | `AlertPanel` + `DetectionControlPanel` + `BatchOperationBar` |
 | D | 右面板 | 三维态势地图、模拟设备状态、模拟决策建议 | `RightPanelWidget`（含 `SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`） |
+| E | 中心顶部 | 设备资源卡片条（状态点 + ID + 电量 + 任务状态） | `DeviceResourceBar` |
+| F | 地图容器内浮层 | 目标详情浮层（冻结标注证据 + 研判操作） | `TargetDetailOverlay` |
 
 ## 2. 区域 A：左面板
 
@@ -81,17 +87,16 @@ CURRENT 来源：
 
 #### 2.3.1 目标表 `SIT-LP-TARGET-TABLE`
 
-5 列，单选行模式（`SingleSelection`、`SelectRows`），不可编辑，交替行色。表头背景 `--color-toolbar`、主文本色、内边距 4px。行高 40px。水平滚动条始终关闭。
+4 列，单选行模式（`SingleSelection`、`SelectRows`、`NoEditTriggers`），不可编辑，交替行色。表头背景 `--color-toolbar`、主文本色、内边距 4px。行高 40px。水平滚动条始终关闭。
 
 | 列 | 表头 | 宽度 | 内容 | 文字色 |
 |----|------|------|------|--------|
-| 0 | （空） | 28px 固定 | 复选框，默认未选中 | - |
-| 1 | 类型 | 52px 固定 | `typeName`，按威胁等级着色 | 高=`--color-threat-high`、中=`--color-threat-medium`、低=`--color-threat-low`、未知=`--color-text-disabled` |
-| 2 | 置信度 | 48px 固定 | `XX%`（confidence*100，整数） | `--color-text-primary` |
-| 3 | 位置 | 72px 固定 | `X:n Y:n`（position.x、position.z 取整） | `--color-text-primary` |
-| 4 | 模拟状态 | 拉伸 | `[模拟] 已发现/已确认/处置中/已完成/状态未知` | `--color-text-primary` |
+| 0 | 类型 | 52px 固定 | `typeName`，按威胁等级着色 | 高=`--color-threat-high`、中=`--color-threat-medium`、低=`--color-threat-low`、未知=`--color-text-disabled` |
+| 1 | 置信度 | 48px 固定 | `XX%`（confidence*100，整数） | `--color-text-primary` |
+| 2 | 位置 | 72px 固定 | `X:n Y:n`（position.x、position.z 取整） | `--color-text-primary` |
+| 3 | 模拟状态 | 拉伸 | `[模拟] 已发现/已确认/处置中/已完成/状态未知` | `--color-text-primary` |
 
-行样式：默认 `--color-panel`；hover `--color-row-hover`；选中 `--color-selection`。复选框样式见 `design-system.md` 第 5.6 节。
+行样式：默认 `--color-panel`；hover `--color-row-hover`；选中 `--color-selection`。
 
 | 字段 | 值 |
 |------|----|
@@ -99,12 +104,10 @@ CURRENT 来源：
 | 类型 | QTableWidget |
 | 位置 | 目标标签页内容区 |
 | 用途 | 显示模拟目标列表，单选触发目标选中 |
-| 点击结果 | 单击任一单元格 -> 发出 `targetSelected(m_targets[row])`；`MainWindow` 调 `SimulationWorkflow::selectTarget`，刷新右面板决策区与三维高亮 |
-| 双击结果 | 发出 `targetDoubleClicked`，CURRENT 复用选择流程（`onTargetDoubleClicked` 调 `onTargetSelected`） |
-| 复选框 | CURRENT 仅切换复选状态，无信号连接，不触发批量操作条显示 |
-| 键盘 | Tab 聚焦表；Up/Down 移动选中行并触发 `targetSelected`；Space 切换当前行复选框 |
-| 原型行为 | 单击选中行并同步右面板与三维视图高亮（同 CURRENT）；复选框仅本地状态，不触发批量条（CURRENT 亦无连接） |
-| CURRENT 映射 | `LeftPanelWidget.cpp` `setupTargetList`、`populateTargetList`、`itemClicked`/`itemDoubleClicked` 连接 |
+| 点击结果 | 单击任一单元格 -> 发出 `targetSelected(m_targets[row])`；`MainWindow::onSelectTargetEverywhere` 驱动地图标点高亮与详情浮层冻结证据显示，刷新右面板决策区 |
+| 键盘 | Tab 聚焦表；Up/Down 移动选中行并触发 `targetSelected` |
+| 原型行为 | 单击选中行并同步地图标点高亮、详情浮层冻结证据与右面板（同 CURRENT） |
+| CURRENT 映射 | `LeftPanelWidget.cpp` `setupTargetList`、`populateTargetList`、`itemClicked` 连接（`SingleSelection`，无双击连接，无勾选列） |
 | 安全 | 无设备控制，仅内存选择 |
 
 #### 2.3.2 任务表 `SIT-LP-MISSION-TABLE`
@@ -152,9 +155,32 @@ CURRENT 来源：
 | CURRENT 映射 | `LeftPanelWidget.cpp` `setupDeviceList`、`populateDeviceList` |
 | 安全 | 只读展示，无设备控制 |
 
-## 3. 区域 B：视频流面板（模拟占位）
+## 2.5 区域 E：设备资源条
 
-位于中心区上半（splitter stretch 3）。CURRENT 为 `VideoStreamPanel`，使用 `QStackedWidget` 在网格视图与单格全屏视图间切换。所有视频内容为本地模拟（`QTimer` 每秒刷新 `● REC N\nHH:mm:ss` 占位文字），不接入真实视频流。
+36px 固定高横条，位于中心区顶部、地图容器上方。背景 `--color-toolbar`，承载 UAV/机器人等设备卡片。设计语义：设备是"资源"而非研判对象，点击卡片仅切换视频 PiP 源，不进入研判流程。
+
+### 2.5.1 容器 `SIT-DRB`
+
+| 字段 | 值 |
+|------|----|
+| ID | `SIT-DRB` |
+| 类型 | DeviceResourceBar（QWidget） |
+| 位置 | 中心区顶部，36px 高，填满宽度 |
+| 用途 | 显示设备资源卡片（状态点 + ID + 电量 + 任务状态），点击切换视频 PiP 源 |
+| 默认状态 | `loadMockData` 后显示所有设备卡片，首张卡片选中 |
+| 点击结果 | emit `deviceSelected` -> `MainWindow` 更新视频 PiP 设备名称 |
+| 键盘 | Tab 聚焦 |
+| 原型行为 | 同 CURRENT；点击卡片切换 PiP 源 |
+| CURRENT 映射 | `MainWindow.cpp` `m_deviceResourceBar = new DeviceResourceBar(...)`；`DeviceResourceBar.cpp` `setupUi`、`setDevices`、`selectDevice` |
+| 安全 | 只读展示，点击仅切换模拟视频源，无设备控制 |
+
+设备卡片由 `setDevices()` 加载，每张卡片含：状态点（在线绿/忙碌橙/离线灰）+ 设备 ID + 电量 + 任务状态文案。`selectDevice()` 可程序化选中指定设备（高亮其卡片，不重复发信号）。
+
+## 3. 区域 B：视频 PiP 浮层
+
+位于地图主舞台容器（`m_mapContainer`）内，作为画中画（PiP）浮层叠加在战术地图上。CURRENT 为 `VideoStreamPanel`，加载本地演示视频文件（`kVideoPath = "/home/lin/uxo-assets/video/perth_airport_drone_edit.mp4"`），通过 `QMediaPlayer` 输出到 `QVideoWidget` 渲染。`VideoOverlayWidget` 作为透明叠加层覆盖在视频画面上，仅持久显示 HUD（十字准星、REC、遥测 LAT/LON/ALT/HDG、时间码），**不绘制检测框**。冻结标注证据仅在 `TargetDetailOverlay` 中按目标选中显示（见 §3.5）。不接入真实视频流。
+
+默认布局：地图为主视图（填满 `m_mapContainer`），视频 PiP 浮于左下角（480×294 = 480 宽 × (270 视频高 + 24 标题栏高)）。主次可切换、可最小化、可关闭。
 
 ### 3.1 容器 `SIT-VSP`
 
@@ -162,145 +188,141 @@ CURRENT 来源：
 |------|----|
 | ID | `SIT-VSP` |
 | 类型 | VideoStreamPanel（QWidget） |
-| 位置 | 中心区 splitter 上半 |
-| 用途 | 模拟视频流多分屏显示与全屏切换 |
-| 默认状态 | 4 分屏网格，4 路模拟流均可见，控制栏可见 |
-| 全屏状态 | 切换为单格视图，控制栏隐藏，退出按钮可见 |
-| 加载状态 | 不适用（CURRENT 无加载流程，`setupUi` 同步创建所有控件） |
-| 空状态 | 不适用（`m_streamCount` 默认 4，`createVideoCells` 总是创建 4 格） |
+| 位置 | `m_mapContainer` 内浮层；默认 PiP 模式位于左下角（margin 12px），可切换为全屏主视图 |
+| 用途 | 本地演示视频播放 + HUD-only 叠加层 |
+| 默认状态 | PiP 模式（地图为主视图），480×294，视频区可见 |
+| 全屏状态 | 视频为主视图（填满 `m_mapContainer`），地图缩为 PiP |
+| 最小化状态 | 仅显示标题栏（24px），视频区隐藏 |
+| 关闭状态 | PiP 完全隐藏 |
+| 加载状态 | `loadMockData` 中 `loadVideo(kVideoPath)` 同步加载本地 mp4；不自动播放，等待用户点击 [开始] |
+| 空状态 | 不适用（`loadMockData` 同步加载视频文件） |
 | 错误状态 | 不适用（CURRENT 无错误处理路径） |
 | 禁用状态 | 不适用（面板始终可交互） |
-| 点击结果 | 单元格本身无点击响应（`streamClicked`/`streamDoubleClicked` 信号声明于头文件但 `.cpp` 从未 `emit`） |
-| 键盘 | 控制栏按钮可 Tab 聚焦；单元格本身不可聚焦 |
-| 原型行为 | 同 CURRENT；仅保留分屏切换与全屏占位，不补齐单元格点击 |
-| CURRENT 映射 | `MainWindow.cpp` `m_videoStreamPanel = new VideoStreamPanel`；`VideoStreamPanel.cpp` `setupUi` |
-| 安全 | 不接入真实视频流，仅本地模拟占位文字 |
+| 点击结果 | 视频区本身无点击响应（`VideoOverlayWidget` 鼠标事件透传给下层视频控件） |
+| 键盘 | 标题栏按钮可 Tab 聚焦 |
+| 原型行为 | 同 CURRENT；PiP 浮层 + HUD-only，不补齐视频区点击 |
+| CURRENT 映射 | `MainWindow.cpp` `m_videoPiP = new VideoStreamPanel(m_mapContainer)`、`repositionFloatingWidgets`；`VideoStreamPanel.cpp` `setupUi` |
+| 安全 | 不接入真实视频流，仅本地演示视频文件 |
 
-CURRENT 模拟流名称与状态（`createVideoCells` 硬编码）：`UAV-1 侦察无人机`（在线\|信号 95%）、`UAV-2 排爆无人机`（在线\|信号 88%）、`Robot-1 排爆机器人`（在线\|信号 92%）、`GPR-1 探地雷达`（离线）。
+PiP 尺寸常量（`MainWindow.cpp`）：`kPipWidth = 480`、`kPipVideoHeight = 270`、`kPipTitleBarHeight = 24`、`kPipHeight = 294`、`kPipMargin = 12`。定位由 `repositionFloatingWidgets()` 管理：主视图填满 `m_mapContainer`，PiP 位于 `(kPipMargin, ch - kPipHeight - kPipMargin)`。
 
-### 3.2 控制栏
+### 3.2 标题栏（24px 固定高）
 
-底部 32px 固定高，背景 `--color-toolbar`，顶部 1px `--color-border` 边框，内边距 `8px 2px`，间距 4px。从左到右：“分屏:”标签 + 4 个分屏按钮 + 弹性留白 + 全屏按钮。控制栏在全屏模式下隐藏。
+背景 `--color-toolbar`，objectName `pipTitleBar`，内边距 `8px 0 4px 8px`，间距 6px。从左到右：绿色状态点 + 设备名称 + 弹性留白 + 主次切换按钮 + 最小化按钮 + 关闭按钮。
 
-#### 3.2.1 分屏标签（只读）
+**状态点（只读）**：`QLabel`，8×8px，`--color-status-online` 背景，圆角 4px。无 ID。
 
-`分屏:`，辅助文本色，`--font-size-caption`。无 ID（只读标签）。
+**设备名称（只读）**：`QLabel`，默认文本 `UAV-1 侦察无人机`，主文本色，11px。`setDeviceTitle()` 可更新（设备资源条选中设备时触发）。无 ID。
 
-#### 3.2.2 分屏按钮 `SIT-VSP-LAYOUT-1` 至 `SIT-VSP-LAYOUT-4`
-
-四个 `QPushButton`，各 28x24px，字号 `--font-size-caption`，文本为 `1`/`2`/`3`/`4`。`property("layoutCount")` 存对应分屏数。
-
-| ID | 标签 | 位置 | 默认态 | hover | active 态 | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
-|----|------|------|--------|-------|-----------|---------|------|---------|---------------|------|
-| `SIT-VSP-LAYOUT-1` | 1 | 控制栏左1 | 背景 `--color-bg`、主文本色、1px `--color-border` 边框、圆角 3px | 背景 `--color-border` | 背景 `--color-primary`、白字、1px 主色边框（`active=true` 属性） | 调 `onLayoutButtonClicked(1)`：设 `m_currentLayout=1`，若在全屏则先退出全屏，`updateLayout` 切换为单格（仅显示 cell 0） | Tab 聚焦，Enter 触发 | 同 CURRENT | `VideoStreamPanel.cpp` `m_layoutButtons[0]`、`onLayoutButtonClicked`、`updateLayout` | 无 |
-| `SIT-VSP-LAYOUT-2` | 2 | 控制栏左2 | 同上 | 同上 | 同上 | 调 `onLayoutButtonClicked(2)`：切换为 1x2（cell 0、1 并排） | 同上 | 同 CURRENT | `m_layoutButtons[1]` | 无 |
-| `SIT-VSP-LAYOUT-3` | 3 | 控制栏左3 | 同上 | 同上 | 同上 | 调 `onLayoutButtonClicked(3)`：切换为 3 格（cell 0 跨 1x2 顶部，cell 1、2 居底部） | 同上 | 同 CURRENT | `m_layoutButtons[2]` | 无 |
-| `SIT-VSP-LAYOUT-4` | 4 | 控制栏左4 | 同上 | 同上 | 默认 active（`m_currentLayout=4` 初始值） | 调 `onLayoutButtonClicked(4)`：切换为 2x2 网格（4 格全显） | 同上 | 同 CURRENT | `m_layoutButtons[3]` | 无 |
-
-active 态由 `updateLayout` 末段同步：遍历 `m_layoutButtons`，`layoutCount == m_currentLayout` 者设 `active=true` 并 `unpolish`/`polish` 刷新。disabled 态不适用（按钮始终可点击）。
-
-#### 3.2.3 全屏按钮 `SIT-VSP-FULLSCREEN`
+#### 3.2.1 主次切换按钮 `SIT-VSP-SWAP`
 
 | 字段 | 值 |
 |------|----|
-| ID | `SIT-VSP-FULLSCREEN` |
-| 标签 | 全屏 |
+| ID | `SIT-VSP-SWAP` |
+| 标签 | ⇄ |
 | 类型 | QPushButton |
-| 位置 | 控制栏右，48x24px |
-| 用途 | 进入 cell 0 全屏视图 |
-| 默认态 | 背景 `--color-bg`、主文本色、1px `--color-border` 边框、圆角 3px、`--font-size-caption` |
+| 位置 | 标题栏右1，24×20px |
+| 用途 | 切换视频与地图的主/PiP 角色 |
+| 默认态 | 透明背景、主文本色、无边框、12px |
 | hover | 背景 `--color-border` |
-| active | 不适用（无 active 属性） |
+| active | 不适用 |
 | disabled | 不适用（始终可点击） |
-| 点击结果 | 若 `m_fullscreenIndex < 0` 且 cells 非空，调 `setFullscreenIndex(0)`：cell 0 重设父为 `m_singleContainer`，退出按钮显示，`m_stackWidget` 切到单格视图，控制栏隐藏，`emit fullscreenRequested(0)` |
+| 点击结果 | emit `swapRequested` -> `MainWindow::onPipSwapClicked` 翻转 `m_videoIsMain`，`repositionFloatingWidgets()` 重排 |
 | 键盘 | Tab 聚焦，Enter 触发 |
-| 原型行为 | 同 CURRENT；进入全屏后仅显示 cell 0 与退出按钮 |
-| CURRENT 映射 | `VideoStreamPanel.cpp` `fullscreenBtn`（setupUi 第 116-129 行）、`setFullscreenIndex` |
+| 原型行为 | 同 CURRENT |
+| CURRENT 映射 | `VideoStreamPanel.cpp` `m_swapBtn`（`createTitleBar`）、`swapRequested` 信号；`MainWindow.cpp` `onPipSwapClicked` |
 | 安全 | 无 |
 
-#### 3.2.4 退出全屏按钮 `SIT-VSP-EXIT`
+#### 3.2.2 最小化按钮 `SIT-VSP-MINIMIZE`
 
 | 字段 | 值 |
 |------|----|
-| ID | `SIT-VSP-EXIT` |
-| 标签 | 退出全屏 |
+| ID | `SIT-VSP-MINIMIZE` |
+| 标签 | - |
 | 类型 | QPushButton |
-| 位置 | 全屏单格视图右上角，80x28px |
-| 用途 | 退出全屏，回到网格视图 |
-| 默认态 | 隐藏（`m_fullscreenIndex < 0` 时）；显示时背景 `rgba(0,0,0,150)`、白字、无边框、圆角 4px、`--font-size-caption` |
-| hover | 背景 `rgba(0,0,0,200)` |
+| 位置 | 标题栏右2，24×20px |
+| 用途 | 折叠/展开 PiP 视频区（仅保留标题栏） |
+| 默认态 | 透明背景、主文本色、无边框、12px |
+| hover | 背景 `--color-border` |
 | active | 不适用 |
 | disabled | 不适用 |
-| 显示条件 | `setFullscreenIndex(index >= 0)` 时 `show()`；退出时 `hide()` |
-| 点击结果 | 调 `setFullscreenIndex(-1)`：所有 cells 重设父回 `m_gridContainer`，本按钮隐藏，`m_stackWidget` 切回网格视图，控制栏显示，`updateLayout` 重排 |
-| 键盘 | Tab 聚焦（显示时），Enter 触发 |
+| 点击结果 | emit `minimizeRequested` -> `MainWindow::onPipMinimizeClicked` 翻转 `m_pipMinimized`；最小化时 `setMinimized(true)` 隐藏视频区，PiP 高度降为 24px |
+| 键盘 | Tab 聚焦，Enter 触发 |
 | 原型行为 | 同 CURRENT |
-| CURRENT 映射 | `VideoStreamPanel.cpp` `m_fullscreenExitBtn`（setupUi 第 60-70 行）、`setFullscreenIndex` |
+| CURRENT 映射 | `VideoStreamPanel.cpp` `m_minimizeBtn`、`minimizeRequested` 信号、`setMinimized`；`MainWindow.cpp` `onPipMinimizeClicked` |
 | 安全 | 无 |
 
-### 3.3 视频单元格 `SIT-VSP-CELL-0` 至 `SIT-VSP-CELL-3`
-
-4 个单元格由 `createVideoCells` 创建，默认全部加入 `m_gridContainer`。每个单元格为 QWidget，背景 `#1A1A1A`（CURRENT 字面量），1px `--color-border` 边框，圆角 2px，内边距 0，间距 0。
-
-单元格内部从上到下：视频占位标签（弹性）+ 信息栏（28px 固定高）。
-
-#### 3.3.1 视频占位标签（只读）
-
-`QLabel`，背景 `#0D0D0D`（CURRENT 字面量），文本 `#666`（CURRENT 字面量），`--font-size-title`（24px），居中对齐，最小高 60px。`QTimer` 每秒刷新文本为 `● REC {index+1}\n{HH:mm:ss}`。无 ID（只读占位）。
-
-#### 3.3.2 信息栏（28px 固定高）
-
-背景 `rgba(0,0,0,180)`（CURRENT 字面量），内边距 `8px 2px`，间距 8px。从左到右：流名称标签 + 弹性留白 + 状态标签 + 全屏按钮。
-
-**流名称标签（只读）**：主文本色，`--font-size-caption`（11px），加粗。值取自 `createVideoCells` 硬编码列表。无 ID。
-
-**状态标签（只读）**：在线=`--color-status-online`、离线=`--color-text-disabled`，10px。值取自硬编码列表。无 ID。
-
-#### 3.3.3 单元格全屏按钮 `SIT-VSP-CELL-{0-3}-FULLSCREEN`
-
-每个信息栏右侧一个 `QPushButton`，文本 `全`，tooltip `全屏查看`，20x20px。
+#### 3.2.3 关闭按钮 `SIT-VSP-CLOSE`
 
 | 字段 | 值 |
 |------|----|
-| ID | `SIT-VSP-CELL-0-FULLSCREEN` 至 `SIT-VSP-CELL-3-FULLSCREEN` |
-| 标签 | 全 |
+| ID | `SIT-VSP-CLOSE` |
+| 标签 | ✕ |
 | 类型 | QPushButton |
-| 位置 | 对应单元格信息栏右侧，20x20px |
-| 用途 | 进入该单元格全屏视图 |
-| 默认态 | 透明背景、`#AAA` 文本、无边框、14px |
-| hover | 白字 |
+| 位置 | 标题栏右3，24×20px |
+| 用途 | 隐藏 PiP 浮层 |
+| 默认态 | 透明背景、主文本色、无边框、12px |
+| hover | 背景 `--color-danger`、主文本色 |
 | active | 不适用 |
-| disabled | 不适用（始终可点击） |
-| 点击结果 | 调 `setFullscreenIndex(i)`：该 cell 重设父为 `m_singleContainer`，退出按钮显示，`m_stackWidget` 切到单格视图，控制栏隐藏，`emit fullscreenRequested(i)` |
+| disabled | 不适用 |
+| 点击结果 | emit `closeRequested` -> `MainWindow::onPipCloseClicked` 设 `m_pipVisible = false`，`repositionFloatingWidgets()` 隐藏 PiP |
 | 键盘 | Tab 聚焦，Enter 触发 |
 | 原型行为 | 同 CURRENT |
-| CURRENT 映射 | `VideoStreamPanel.cpp` `cell.fullscreenBtn`（createVideoCells 第 184-193 行）、`setFullscreenIndex` |
+| CURRENT 映射 | `VideoStreamPanel.cpp` `m_closeBtn`、`closeRequested` 信号；`MainWindow.cpp` `onPipCloseClicked` |
 | 安全 | 无 |
 
-### 3.4 分屏布局规则
+### 3.3 视频区（QVideoWidget + VideoOverlayWidget）
 
-`updateLayout` 按 `m_currentLayout` 重排 `m_gridContainer` 内可见单元格：
+标题栏下方为视频区（`m_videoArea`），使用 `QVBoxLayout` 排列。`QVideoWidget` 作为 `QMediaPlayer` 的视频输出控件填满视频区，`VideoOverlayWidget` 作为子 widget 叠加在上方。
 
-| 分屏数 | 布局 | 可见单元格 |
-|--------|------|-----------|
-| 1 | 单格全屏（网格内） | cell 0 |
-| 2 | 1x2 水平 | cell 0、1 |
-| 3 | cell 0 跨 1x2 顶部，cell 1、2 居底部 | cell 0、1、2 |
-| 4 | 2x2 网格 | cell 0、1、2、3 |
+**QVideoWidget**（底层）：Qt 标准视频渲染控件，接收 `QMediaPlayer` 视频帧并渲染。`VideoStreamPanel` 通过 `QVideoProbe` 拦截视频帧（`onFrameProbed`），提供 `currentFrameSnapshot()` 返回当前帧的 detached `QImage`（用于证据捕获），`hasFrame()` 判断是否有帧。视频路径由 `loadVideo(kVideoPath)` 加载，不自动播放，等待 [开始] 触发 `play()`。
 
-切分屏时若处于全屏状态，`onLayoutButtonClicked` 先调 `setFullscreenIndex(-1)` 退出全屏，再 `updateLayout`。
+**VideoOverlayWidget**（上层，透明）：HUD 叠加层，仅绘制准星与遥测文本，不绘制检测框。鼠标事件透传给下层（`setAttribute(Qt::WA_TransparentForMouseEvents)` 不设置，但 `mousePressEvent`/`mouseReleaseEvent` 等不处理，事件自然传播）。
 
-### 3.5 信号说明
+### 3.4 HUD 叠加层 `SIT-VSP-HUD`
 
-`VideoStreamPanel.h` 声明三个信号：
+`VideoOverlayWidget`，覆盖整个视频区，背景透明。`onHudTick`（500ms `QTimer`）触发 `update()` 重绘。绘制内容：
+
+| 元素 | 位置 | 内容 | 数据源 |
+|------|------|------|--------|
+| 十字准星 | 视频中心 | 绿色十字线 + 中心圆点 | 固定（`drawCrosshair`） |
+| REC 指示 | 左上 | 红色圆点 + `REC` 文本 | `drawRecIndicator`，视频播放时显示 |
+| 遥测文本 | 右上 | `LAT: xx.xxxxxx  LON: xx.xxxxxx  ALT: xxxm  HDG: xxx°` | `setTelemetry()`，由 `MainWindow` 从模拟数据更新 |
+| 时间码 | 底部居中 | `HH:mm:ss` | `onHudTick` 每秒刷新 |
+| 设备信息 | 左下 | 设备名称 | `setDeviceInfo()`，由 `setDeviceTitle` 同步 |
+
+**不绘制检测框**。冻结标注证据（含检测框）仅在 `TargetDetailOverlay` 中按目标选中显示（见 §3.5）。
+
+`clear()` 清除遥测与设备信息文本，HUD 准星与 REC 指示不受影响。
+
+### 3.5 冻结证据生命周期
+
+证据捕获与显示流程（`MainWindow.cpp`）：
+
+| 阶段 | 触发 | 行为 | 证据存储 |
+|------|------|------|---------|
+| 捕获 | `onDetectionOccurred` | `m_videoPiP->currentFrameSnapshot()` 获取当前视频帧 -> `annotateEvidenceImage()` 在帧上绘制检测框与标注 -> 存入 `m_evidenceByTargetId` | `QMap<QString, DetectionEvidence> m_evidenceByTargetId` |
+| 显示 | `onSelectTargetEverywhere`（侧边栏/地图选中目标） | 查找 `m_evidenceByTargetId[targetId]`：找到则 `m_targetDetailOverlay->setEvidence(image, timestamp, frameIndex, targetId)` 显示冻结标注帧；未找到则 `clearEvidence()` | 只读查询 |
+| 结束检测 | `onStopDetection` | 停止视频播放 + `seek(0)` + 停止模拟器；**保留所有证据**，已捕获的冻结帧仍可通过选中目标查看 | 保留 |
+| 重置 | `onResetDetection` | 停止视频 + 重置模拟器 + 清空目标/地图/侧边栏 + `m_evidenceByTargetId.clear()` + `m_targetDetailOverlay->reset()` | 清空 |
+
+`TargetDetailOverlay` 位于 `m_mapContainer` 右上角，340px 宽不透明面板，显示冻结标注帧时覆盖在地图之上；无目标时隐藏。面板包含目标详情行（ID、类型、威胁等级、置信度、坐标等）、证据视口（316×180）和 3 个模拟研判操作按钮（`createTaskRequested`/`assignDeviceRequested`/`viewHistoryRequested`），点击后仅给出纯文本反馈，不改状态机。证据图像为本地演示视频的冻结帧 + 模拟标注，不包含真实检测数据。
+
+### 3.6 信号说明
+
+`VideoStreamPanel.h` 声明七个信号，`MainWindow` 全部连接：
 
 | 信号 | CURRENT 是否 emit | 说明 |
 |------|-------------------|------|
-| `streamClicked(int)` | **从不 emit** | 头文件声明，`.cpp` 无任何 `emit streamClicked` 调用 |
-| `streamDoubleClicked(int)` | **从不 emit** | 同上 |
-| `fullscreenRequested(int)` | 是 | `setFullscreenIndex(index >= 0)` 时 emit |
+| `positionChanged(qint64)` | 是 | 视频位置变化时 emit |
+| `durationChanged(qint64)` | 是 | 视频时长变化时 emit |
+| `stateChanged(QMediaPlayer::State)` | 是 | 播放/暂停/停止状态变化时 emit |
+| `videoEnded()` | 是 | 视频播放结束时 emit |
+| `swapRequested()` | 是 | 标题栏 [⇄] 按钮点击时 emit |
+| `minimizeRequested()` | 是 | 标题栏 [-] 按钮点击时 emit |
+| `closeRequested()` | 是 | 标题栏 [✕] 按钮点击时 emit |
 
-`MainWindow` 未连接任何 `VideoStreamPanel` 信号（`createConnections` 无相关 `connect`）。原型保持一致，不补齐单元格点击联动。
+`MainWindow` 连接全部信号：`onPipSwapClicked`、`onPipMinimizeClicked`、`onPipCloseClicked` 处理浮层操作；`positionChanged`/`durationChanged`/`stateChanged`/`videoEnded` 处理播放状态同步。原型保持一致。
 
 ## 4. 区域 C：信息区
 
@@ -380,7 +402,7 @@ active 态由 `updateLayout` 末段同步：遍历 `m_layoutButtons`，`layoutCo
 
 默认隐藏（`hide()` 调用）。高 48px，背景 `#333333`（CURRENT 字面量），顶部 1px `--color-border` 边框。内边距 `12px 6px`，间距 12px。结构：计数标签（`已选择: 0`，主文本色，12px）+ 弹性留白 + 分配任务按钮 + 标记忽略按钮。
 
-CURRENT 中 `setSelectedCount` 是唯一显示入口，但目标表复选框无信号连接到 `BatchOperationBar`，因此实际上始终隐藏。原型保持此行为。
+CURRENT 中 `setSelectedCount` 是唯一显示入口，但目标表已移除复选框（单选行模式），`setSelectedCount` 始终为 0，因此实际上始终隐藏。原型保持此行为。
 
 | 字段 | 值 |
 |------|----|
@@ -392,7 +414,7 @@ CURRENT 中 `setSelectedCount` 是唯一显示入口，但目标表复选框无�
 | 按钮 | 分配任务：主要按钮变体，32px 高，内边距 `4px 16px`；标记忽略：透明背景、`--color-text-secondary` 文本、1px `--color-border` 边框 |
 | 点击结果 | CURRENT 发出 `assignTaskRequested`/`markIgnoreRequested` 信号，但 `MainWindow` 未连接，无后续 |
 | 键盘 | 按钮可聚焦，Enter 触发 |
-| 原型行为 | 保持隐藏；如未来启用目标表复选框连接，需先在本文登记新 ID 与信号路径 |
+| 原型行为 | 保持隐藏；如未来启用批量选择功能，需先在本文登记新 ID 与信号路径 |
 | CURRENT 映射 | `BatchOperationBar.cpp` 全文 |
 | 安全 | 无实际效果，信号未连接 |
 
@@ -559,7 +581,7 @@ CURRENT 在 `SituationView` 右侧叠加一个 60px 宽的竖直工具栏，背�
 | 左面板目标表 | 列表展示 | 骨架行 | `暂无目标`（CURRENT 无空态，原型补齐） | 边框 `--color-status-error` + `目标加载失败` | 不适用（始终可交互） |
 | 左面板任务表 | 列表展示 | 骨架行 | `暂无任务`（原型补齐） | `任务加载失败` | 不适用 |
 | 左面板设备表 | 列表展示 | 骨架行 | `暂无设备`（原型补齐） | `设备加载失败` | 不适用 |
-| 视频流面板 | 4 分屏模拟占位 | 不适用（`setupUi` 同步创建） | 不适用（`m_streamCount=4` 固定） | 不适用（无错误路径） | 不适用（始终可交互） |
+| 视频 PiP 浮层 | 本地演示视频 + HUD 显示 | 不适用（`loadVideo` 同步加载） | 不适用（本地演示视频文件） | 不适用（CURRENT 无错误路径） | 不适用（始终可交互） |
 | 告警面板 | 列表展示 | 骨架条 | `暂无告警`（CURRENT 已实现） | `告警加载失败` | 不适用（只读） |
 | 操作日志 | 日志列表 | 不适用（本地内存） | `暂无模拟操作记录（重启后清空）`（CURRENT 已实现） | 不适用 | 不适用 |
 | 批量操作条 | 隐藏（默认） | 不适用 | 不适用 | 不适用 | 不适用 |
@@ -605,7 +627,7 @@ CURRENT 已实现的空态：告警面板、操作日志、决策建议。其余
 | 视口 | 关键约束 |
 |------|----------|
 | 1280x720 | 左面板 320px 固定，目标表前 4 列共 200px + 状态列拉伸；右面板 360px（360–420px 弹性范围的最小值，CURRENT `setMinimumWidth(360)`），决策区最小 280px（`decisionSection->setMinimumHeight(280)`）；信息区告警与探测控制按 1:1 并排，探测控制三个按钮（3x68px + 间距）需在半宽内完整显示；批量操作条隐藏不占位 |
-| 1920x1080 | 默认尺寸；中心视频流与信息区按 3:2 分配；右面板三段按 5:2:3；所有控件按 token 展示 |
+| 1920x1080 | 默认尺寸；中心地图区与信息区按 3:2 分配；右面板三段按 5:2:3；所有控件按 token 展示 |
 | 3840x2160 | 固定区域不变；中心区与右面板弹性区按比例放大；右面板可至 420px；字号与控件尺寸保持固定 px |
 
 CURRENT 在 1280x720 下决策面板末两行（指派设备、模拟声明）可能被截断。`RightPanelWidget` 已通过 `setMinimumHeight(280)` 与 stretch 5/2/3 调整缓解。原型需验证末两行完整可见。
@@ -692,22 +714,11 @@ CURRENT 在 1280x720 下决策面板末两行（指派设备、模拟声明）�
 | `SIT-LP-TARGET-TABLE` | 目标表 | 左面板 |
 | `SIT-LP-MISSION-TABLE` | 任务表 | 左面板 |
 | `SIT-LP-DEVICE-TABLE` | 设备表 | 左面板 |
-| `SIT-VSP` | 视频流面板容器 | 中心上 |
-| `SIT-VSP-LAYOUT-1` | 分屏按钮 1 | 中心上 |
-| `SIT-VSP-LAYOUT-2` | 分屏按钮 2 | 中心上 |
-| `SIT-VSP-LAYOUT-3` | 分屏按钮 3 | 中心上 |
-| `SIT-VSP-LAYOUT-4` | 分屏按钮 4 | 中心上 |
-| `SIT-VSP-FULLSCREEN` | 全屏按钮（cell 0） | 中心上 |
-| `SIT-VSP-EXIT` | 退出全屏按钮 | 中心上 |
-| `SIT-VSP-FULLSCREEN-VIEW` | 全屏单格视图容器 | 中心上 |
-| `SIT-VSP-CELL-0` | cell 0 视频单元格容器 | 中心上 |
-| `SIT-VSP-CELL-1` | cell 1 视频单元格容器 | 中心上 |
-| `SIT-VSP-CELL-2` | cell 2 视频单元格容器 | 中心上 |
-| `SIT-VSP-CELL-3` | cell 3 视频单元格容器 | 中心上 |
-| `SIT-VSP-CELL-0-FULLSCREEN` | cell 0 单元格全屏按钮 | 中心上 |
-| `SIT-VSP-CELL-1-FULLSCREEN` | cell 1 单元格全屏按钮 | 中心上 |
-| `SIT-VSP-CELL-2-FULLSCREEN` | cell 2 单元格全屏按钮 | 中心上 |
-| `SIT-VSP-CELL-3-FULLSCREEN` | cell 3 单元格全屏按钮 | 中心上 |
+| `SIT-VSP` | 视频 PiP 浮层容器 | 地图容器浮层 |
+| `SIT-VSP-SWAP` | 主次切换按钮 | 地图容器浮层 |
+| `SIT-VSP-MINIMIZE` | 最小化按钮 | 地图容器浮层 |
+| `SIT-VSP-CLOSE` | 关闭按钮 | 地图容器浮层 |
+| `SIT-VSP-HUD` | HUD 叠加层（准星/REC/遥测/时间码） | 地图容器浮层 |
 | `SIT-ALERT-LIST` | 告警列表 | 中心下 |
 | `SIT-ALERT-COUNT` | 告警计数徽章 | 中心下 |
 | `SIT-DC-TARGET` | 模拟目标标签 | 中心下 |

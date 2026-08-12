@@ -11,6 +11,25 @@ void SimulationWorkflow::reset(const QVector<Core::TargetInfo> &targets)
     m_nextSequence = 1;
 }
 
+// 阶段4 探测脚本驱动: 运行时插入新目标并追加探测日志
+// 目标 ID 已存在时不重复插入, 但仍追加日志 (避免脚本回放时重复插行)
+void SimulationWorkflow::addTarget(const Core::TargetInfo &target)
+{
+    bool exists = (findTarget(target.id) != nullptr);
+    if (!exists) {
+        m_targets.append(target);
+    }
+    appendLog(SimulationOperationType::TargetDetected,
+              target.id,
+              Core::TargetStatus::Unknown,
+              target.status,
+              QStringLiteral("[模拟] 探测到目标 %1（%2，置信度 %3%）")
+                  .arg(target.id,
+                       target.typeName,
+                       QString::number(target.confidence * 100, 'f', 0)),
+              QDateTime::currentDateTimeUtc());
+}
+
 bool SimulationWorkflow::selectTarget(const QString &targetId)
 {
     Core::TargetInfo *target = findTarget(targetId);

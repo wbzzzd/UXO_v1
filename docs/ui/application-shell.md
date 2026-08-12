@@ -16,7 +16,7 @@ CURRENT 来源：[`src/MainWindow/MainWindow.cpp`](../../src/MainWindow/MainWind
 | 默认尺寸 | `1920 x 1080` | `MainWindow.cpp` `resize(1920, 1080)` |
 | 背景 | `--color-bg` | `MainWindow.cpp` `centralWidget->setStyleSheet("background-color: #1E1E1E;")` |
 
-CURRENT 窗口标题前缀与 `image1.png` 的“排弹抢修系统指挥席 V1.0”略有差异，本试点以源码为准。
+CURRENT 窗口标题前缀与早期参考图（历史 `image1.png`，已删除）标注的“排弹抢修系统指挥席 V1.0”略有差异，本试点以源码为准。
 
 ## 2. 区域布局
 
@@ -146,7 +146,7 @@ CURRENT 共 5 个顶级菜单。本试点仅文档化菜单结构与行为，不
 
 高 32px 固定，不可移动（`setMovable(false)`），背景 `--color-toolbar`，按钮间距 8px，内边距 8px。
 
-CURRENT 工具栏全部以 `QLabel` 占位，仅“视角复位”是真实 `QAction`（连接到 `situationView()->resetCameraView()`）。`image1.png` 中“图层控制/测量工具/坐标拾取/同步状态/书签/设备控制台”均为视觉占位。
+CURRENT 工具栏全部以 `QLabel` 占位，仅“视角复位”是真实 `QAction`（连接到 `situationView()->resetCameraView()`）。早期参考图中“图层控制/测量工具/坐标拾取/同步状态/书签/设备控制台”均为视觉占位。
 
 ### 5.1 工具栏项清单
 

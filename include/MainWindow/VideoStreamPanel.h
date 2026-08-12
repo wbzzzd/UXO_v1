@@ -1,16 +1,21 @@
 #ifndef MAINWINDOW_VIDEOSTREAMPANEL_H
 #define MAINWINDOW_VIDEOSTREAMPANEL_H
 
+// 探测阶段视频面板: 标题栏(24px) + 视频画面区(QVideoWidget + QMediaPlayer)
+// 标题栏含: 绿色状态点 + 设备名称 + 主次切换/最小化/关闭 3 按钮
+// VideoOverlayWidget 作为透明叠加层覆盖在视频画面上, 仅持久显示 HUD
+// QVideoProbe 拦截视频帧用于检测证据截图
+
 #include <QWidget>
-#include <QList>
-#include <QString>
-#include <QTimer>
+#include <QMediaPlayer>
+#include <QImage>
 
 class QLabel;
 class QPushButton;
-class QGridLayout;
-class QStackedWidget;
-class QVBoxLayout;
+class QVideoWidget;
+class QVideoProbe;
+class QVideoFrame;
+class VideoOverlayWidget;
 
 class VideoStreamPanel : public QWidget
 {
@@ -20,50 +25,77 @@ public:
     explicit VideoStreamPanel(QWidget *parent = nullptr);
     ~VideoStreamPanel();
 
-    void setStreamCount(int count);
-    int streamCount() const;
+    // 加载本地视频文件
+    void loadVideo(const QString& path);
 
-    void setFullscreenIndex(int index);
-    int fullscreenIndex() const;
+    // 播放控制接口
+    void play();
+    void pause();
+    void stop();
+    void seek(qint64 ms);
+
+    // 当前播放位置 (ms), 未播放时返回 0
+    qint64 position() const;
+    // 视频总时长 (ms), 未加载时返回 0
+    qint64 duration() const;
+
+    // 当前视频帧的深拷贝快照（detached），无帧时返回空 QImage
+    QImage currentFrameSnapshot() const;
+    // 是否已拦截到至少一帧（用于测试断言）
+    bool hasFrame() const;
+
+    // 视频叠加层访问 (供外部设置 HUD 设备信息与遥测)
+    VideoOverlayWidget* overlay() const;
+
+    // 设置标题栏设备名称
+    void setDeviceTitle(const QString& title);
+
+    // 最小化/恢复
+    void setMinimized(bool minimized);
 
 signals:
-    void streamClicked(int index);
-    void streamDoubleClicked(int index);
-    void fullscreenRequested(int index);
+    void positionChanged(qint64 ms);
+    void durationChanged(qint64 ms);
+    void stateChanged(QMediaPlayer::State state);
+    // 视频播放结束（到达末尾）
+    void videoEnded();
+    // PiP 标题栏按钮信号
+    void swapRequested();
+    void minimizeRequested();
+    void closeRequested();
 
 public slots:
-    void onLayoutButtonClicked(int count);
+    void onFrameProbed(const QVideoFrame &frame);
+
+private slots:
+    void onPositionChanged(qint64 ms);
+    void onDurationChanged(qint64 ms);
+    void onStateChanged(QMediaPlayer::State state);
+    void onMediaStatusChanged(QMediaPlayer::MediaStatus status);
 
 private:
     void setupUi();
-    void createVideoCells();
-    void updateLayout();
-    void updateCellContents();
+    void createTitleBar();
 
-    struct VideoCell {
-        QWidget *widget;
-        QLabel *videoLabel;
-        QLabel *nameLabel;
-        QLabel *statusLabel;
-        QPushButton *fullscreenBtn;
-    };
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
-    QStackedWidget *m_stackWidget;
-    QWidget *m_gridContainer;
-    QGridLayout *m_gridLayout;
-    QWidget *m_singleContainer;
-    QVBoxLayout *m_singleLayout;
+    // 标题栏控件
+    QWidget *m_titleBar;
+    QLabel *m_statusDot;
+    QLabel *m_titleLabel;
+    QPushButton *m_swapBtn;
+    QPushButton *m_minimizeBtn;
+    QPushButton *m_closeBtn;
 
-    QList<VideoCell> m_cells;
-    int m_streamCount;
-    int m_currentLayout;
-    int m_fullscreenIndex;
-
-    QWidget *m_controlBar;
-    QList<QPushButton*> m_layoutButtons;
-    QPushButton *m_fullscreenExitBtn;
-
-    QTimer *m_updateTimer;
+    // 视频区控件
+    QMediaPlayer *m_player;
+    QVideoWidget *m_videoWidget;
+    QVideoProbe *m_probe;
+    QImage m_lastFrame;
+    bool m_stopped = false;
+    VideoOverlayWidget *m_overlay;
+    QWidget *m_videoArea;
 };
 
 #endif

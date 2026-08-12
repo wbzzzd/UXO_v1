@@ -56,7 +56,9 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 
 | Token | 值 | CURRENT 出处 | 用途 |
 |------|----|------|------|
-| `--color-selection` | `#2A3F54` | `GlobalStyle.cpp` `getMainWindowStyle`/`getTableWidgetStyle` 列表选中态 | 列表/表格行选中背景 |
+| `--color-selection` | `#2A3F54` | `Colors::SelectionBackground` | 列表/表格行选中背景 |
+| `--color-selection-border` | `#3A5F7A` | `Colors::SelectionBorder` | 选中态边框 |
+| `--color-tier-blue` | `#42A5F5` | `Colors::TierBlue` | 档位高亮蓝（区别于威胁色阶） |
 | `--color-row-hover` | `#2A2A2A` | `GlobalStyle.cpp` 列表 hover | 列表/表格行 hover 背景 |
 
 ### 1.6 场景色
@@ -296,7 +298,16 @@ CURRENT `DecisionSuggestionPanel` 用 `QProgressBar` 显示模拟置信度。
 | 1920x1080 | 默认与权威截图 | 默认设计尺寸；整体图 `images/situation/overview-1920x1080.png` 按此视口生成；中心三维区与告警区按比例填充 |
 | 3840x2160 | 4K | 控件密度与间距按 token 保持；中心区与面板按比例放大；不出现大片留白或控件过小；字体仍用固定 px 值 |
 
-CURRENT 在 1280x720 下决策面板存在约 5px 底部溢出（`UI.md` 第 3 节已知问题）。TARGET 通过右面板弹性高度与决策区末两行可滚动修正，但 prototype 实现属于后续任务。
+### 7.0 决策页（MOS）CURRENT Qt 三视口事实
+
+决策页历史三视口几何证据采集于本轮单档位渲染修正之前，不能作为修正后的 fresh 多视口证据；以下旧证据事实与态势页壳的 1280 已知问题相互独立：
+
+- **零溢出**：1280×720、1920×1080、3840×2160 三视口下，`DecisionView` 窗口级几何 TSV 全部 `overflow_rows=0`（18 份 TSV，113 字节 header-only），24 张 PNG 人工核对无溢出或裁切。证据见 `.omo/evidence/mos-p0-qt-final/REPORT.md`。该验证仅覆盖决策页，不覆盖态势页右面板。
+- **缩放公式**：`MosRunwayWidget` 使用 `clamp(min(w/1920, h/1080), 1, 2)` 等比缩放跑道 QPainter 内容，不依赖 DPR（设备像素比）。该缩放仅作用于 `DecisionView` 内部跑道画布，不作用于全局壳（菜单/导航/状态栏/字体）。
+- **4K 限制**：全局壳（菜单栏、导航栏、状态栏、字体 token）在 3840×2160 下不按比例放大，这是跨轮次已知模式（pre-existing），非决策页回归。决策页跑道画布缩放上限为 2×。
+- **1280 标签换行**：MOS 参数栏部分标签（如"模拟处理假设数""扫描步长"）在 1280×720 下换行但无截断，布局紧凑可用。
+
+CURRENT 态势页在 1280×720 下右面板旧 `DecisionSuggestionPanel` 仍存在约 5px 底部溢出（`UI.md` 第 3 节历史记录）。该问题属于态势页壳，与决策页 `DecisionView` 的零溢出验证无关。TARGET 通过右面板弹性高度与决策区末两行可滚动修正，但 prototype 实现属于后续任务。
 
 ### 7.1 弹性区域
 
@@ -307,3 +318,15 @@ CURRENT 在 1280x720 下决策面板存在约 5px 底部溢出（`UI.md` 第 3 �
 ### 7.2 字体与控件尺寸
 
 字体与控件 token 为固定 px，不随视口缩放。4K 下通过增加中心区留白与三维场景视野范围适配，不放大字号。
+
+### 7.3 决策页（MOS）CURRENT Qt 实现映射
+
+以下 CURRENT Qt 事实仅适用于决策页 `DecisionView`，不修改六页 TARGET token 契约；态势页等其余五页仍以本节 §1–§6 的 TARGET token 为准。
+
+- **档位选中语义（checked tier）**：`MosParamsPanel` 与候选方案卡片使用互斥 checked 选中态。选中档位：蓝色高亮 `--color-tier-blue` 背景 + 边框；未选中档位（enabled-but-unchecked）：中性默认色，可点击切换。`no-solution` 状态下：无可行档位 `DEC-TB-PLAN-1` **禁用**（dimmed gray），更高可行档位（如 `DEC-TB-PLAN-3`）**启用但不 checked**（中性可选替代，非当前选择）。该语义由 `tierSelectionCheckedStateIsUnambiguous` 测试锁定，避免"档位3 被误读为当前选中"的歧义。
+- **参数栏字段尺寸**：`MosParamsPanel` 输入框字段高 22px、标签字号 11px（小于 `--font-size-caption` 12px，DecisionView 本地字面量）。该尺寸仅用于决策页参数栏，不替换 §2/§3.2 的全局字体/控件 token。
+- **生成器模态响应式**：`MosGeneratorDialog` 固定 1012×700px，在三视口下均完整可见（4K 下大量留白，不缩放）。底部三按钮（下载 JSON / 取消 / 应用生成）始终可见，不裁切。
+- **本地/合成边界**：`DecisionView` 全部数据为本地种子化 fixture（`mulberry32` 确定性生成），`MosRunwayWidget` QPainter 自绘跑道/弹坑/合成避让几何/MOS 矩形；JSON 导出仅通过 `QSaveFile` 向明确本地路径单向写入合成 fixture 工件，不提供 import/reload/运行时持久化/外部集成通道；不联网、不写入数据库、不控制设备。
+- **单档位渲染**：P0 仅渲染当前模拟选择档位（`m_selectedTier`）的 MOS 矩形，不渲染未选中档位；全档位叠加对比视图为 P1 Draft（见 `docs/features/mos-planning.md` MOS-008）。选中档位中属于该档位 `repairedIds` 的障碍物以 `Qt::DashLine` 虚线轮廓 + 斜十字标记绘制，模拟"已处理"假设，不暗示真实修复或安全结论。
+- **各向同性米坐标系**：`MosRunwayWidget` 使用单一各向同性像素/米比例 `pxPerM = min(pxPerMX, pxPerMY)`（X/Y 共享），不使用 HTML 原型的独立叠层分离。障碍物影响圆像素半径 `obstacleRadiusPx = influenceRadius × pxPerM`（米坐标 × 各向同性比例，无钳制/系数），paint 与 hitTest 共用同一半径。
+- **参数初始值**：`MosParamsPanel` 的跑道长度 L 初始值为 300（范围 100..6000），最小起降长度 minLength 初始值为 100（范围 1..6000），均为本地测试阶段可调初始值，非永久领域/机型/安全默认值。HTML 原型表格中的 3000/460 为 TARGET 展示值（MOS-006 `L_min=460` 示例），与 Qt 当前初始值不同。

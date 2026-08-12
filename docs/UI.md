@@ -28,26 +28,27 @@ NEXT 使用单一指挥席用户，所有模拟操作和结果必须明确标注
 
 ## 3. CURRENT 主界面
 
+MainWindow 中心区由 `QStackedWidget` 承载，按导航索引切换页面：index0=态势（live）、index2=决策/MOS（live，P0 已实现）、index1/3/4/5=态势占位（未实现页面回退到态势视图）。导航栏点击同时切换高亮与堆栈页面。
+
 ```text
 MainWindow
 ├── MenuBar
-├── ToolBar
+
 ├── NavigationWidget（80px）
-├── LeftPanelWidget（320px）
+├── LeftPanelWidget（320px，目标/任务/设备三表 + 搜索 + 状态计数）
 ├── CenterArea
-│   ├── VideoStreamPanel
-│   └── InfoArea
-│       ├── AlertPanel
-│       ├── DetectionControlPanel
-│       └── BatchOperationBar（隐藏）
-├── RightPanelWidget（360~420px）
-│   ├── SituationView
-│   ├── DeviceStatusPanel
-│   └── DecisionSuggestionPanel
+│   ├── DeviceResourceBar（36px，设备资源条）
+│   ├── m_mapContainer（地图主舞台）
+│   │   ├── TacticalMapWidget（2D 战术地图，卫星底图 aspect-fit）
+│   │   ├── VideoStreamPanel（视频 PiP，左下浮动 480×294）
+│   │   └── TargetDetailOverlay（目标详情浮层，右上浮动 340px 不透明）
+│   └── m_mapToolbar（探测工具栏：重置/开始/结束）
 └── StatusBarWidget
 ```
 
-默认尺寸 1920×1080，最小尺寸 1280×720。1280×720 下决策面板存在约 5px 底部溢出，当前记录为已知问题。
+> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已编译但未在 MainWindow 中实例化。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）。
+
+默认尺寸 1920×1080，最小尺寸 1280×720。决策页历史三视口几何证据见 `.omo/evidence/mos-p0-qt-closure-final/REPORT.md`；该证据采集于本轮单档位渲染修正之前，不能作为修正后的 fresh 多视口证据。1280×720 下决策面板存在约 5px 底部溢出，当前记录为已知问题。
 
 ## 4. CURRENT 可见功能矩阵
 
@@ -73,14 +74,13 @@ MainWindow
 
 | 控件 | 状态 | 实际行为 | 缺口 |
 |------|------|----------|------|
-| 六项导航 | 占位 | 改变按钮高亮并发出索引 | 中心内容不切换；六项共用同一页面 |
+| 六项导航 | 部分完成 | 点击切换高亮并通过 `QStackedWidget` 路由：index0=态势（live）、index2=决策/MOS（live，P0 已实现）、index1/3/4/5=态势占位 | 仅态势与决策为 live 页面，其余四项回退到态势视图占位，未实现独立页面 |
 | 目标/任务/设备 Tab | 已完成 | QTabWidget 切换三张表 | 右侧上下文不会随任务/设备选择变化 |
 | 搜索框 | 已完成 | 按表格可见文本隐藏不匹配目标行 | 只搜索目标表 |
 | 筛选按钮 | 占位 | 连接到空函数 | 无类型、威胁或状态筛选 |
 | 刷新按钮 | 部分完成 | 从当前内存状态重新下发各表和右侧设备 | 不重新加载场景，不解决多副本问题 |
 | 待处置/处置中/已完成计数 | 部分完成 | 根据静态任务状态显示数量 | 按钮不可切换筛选；任务状态不变化 |
-| 目标表选择 | 已完成 | 发出目标选择，驱动模拟工作流和右侧目标状态 | 只验证一个目标；复选框无批量用途 |
-| 目标表双击 | 部分完成 | 等同单击选择 | 不打开详情页 |
+| 目标表选择 | 已完成 | 单击发出目标选择，驱动模拟工作流、地图标点高亮和详情浮层证据显示 | 只验证一个目标；无双击事件 |
 | 任务表选择 | 占位 | 发出 `missionSelected` | MainWindow 无消费者 |
 | 设备表选择 | 占位 | 发出 `deviceSelected` | MainWindow 无消费者 |
 
@@ -88,10 +88,12 @@ MainWindow
 
 | 区域 | 状态 | 实际行为 | 缺口 |
 |------|------|----------|------|
-| 视频 1~4 分屏 | 部分完成 | 支持分屏数量和单格全屏 | 显示定时变化的 `REC` 文本，不接视频源 |
-| 模拟告警列表 | 部分完成 | 显示启动时生成的 3 条模拟告警和计数 | 告警不更新；条目点击 TODO；无确认和检索 |
+| 2D 战术地图 | 部分完成 | 卫星底图（用户提供 2000×1800 北朝上 PNG）aspect-fit 铺放，不裁剪，与 WGS84 叠加层共享同一显示矩形（机场边界四角对齐底图四角）；WGS84 经纬度本地线性映射，非真实 GIS；无人机沿观察到的跑道轴向 out-and-back 巡航（本地模拟航点，非真实飞控）；目标红点 + 脉冲动画 + ID 标签，目标坐标由检测画面偏移按 UAV 航向旋转后转 WGS84 推算；点击红点与目标表双向高亮 | 设备/路径渲染；多目标重叠处理；无真实 GIS/相机姿态+DEM 精确投影 |
+| 探测阶段视频面板 | 部分完成 | QMediaPlayer + QVideoWidget 播放本地演示视频；探测工具栏 [开始]/[结束]/[重置] 控制视频与模拟器 | 真实视频分析；多路分屏 |
+| 视频叠加层 | 已完成 | HUD-only（十字准星、REC 指示、遥测 LAT/LON/ALT/HDG、时间码）；不绘制检测框；鼠标事件透传给下层视频控件 | 真实检测算法接入 |
+| 模拟告警列表 | 部分完成 | 启动时 3 条模拟告警 + 探测阶段每目标追加 1 条 [模拟] 告警，计数同步 | 条目点击 TODO；无确认和检索 |
 | 模拟确认/处置/完成 | 已完成 | 按目标状态启用按钮，推进四状态工作流 | 不联动任务和设备 |
-| 模拟操作日志 | 部分完成 | 显示目标选择、状态变化和拒绝操作 | 仅内存；无筛选、导出或回放 |
+| 模拟操作日志 | 部分完成 | 显示目标选择、状态变化和拒绝操作；探测阶段目标注入追加日志 | 仅内存；无筛选、导出或回放 |
 | 批量操作栏 | 占位 | 类中有分配任务和标记忽略按钮 | 默认隐藏；无选择输入；信号无人消费 |
 
 ### 4.4 右侧面板与状态栏
@@ -104,14 +106,14 @@ MainWindow
 | 模拟决策建议 | 占位 | 根据威胁枚举硬编码处置文字和风险，显示静态任务 | 无评估、规划、规则或方案来源 |
 | 设备数和最低电量 | 部分完成 | 启动时根据模拟设备计算一次 | 后续无状态变化来源 |
 | 状态栏告警 | 部分完成 | 显示启动时注入的告警文字 | 与 AlertPanel 各自维护展示数据 |
-| 紧急停止 | 占位且具有误导风险 | 确认框声称“所有设备将立即停止”，确认后只发出信号 | MainWindow 无消费者，实际不会停止任何设备；没有模拟停止状态或结果 |
+| 紧急停止 | 占位（已禁用） | 按钮标注“紧急停止（模拟占位）”并禁用，不弹确认框、不发信号 | 无设备停止语义；禁用占位以避免“所有设备将立即停止”误导 |
 
-### 4.5 已编译但不可见
+### 4.5 页面与其他组件状态
 
 | 类 | 状态 | 现状 |
 |----|------|------|
 | `TargetDetailPanel` | 占位 | 有详情、模拟图像轮播和操作信号，但 MainWindow 未实例化 |
-| `DecisionView` | 占位 | 构造函数为空，成员保持 null |
+| `DecisionView` | 已实现（MOS P0） | `setupUi` 已填充：左面板损毁目标列表、中心 `MosRunwayWidget` 跑道俯视图、`MosParamsPanel` 算法参数栏、右面板候选方案与当前模拟选择摘要、`MosGeneratorDialog` 生成器、`MosPlanningController` 状态机；经 `QStackedWidget` index2 路由，导航"决策"进入 live 页面。P0 画布仅渲染当前选择档位，目标影响圆与 MOS 共用各向同性米制坐标比例 |
 | `DeviceControlView` | 占位 | 包含两个空白子面板，未接入 MainWindow |
 
 ## 5. CURRENT 可完成的 UI 流程
@@ -126,6 +128,21 @@ MainWindow
 ```
 
 `simulation_workflow_ui` 自动验证上述流程。它不验证 3D 渲染结果、导航、视频、任务分配、设备联动、告警交互、紧急停止、配置或历史功能。离屏运行中出现的 Qt3D 上下文警告也不会使该测试失败。
+
+决策页（MOS）P0 Qt 实现可完成的本地模拟规划闭环：
+
+```text
+点击导航"决策"进入 DecisionView（QStackedWidget index2）
+  -> 在损毁目标列表选择目标
+  -> 调整算法参数栏（实时校验）
+  -> 点击重新规划（参数合法时启用）
+  -> 在档位1/2/3 之间切换对比候选方案
+  -> 当前模拟选择摘要刷新
+  -> 可选：打开生成器模态，调整参数后应用生成
+  -> 可选：请求 controller 单向导出当前已提交 fixture 的 canonical JSON
+```
+
+`mos_decision_ui`、`mos_decision_view` 与 `mos_ui_closure` 自动验证上述流程，覆盖 happy / invalid / no-solution / tier / generator，以及真实 `DEC-GEN-JSON` 按钮到 controller 的 canonical export 工作流；导出不改变已提交 revision、选择或日志。历史三视口几何证据采集于本轮单档位渲染修正之前，修正后的多视口证据尚未刷新。离屏渲染（`QT_QPA_PLATFORM=offscreen`）不构成原生 GPU/窗口管理像素保真证据；WSLg xcb 烟雾仅证明进程在原生平台启动并存活。
 
 ## 6. TARGET：NEXT UI 需求
 
@@ -152,9 +169,15 @@ NEXT UI 来自 `PRODUCT.md` 的完整本地模拟指挥环需求，不从当前�
 | 目标选择、设备选择和任务指派的页面布局与交互顺序 | 已交付 | [`docs/ui/pages/detection.md`](ui/pages/detection.md)、[`docs/ui/pages/devices.md`](ui/pages/devices.md)、[`docs/ui/pages/decision.md`](ui/pages/decision.md) 区域与交互流程章节 |
 | 任务执行、失败、取消和完成状态的视觉反馈 | 已交付 | 各页 `pages/<page>.md` 的"状态规则汇总"章节，定义正常/加载/空/错误/禁用五态 |
 | 空场景、无可用设备、非法指派和状态冲突的错误表现 | 已交付 | 各页"状态规则汇总"中空/错误/禁用态的表现与触发条件 |
-| 当前占位菜单、工具栏和孤儿页面的保留、删除或重新设计决定 | 部分交付 | [`docs/ui/application-shell.md`](ui/application-shell.md) 定义壳规格与禁用清单；个别孤儿页面（`TargetDetailPanel`、`DecisionView`、`DeviceControlView`）的去留待评审 |
-| 1280×720、1920×1080 和 4K 三屏环境的布局验收规则 | 部分交付 | [`docs/ui/design-system.md`](ui/design-system.md) 第 7 节有三视口规则，六页 1920×1080 截图已交付；1280×720 与 3840×2160 截图待补 |
+| 当前占位菜单、工具栏和孤儿页面的保留、删除或重新设计决定 | 部分交付 | [`docs/ui/application-shell.md`](ui/application-shell.md) 定义壳规格与禁用清单；`DecisionView` 已实现（MOS P0 live），`TargetDetailPanel`、`DeviceControlView` 仍为孤儿占位 |
+| 1280×720、1920×1080 和 4K 三屏环境的布局验收规则 | 部分交付 | [`docs/ui/design-system.md`](ui/design-system.md) 第 7 节有三视口规则；决策页历史三视口证据早于本轮单档位渲染修正，修正后证据待刷新；其余页面 1280×720 与 3840×2160 截图待补 |
 | 六页 HTML 原型与逐控件清单 | 已交付 | [`docs/ui/prototypes/`](ui/prototypes/) 六页可点击原型，[`docs/ui/pages/`](ui/pages/) 六页逐控件规格 |
+
+**决策页（MOS）补充说明**：决策页 P0 TARGET 设计与已交付 HTML 原型已于 2026-08-03 通过用户评审，设计批准状态仍为 `Approved`；关联的 REQ-007 与 [`docs/features/mos-planning.md`](features/mos-planning.md) P0 已于 2026-08-04 完成实现与验证并标记为 `Implemented`，P1/P2 仍为 `Draft`。全部 CURRENT 行为以本地种子化模拟（`mulberry32`）呈现，不连接真实设备、不写入数据库、不执行真实排爆或抢修动作。P0 工作区已覆盖完整本地模拟规划闭环：目标选择 -> 参数调整与实时校验 -> 重新规划 -> 档位对比 -> 查看当前模拟选择摘要。P1/P2 扩展能力（修复优先级排序、决策草案确认、导出规划报告）仍为 `Draft`，仅在右面板 `DEC-RP-P1-SLOT` 以禁用占位形式保留，不参与 P0 流程；工具栏不再保留 P1 禁用按钮。
+
+**决策页 CURRENT Qt 实现状态**：决策页 P0 不仅是 TARGET 设计批准，其 CURRENT Qt 实现已完成。`DecisionView` 经 `QStackedWidget` index2 路由为 live 页面，`setupUi` 已填充 `MosRunwayWidget`、`MosParamsPanel`、候选方案卡片、当前模拟选择摘要、`MosGeneratorDialog` 与 `MosPlanningController`。`MosRunwayWidget` 仅绘制并命中当前选择档位，目标影响圆与 MOS 共用各向同性 `pxPerM`，圆半径为 `influenceRadius × pxPerM`；属于当前档位 `repairedIds` 的障碍物保留虚线与斜十字模拟标记，不代表真实修复或安全结论。跑道长度 L=300、最小起降长度 minLength=100 是可调整的本地测试阶段初始值，不是永久领域或机型阈值。历史三视口证据早于本轮修正，修正后的多视口证据尚未刷新。该实现不联网、不写入数据库、不控制设备、不执行真实排爆或抢修动作。
+
+**状态边界补充**：该原型的内存状态（含目标列表、参数、候选方案、当前模拟选择摘要、P1 占位）属于隔离的展示/演示 fixture 状态，不是应用拥有的权威会话。原型本地操作（如应用生成的场景、调整参数、重新规划、切换档位、查看当前模拟选择摘要）只刷新原型自身的展示数据，不构成对权威会话的修改，也不触发任何统一变更通知；这与未来经批准的 Qt 实现中"应用校验 -> 纯 fixture 构造/计算 -> 会话原子提交 -> 一次变更通知 -> UI 回查"的权威流程是两件事。未来经批准的 Qt 实现是否确立这一应用拥有权威会话的边界，以及 UI 仅保存选中索引、折叠状态等展示状态、Panel 不得维护可独立修改业务状态等具体约束，均由功能级 P0 Implemented 设计 [`docs/features/mos-planning.md`](features/mos-planning.md) 与 [`docs/dev/architecture-mos.md`](dev/architecture-mos.md)（`Draft`/来源资料）的技术评审决定，不属核心架构基线约束。该边界不改变本页 P0 Approved 状态，原型不证明 Qt 已实现特性、算法落地、运行时持久化通道、数据库、外部集成或任何安全结论；逐控件规格与原型契约详见 [`docs/ui/pages/decision.md`](ui/pages/decision.md)。
 
 ## 8. 通用视觉基线
 

@@ -94,12 +94,13 @@ void RightPanelWidget::setupUi()
     m_splitter->addWidget(decisionSection);
 
     // 紧凑高度分配：1280x720 下决策面板需完整显示任务详情（含指派设备与模拟声明末两行），
-    // 将地图拉伸因子由 6 降为 5、决策由 2 升为 3，并为决策区设置最小高度，
-    // 确保低分辨率下详情末两行不被截断；1920 下地图仍占主导，设备区比例不变。
-    decisionSection->setMinimumHeight(280);
-    m_splitter->setStretchFactor(0, 5);
-    m_splitter->setStretchFactor(1, 2);
-    m_splitter->setStretchFactor(2, 3);
+    // 地图/设备/决策拉伸因子采用 4/1/5：设备区收缩至 1 份释放纵向空间，
+    // 4/1/5 下决策区在 1280x720 实际分得约 247px，决策区最小高度设为 240px 作为不溢出 QSplitter 父容器的安全下限，末两行仍完整显示；
+    // 1920 下地图仍占主导，设备区比例相应收窄。
+    decisionSection->setMinimumHeight(240);
+    m_splitter->setStretchFactor(0, 4);
+    m_splitter->setStretchFactor(1, 1);
+    m_splitter->setStretchFactor(2, 5);
 
     mainLayout->addWidget(m_splitter);
 
