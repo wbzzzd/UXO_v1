@@ -10,6 +10,7 @@
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QFile>
+#include <QDir>
 #include <QVariant>
 
 namespace {
@@ -129,6 +130,7 @@ private slots:
     void reverseCompletionStaleRevisionIgnored();
     void duplicateCompletionIsIgnored();
     void exportFixtureObservesWithoutMutation();
+    void exportFixtureAfterReplaceObstaclesLeavesStateUnchanged();
 };
 
 // 注册元类型，确保 QSignalSpy/QVariant 在直连下也能识别值类型
@@ -386,7 +388,9 @@ void MosSessionTest::exportFixtureObservesWithoutMutation()
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
     const QString exportPath = dir.path() + QStringLiteral("/mos_fixture.json");
-    const auto result = controller.exportFixture(exportPath);
+    Core::MOS::MosGeneratorParams generatorParams;
+    const auto result = controller.exportFixture(
+        exportPath, defaultRunwayParams(), generatorParams, 42);
 
     QVERIFY(result.success);
     QVERIFY(QFile::exists(exportPath));
@@ -396,6 +400,36 @@ void MosSessionTest::exportFixtureObservesWithoutMutation()
     QVERIFY(snapshotsBusinessEqual(after, before));
     QCOMPARE(snapshotLogCount(after), logCountBefore);
     QCOMPARE(snapshotCommittedRevision(after), revisionBefore);
+}
+
+// === replaceObstacles 清除结果后实时导出成功且状态不变 ===
+void MosSessionTest::exportFixtureAfterReplaceObstaclesLeavesStateUnchanged()
+{
+    // Given: 已提交结果的控制器，通过 replaceObstacles 清除 hasResult。
+    Core::MOS::MosPlanningController controller;
+    controller.requestReplan(solvableObstacles(), defaultRunwayParams());
+    QVERIFY(snapshotHasResult(controller.snapshot()));
+
+    Core::MOS::MosObstacleSet emptyObstacles;
+    controller.replaceObstacles(emptyObstacles, defaultRunwayParams());
+    const auto before = controller.snapshot();
+    QVERIFY(!snapshotHasResult(before));
+
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString target = QDir(directory.path()).absoluteFilePath(
+        QStringLiteral("after-replace.json"));
+
+    // When: 在无已提交结果状态下请求导出。
+    Core::MOS::MosGeneratorParams generatorParams;
+    const auto result = controller.exportFixture(
+        target, defaultRunwayParams(), generatorParams, 42);
+
+    // Then: 实时导出成功，会话状态完全不变。
+    QVERIFY(result.success);
+    QVERIFY(QFile::exists(target));
+    const auto after = controller.snapshot();
+    QVERIFY(snapshotsBusinessEqual(after, before));
 }
 
 QTEST_GUILESS_MAIN(MosSessionTest)
