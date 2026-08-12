@@ -1,6 +1,8 @@
 # docs/dev 保留草稿索引
 
-本文分类列出五份旧基线（`current-state.md`、`build-and-run.md`、`mvp-scope.md`、`architecture-boundaries.md`、`simulation-policy.md`）迁入 [`../archive/development/`](../archive/development/) 之后，`docs/dev/` 保留的全部文件与子目录。本目录所有内容均为历史决策、`Draft` 草稿、来源或设计输入，不得作为当前实现依据。原合并 PRD `incremental-prd-uxo-recognition-and-mos.md` 已拆分为 [`prd-mos.md`](prd-mos.md) 与 [`prd-uxr.md`](prd-uxr.md)，合并版本已删除。
+本文分类列出 `docs/dev/` 保留的全部文件与子目录。本目录所有内容均为历史决策、`Draft` 草稿、来源或设计输入，不得作为当前实现依据。已归档文件的分类和历史路径见 [`../archive/catalog.md`](../archive/catalog.md)。
+
+> 原合并 PRD 已归档并拆分为 [`prd-mos.md`](prd-mos.md) 与 [`prd-uxr.md`](prd-uxr.md)。旧核心基线不再保留在本目录，归档路径见第 4 节。
 
 关联基线：[`../PRODUCT.md`](../PRODUCT.md) · [`../ARCHITECTURE.md`](../ARCHITECTURE.md) · [`../UI.md`](../UI.md) · [`../DEVELOPMENT.md`](../DEVELOPMENT.md) · [`../../AGENTS.md`](../../AGENTS.md)
 
@@ -19,25 +21,33 @@
 |------|------|
 | [`prd-mos.md`](prd-mos.md) | MOS 规划 PRD 草稿（从原合并 PRD 拆分，`Draft`/来源资料） |
 | [`prd-uxr.md`](prd-uxr.md) | 未爆弹识别 PRD 草稿（从原合并 PRD 拆分，`Draft`/来源资料） |
-| [`architecture-uxo-recognition-and-mos.md`](architecture-uxo-recognition-and-mos.md) | UXO 识别与 MOS 架构草稿（`Draft`/来源资料） |
-| [`class-diagram-uxo-mos.mermaid`](class-diagram-uxo-mos.mermaid) | UXO/MOS 类图草稿 |
+| [`architecture-mos.md`](architecture-mos.md) | MOS 架构草稿（`Draft`/来源资料） |
+| [`architecture-uxr.md`](architecture-uxr.md) | UXR 架构草稿（`Draft`/来源资料） |
 | [`sequence-diagram-mos.mermaid`](sequence-diagram-mos.mermaid) | MOS 时序图草稿 |
 | [`sequence-diagram-recognition.mermaid`](sequence-diagram-recognition.mermaid) | 识别时序图草稿 |
 
-MOS 候选功能设计见 [`../features/mos-planning.md`](../features/mos-planning.md)（`Draft`），关联需求 REQ-007 见 [`../PRODUCT.md`](../PRODUCT.md) 第 9.3 节（`Draft`）。两者均未获批准，不直接指导实现。
+MOS 功能设计见 [`../features/mos-planning.md`](../features/mos-planning.md)（P0 `Implemented`；P1/P2 `Draft`），关联需求 REQ-007 见 [`../PRODUCT.md`](../PRODUCT.md) 第 9.3 节（P0 `Implemented`；P1/P2 `Draft`）。P0 于 2026-08-03 获批，并于 2026-08-04 完成实现与验证；该事实不授权真实接入。来源 PRD [`prd-mos.md`](prd-mos.md) 与架构草稿 [`architecture-mos.md`](architecture-mos.md) 仍保持 `Draft`/来源资料，不直接指导后续实现。MOS/UXR 架构草稿分别归入各自功能的评审链路。
 
-## 3. UI 拥有文件（本索引不管理）
+## 3. UI 设计参考（已归档）
 
-以下文件物理位于 `docs/dev/`，但由 UI 设计流程拥有，变更走 [`../ui/`](../ui/) 与 [`../UI.md`](../UI.md) 流程，不在开发草稿轨道内。
+以下来源文档已不在 `docs/dev/`，仅保留在归档区供追溯。当前 UI 设计以 [`../UI.md`](../UI.md) 和 [`../ui/pages/decision.md`](../ui/pages/decision.md) 为准。
 
 | 文件 | 说明 |
 |------|------|
-| [`mos-ui-design-brief.md`](mos-ui-design-brief.md) | MOS UI 设计简报，UI 拥有 |
-| [`product-design-mos.md`](product-design-mos.md) | MOS 产品设计，UI 拥有 |
+| [`../archive/ui/mos-ui-design-brief.md`](../archive/ui/mos-ui-design-brief.md) | MOS UI 设计简报，历史来源 |
+| [`../archive/ui/product-design-mos.md`](../archive/ui/product-design-mos.md) | MOS 产品设计，历史来源 |
 
-## 4. 已迁出文件
+## 4. 已归档的旧基线
 
-五份旧基线已通过 `git mv` 字节不变地迁入 [`../archive/development/`](../archive/development/)，本目录不再保留，详见 [`../archive/README.md`](../archive/README.md)。
+以下五份旧基线已移入 `docs/archive/core-baselines/`，不再属于 `docs/dev/` 当前来源集合。它们仅用于追溯，当前工程事实和门禁以四份核心基线、源码和实际验证为准。
+
+| 文件 | 说明 |
+|------|------|
+| [`../archive/core-baselines/current-state.md`](../archive/core-baselines/current-state.md) | 旧工程事实快照，已被 [`../ARCHITECTURE.md`](../ARCHITECTURE.md) 取代 |
+| [`../archive/core-baselines/build-and-run.md`](../archive/core-baselines/build-and-run.md) | 旧构建说明，已被 [`../DEVELOPMENT.md`](../DEVELOPMENT.md) 取代 |
+| [`../archive/core-baselines/mvp-scope.md`](../archive/core-baselines/mvp-scope.md) | 旧 MVP 范围快照，已被 [`../PRODUCT.md`](../PRODUCT.md) 取代 |
+| [`../archive/core-baselines/architecture-boundaries.md`](../archive/core-baselines/architecture-boundaries.md) | 旧架构边界快照，已被 [`../ARCHITECTURE.md`](../ARCHITECTURE.md) 取代 |
+| [`../archive/core-baselines/simulation-policy.md`](../archive/core-baselines/simulation-policy.md) | 旧模拟策略快照，安全边界以 [`../../AGENTS.md`](../../AGENTS.md) 为准 |
 
 ## 5. 实现前置条件
 
