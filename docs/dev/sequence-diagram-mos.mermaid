@@ -1,55 +1,35 @@
-%% 时序图 2：MOS 规划流程
-%% 来源：architecture-uxo-recognition-and-mos.md 第 4.2 节
+%% MOS 规划流程时序图（Draft 概念流程）
+%% 来源：docs/features/mos-planning.md（Draft 功能契约）与 docs/dev/architecture-mos.md（Draft 架构评审材料）。
+%% 不来自任何归档文件。仅用于概念评审，不命名具体类、方法、字段或公式；不声称 Qt 实现已存在。
 
 sequenceDiagram
-    participant MW as MainWindow
-    participant DSP as DemoScenarioProvider
-    participant MCP as MOSConfigPanel
-    participant MP as MOSPlanner
-    participant MV as MOSView
+    participant UI as 决策页 UI
+    participant APP as 应用边界
+    participant FX as Fixture 提供器
+    participant MOS as 纯 MOS 计算
+    participant SES as 内存模拟会话
 
-    Note over MW: 应用启动 / loadMockData()
-    MW->>DSP: DemoScenarioProvider::create()
-    DSP-->>MW: DemoScenario{runway, damages}
+    Note over UI: 用户发起规划请求（参数/选择/触发）
+    UI->>APP: 规划请求
 
-    Note over MW: 存储跑道和损毁点
-    MW->>MW: m_runway = scenario.runway
-    MW->>MW: m_damages = scenario.damages
-
-    Note over MW: 初始化 MOS 视图
-    MW->>MV: setRunway(m_runway)
-    MW->>MV: setDamages(m_damages)
-    MW->>MCP: setParams(defaultParams)
-
-    Note over MW: 首次自动规划
-    MW->>MP: plan(m_runway, m_damages, m_mosParams)
-    MP->>MP: 对每个 UXO 类型 DamagePoint<br/>计算 impactRadius = K × W^(1/3)
-    MP->>MP: Y 轴离散化 (1m 步长)
-    loop 每个 Y 采样点
-        MP->>MP: computeBlockedXIntervals(y, damages)
-        MP->>MP: mergeIntervals(blockedRanges)
-        MP->>MP: findMaxGap(merged, runwayLength)
-        alt gap >= minLength
-            MP->>MP: 记录候选矩形
+    Note over APP: 输入校验
+    alt 输入非法
+        APP-->>UI: 返回拒绝原因
+        APP->>SES: 原子追加一条拒绝记录（业务状态不变）
+        UI->>SES: 回查权威会话状态
+        UI->>UI: 渲染当前模拟状态
+    else 输入合法
+        APP->>FX: 构造合成本地 fixture（纯构造）
+        FX-->>APP: 返回合成 fixture
+        APP->>MOS: 调用纯计算（轴对齐空矩形/递进方案/估算）
+        Note over MOS: 在离散化 Y 候选集合上计算<br/>相切视为碰撞、总排序、嵌套档位由功能契约定义
+        alt 存在可行矩形
+            MOS-->>APP: 返回可行结果
+        else 无可行矩形
+            MOS-->>APP: 返回空结果 valid=false（被接受，非拒绝）
         end
+        APP->>SES: 原子提交：更新会话状态并追加一条接受记录
+        SES-->>UI: 一次变更通知
+        UI->>SES: 回查权威会话状态
+        UI->>UI: 渲染当前模拟方案
     end
-    MP->>MP: 选取最大面积候选
-    MP-->>MW: MOSResult{origin, length, width, area, safetyMargin, valid}
-
-    MW->>MW: m_mosResult = result
-    MW->>MV: setMOSResult(result)
-    MV->>MV: paintEvent() [重绘跑道/弹坑/安全区/MOS]
-    Note over MV: 绿色半透明=MOS区域<br/>红色填充=弹坑<br/>黄色填充=安全距离区
-
-    Note over MW: 用户调整参数
-    MCP->>MW: paramsChanged(newParams)
-    MW->>MW: m_mosParams = newParams
-    MW->>MP: plan(m_runway, m_damages, m_mosParams)
-    MP-->>MW: MOSResult (updated)
-    MW->>MV: setMOSResult(updated)
-    MV->>MV: paintEvent() [重绘]
-
-    Note over MW: 用户缩放/平移视图
-    MV->>MV: wheelEvent() [缩放]
-    MV->>MV: mouseMoveEvent() [平移]
-    MV->>MV: paintEvent() [重绘]

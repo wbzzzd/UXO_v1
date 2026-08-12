@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MOS决策系统 - 排弹抢修指挥系统</title>
+<title>MOS决策系统 - 排弹抢修指挥系统（设计评审原型）</title>
 <style>
 :root{
   --color-bg:#1E1E1E;--color-panel:#252526;--color-toolbar:#2D2D2D;--color-menu:#2D2D2D;
@@ -21,8 +21,10 @@
   --radius-control:4px;--anim-short:150ms;--anim-easing:ease-in-out;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-family:var(--font-family);font-size:var(--font-size-body);user-select:none;}
-.app{width:1920px;height:1080px;display:flex;flex-direction:column;overflow:hidden;}
+/* 原型自适应缩放：保持 1920×1080 设计完整，1280×720 等比缩小后可用 */
+html,body{background:var(--color-bg);color:var(--color-text-primary);font-family:var(--font-family);font-size:var(--font-size-body);user-select:none;overflow:hidden;}
+.scaler{width:1920px;height:1080px;transform-origin:top left;}
+.app{width:1920px;height:1080px;display:flex;flex-direction:column;overflow:hidden;background:var(--color-bg);}
 
 /* ===== 菜单栏 ===== */
 .menu-bar{height:var(--size-menu-bar-height);background:var(--color-menu);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;flex-shrink:0;}
@@ -83,7 +85,6 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
 /* ===== 中心区 ===== */
 .center-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
 .center-top{flex:1;display:flex;flex-direction:column;padding:8px;gap:6px;overflow:hidden;min-height:0;}
-.center-bottom{padding:0 8px 8px 8px;flex-shrink:0;}
 
 /* 跑道俯视图 */
 .runway-section{flex:1;display:flex;flex-direction:column;gap:4px;min-height:0;overflow:hidden;}
@@ -96,14 +97,17 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
 .scale-line::before{left:0;}
 .scale-line::after{right:0;}
 
-.runway-container{flex:1;position:relative;background:#1a2a1a;border:1px solid var(--color-border);border-radius:var(--radius-control);overflow:hidden;min-height:0;display:flex;align-items:center;justify-content:center;padding:20px 40px;}
+.runway-container{flex:1;position:relative;background:#1a2a1a;border:1px solid var(--color-border);border-radius:var(--radius-control);overflow:hidden;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 40px;}
 .runway{position:relative;width:100%;height:200px;background:var(--color-runway);border:1px solid #555;border-radius:2px;}
-/* 跑道中心线 */
 .runway::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:repeating-linear-gradient(90deg,#777 0,#777 20px,transparent 20px,transparent 40px);transform:translateY(-50%);}
-/* 跑道刻度 */
 .runway-ticks{position:absolute;top:0;bottom:0;left:0;right:0;pointer-events:none;}
 .runway-tick{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.06);}
 .runway-tick-label{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--color-text-disabled);font-family:"Consolas",monospace;}
+
+/* 核心区 500m 叠层：与跑道水平对齐，目标圆圈按 x/y 投影渲染（y ∈ [-250,250]） */
+.core-overlay{position:relative;width:100%;height:140px;background:rgba(0,0,0,0.25);border:1px dashed rgba(255,255,255,0.12);border-radius:2px;margin-bottom:6px;flex-shrink:0;overflow:hidden;}
+.core-overlay::before{content:'核心区 500m (y: -250 ~ 250)';position:absolute;top:2px;left:6px;font-size:9px;color:var(--color-text-disabled);font-family:"Consolas",monospace;pointer-events:none;z-index:1;}
+.core-overlay::after{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,0.1);pointer-events:none;}
 
 /* 目标圆圈 */
 .target-circle{position:absolute;top:50%;transform:translate(-50%,-50%);border-radius:50%;cursor:pointer;transition:all 200ms var(--anim-easing);z-index:5;}
@@ -116,18 +120,26 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
 .target-circle.uxo.active{color:#FFEB3B;}
 .target-circle.repaired.active{color:#888;}
 @keyframes pulse{0%,100%{box-shadow:0 0 12px currentColor;}50%{box-shadow:0 0 24px currentColor;}}
-.target-label{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:var(--color-text-primary);background:rgba(0,0,0,0.7);padding:1px 5px;border-radius:3px;pointer-events:none;font-family:"Consolas",monospace;}
+.target-label{position:absolute;bottom:calc(100% + 4px);top:auto;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10px;color:var(--color-text-primary);background:rgba(0,0,0,0.7);padding:1px 5px;border-radius:3px;pointer-events:none;font-family:"Consolas",monospace;}
 .target-circle.repaired .check{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:16px;color:#888;font-weight:bold;}
 
-/* MOS矩形 */
-.mos-rect{position:absolute;top:50%;transform:translateY(-50%);border-radius:2px;cursor:pointer;transition:all 200ms var(--anim-easing);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:4px;z-index:3;}
+/* MOS矩形：仅选中档位强调，其余弱化以便对比 */
+.mos-rect{position:absolute;top:50%;transform:translateY(-50%);border-radius:2px;cursor:pointer;transition:all 200ms var(--anim-easing);display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:4px;z-index:3;opacity:0.35;}
 .mos-rect .rect-label{font-size:9px;white-space:nowrap;padding:1px 4px;border-radius:2px;background:rgba(0,0,0,0.6);font-family:"Consolas",monospace;pointer-events:none;}
 .mos-rect.plan1{border:2px dashed var(--color-threat-medium);background:rgba(255,183,77,0.08);}
-.mos-rect.plan2{border:2px solid var(--color-status-online);background:rgba(76,175,80,0.15);z-index:4;}
+.mos-rect.plan2{border:2px solid var(--color-status-online);background:rgba(76,175,80,0.15);}
 .mos-rect.plan3{border:2px dashed #98cbff;background:rgba(152,203,255,0.08);}
-.mos-rect.plan1.active{border-width:3px;box-shadow:0 0 12px var(--color-threat-medium);z-index:7;}
-.mos-rect.plan2.active{border-width:3px;box-shadow:0 0 12px var(--color-status-online);z-index:7;}
-.mos-rect.plan3.active{border-width:3px;box-shadow:0 0 12px #98cbff;z-index:7;}
+.mos-rect.plan4{border:2px dashed #C77BFF;background:rgba(199,123,255,0.08);}
+.mos-rect.plan5{border:2px dashed #FF8A65;background:rgba(255,138,101,0.08);}
+.mos-rect.plan1.active{opacity:1;border-width:3px;box-shadow:0 0 12px var(--color-threat-medium);z-index:7;}
+.mos-rect.plan2.active{opacity:1;border-width:3px;box-shadow:0 0 12px var(--color-status-online);z-index:7;}
+.mos-rect.plan3.active{opacity:1;border-width:3px;box-shadow:0 0 12px #98cbff;z-index:7;}
+.mos-rect.plan4.active{opacity:1;border-width:3px;box-shadow:0 0 12px #C77BFF;z-index:7;}
+.mos-rect.plan5.active{opacity:1;border-width:3px;box-shadow:0 0 12px #FF8A65;z-index:7;}
+/* MOS 标签独立通道：与跑道几何分离，位于跑道下方，按各档位水平中心对齐 */
+.mos-label-lane{width:100%;height:16px;position:relative;margin-top:8px;flex-shrink:0;}
+.mos-label{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap;font-size:9px;font-family:"Consolas",monospace;padding:1px 4px;border-radius:2px;background:rgba(0,0,0,0.45);pointer-events:none;}
+.mos-label.active{background:rgba(0,0,0,0.72);}
 
 /* 图例 */
 .runway-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--color-text-secondary);flex-shrink:0;}
@@ -136,19 +148,23 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
 .legend-dot.crater{background:rgba(255,82,82,0.3);border:1px solid var(--color-threat-high);}
 .legend-dot.uxo{background:rgba(255,235,59,0.25);border:1px solid #FFEB3B;}
 .legend-dot.repaired{background:transparent;border:1px dashed #888;}
-.legend-rect{width:16px;height:10px;border-radius:2px;flex-shrink:0;}
-.legend-rect.plan1{border:1px dashed var(--color-threat-medium);background:rgba(255,183,77,0.08);}
-.legend-rect.plan2{border:1px solid var(--color-status-online);background:rgba(76,175,80,0.15);}
-.legend-rect.plan3{border:1px dashed #98cbff;background:rgba(152,203,255,0.08);}
 
 /* 缩放控件 */
 .zoom-control{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto;}
 .zoom-btn{width:24px;height:24px;border:1px solid var(--color-border);background:var(--color-toolbar);color:var(--color-text-primary);border-radius:var(--radius-control);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
 .zoom-btn:hover{background:#454545;}
-.zoom-level{font-size:11px;color:var(--color-text-secondary);min-width:30px;text-align:center;font-family:"Consolas",monospace;}
+.zoom-level{font-size:11px;color:var(--color-text-secondary);min-width:34px;text-align:center;font-family:"Consolas",monospace;}
+
+/* 状态横幅（参数校验 + 规划状态） */
+.banner{font-size:11px;padding:4px 10px;border-radius:var(--radius-control);display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.banner-ok{background:rgba(76,175,80,0.12);color:var(--color-status-online);border:1px solid rgba(76,175,80,0.4);}
+.banner-warn{background:rgba(255,183,77,0.12);color:var(--color-status-busy);border:1px solid rgba(255,183,77,0.4);}
+.banner-err{background:rgba(255,82,82,0.12);color:var(--color-threat-high);border:1px solid rgba(255,82,82,0.4);}
+.banner-info{background:rgba(91,155,213,0.12);color:#98cbff;border:1px solid rgba(91,155,213,0.4);}
+.banner-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
 
 /* ===== 算法参数栏（MOSPlanParams） ===== */
-.center-bottom{padding:0 8px 8px 8px;flex-shrink:0;max-height:240px;overflow-y:auto;}
+.center-bottom{padding:0 8px 8px 8px;flex-shrink:0;max-height:260px;overflow-y:auto;}
 .params-panel{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
 .params-header{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .params-title{font-size:13px;font-weight:bold;color:var(--color-text-primary);}
@@ -158,17 +174,17 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
 .params-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
 .param-field{display:flex;flex-direction:column;gap:3px;}
 .param-label{font-size:11px;color:var(--color-text-secondary);}
+.param-label .hint{color:var(--color-status-busy);font-size:9px;margin-left:2px;}
 .param-input{height:26px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 8px;color:var(--color-text-primary);font-size:13px;font-family:"Consolas",monospace;}
 .param-input:focus{outline:none;border-color:var(--color-border-focus);}
+.param-input.invalid{border-color:var(--color-threat-high);}
 .param-readonly{height:26px;display:flex;align-items:center;padding:0 8px;background:var(--color-toolbar);border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-text-primary);font-size:13px;font-family:"Consolas",monospace;}
 .param-readonly.green{color:var(--color-status-online);}
-.param-readonly.orange{color:var(--color-status-busy);}
-.params-footer{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;font-size:11px;}
-.params-status{display:flex;align-items:center;gap:6px;}
-.params-status .pass{color:var(--color-status-online);font-weight:bold;}
-.params-status .fail{color:var(--color-threat-high);font-weight:bold;}
+.params-footer{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;font-size:11px;gap:8px;}
+.params-actions{display:flex;gap:8px;align-items:center;}
 .params-replan{padding:4px 14px;height:28px;border:none;border-radius:var(--radius-control);font-size:12px;font-family:var(--font-family);cursor:pointer;background:var(--color-primary);color:#fff;display:flex;align-items:center;gap:4px;}
 .params-replan:hover{background:var(--color-primary-hover);}
+.params-replan:disabled{background:#2A2A2A;color:var(--color-text-disabled);cursor:not-allowed;opacity:0.6;}
 
 /* ===== 右面板 ===== */
 .right-panel{width:var(--size-right-panel-width);background:var(--color-panel);border-left:1px solid var(--color-border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
@@ -184,12 +200,11 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
 .plan-thumb-runway{position:absolute;left:2px;right:2px;top:50%;transform:translateY(-50%);height:8px;background:var(--color-runway);border-radius:1px;}
 .plan-thumb-mos{position:absolute;top:50%;transform:translateY(-50%);border-radius:1px;}
 .pc-content{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;}
-.pc-row1{display:flex;align-items:center;gap:6px;}
+.pc-row1{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .pc-name{font-size:12px;font-weight:bold;color:var(--color-text-primary);}
 .pc-badge{font-size:10px;padding:1px 6px;border-radius:3px;white-space:nowrap;}
-.pc-badge-yellow{background:rgba(255,183,77,0.2);color:var(--color-threat-medium);border:1px solid var(--color-threat-medium);}
-.pc-badge-blue{background:rgba(91,155,213,0.2);color:#98cbff;border:1px solid #5B9BD5;}
 .pc-badge-gray{background:rgba(136,136,136,0.2);color:#aaa;border:1px solid #666;}
+.pc-badge-blue{background:rgba(91,155,213,0.2);color:#98cbff;border:1px solid #5B9BD5;}
 .pc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 8px;font-size:11px;}
 .pc-grid-item{display:flex;flex-direction:column;gap:1px;}
 .pc-grid-label{color:var(--color-text-secondary);font-size:10px;}
@@ -198,33 +213,28 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
 .pc-grid-value.orange{color:var(--color-status-busy);}
 .pc-grid-value.red{color:var(--color-threat-high);}
 
-/* 选定详情摘要 */
+/* 当前模拟选择摘要 */
 .detail-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
 .detail-card{background:#2D2D2D;border:1px solid var(--color-border);border-radius:var(--radius-control);padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;}
 .detail-card-value{font-size:22px;font-weight:bold;color:var(--color-text-primary);line-height:1;}
 .detail-card-value.orange{color:var(--color-status-busy);}
 .detail-card-unit{font-size:10px;color:var(--color-text-secondary);}
+.detail-rows{display:flex;flex-direction:column;gap:4px;font-size:12px;}
+.detail-row{display:flex;align-items:center;gap:8px;}
+.detail-label{color:var(--color-text-secondary);min-width:96px;}
+.detail-value{color:var(--color-text-primary);font-weight:bold;}
+.detail-value.warn{color:var(--color-status-busy);}
+.detail-disclaimer{font-size:10px;color:var(--color-text-secondary);margin-top:4px;font-style:italic;line-height:1.4;border-top:1px dashed var(--color-border);padding-top:6px;}
 
-/* 修复优先级列表 */
-.priority-table{width:100%;border-collapse:collapse;font-size:11px;}
-.priority-table th{text-align:left;padding:4px 6px;color:var(--color-text-secondary);font-weight:normal;font-size:10px;border-bottom:1px solid var(--color-border);}
-.priority-table td{padding:5px 6px;border-bottom:1px solid rgba(60,60,60,0.5);}
-.priority-num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:bold;}
-.priority-num.green{background:rgba(76,175,80,0.2);color:var(--color-status-online);border:1px solid var(--color-status-online);}
-.priority-num.orange{background:rgba(255,183,77,0.2);color:var(--color-status-busy);border:1px solid var(--color-status-busy);}
-.priority-num.gray{background:rgba(136,136,136,0.2);color:#888;border:1px solid #666;}
-.type-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle;}
-.type-dot.red{background:var(--color-threat-high);}
-.type-dot.yellow{background:#FFEB3B;}
-
-/* 决策草案 */
-.draft-content{display:flex;flex-direction:column;gap:6px;}
-.draft-row{display:flex;align-items:center;gap:8px;font-size:12px;}
-.draft-label{color:var(--color-text-secondary);min-width:80px;}
-.draft-value{color:var(--color-text-primary);font-weight:bold;}
-.draft-value.warn{color:var(--color-status-busy);}
-.draft-btns{display:flex;gap:8px;margin-top:4px;}
-.draft-note{font-size:10px;color:var(--color-text-secondary);margin-top:4px;font-style:italic;}
+/* P1 扩展位（暂未实现，禁用占位，不参与 P0 流程） */
+.p1-slot{padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;border-bottom:none;}
+.p1-slot-header{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-disabled);}
+.p1-slot-tag{font-size:10px;padding:0 6px;border-radius:3px;border:1px dashed var(--color-text-disabled);color:var(--color-text-disabled);}
+.p1-slot-note{font-size:10px;color:var(--color-text-disabled);font-style:italic;line-height:1.4;}
+.p1-slot-list{display:flex;flex-direction:column;gap:6px;}
+.p1-item{background:#222;border:1px dashed var(--color-text-disabled);border-radius:var(--radius-control);padding:8px 10px;display:flex;align-items:center;gap:8px;opacity:0.55;cursor:not-allowed;}
+.p1-item .p1-item-label{font-size:11px;color:var(--color-text-secondary);flex:1;}
+.p1-item .p1-item-status{font-size:10px;color:var(--color-text-disabled);}
 
 /* ===== 状态栏 ===== */
 .status-bar{height:var(--size-status-bar-height);background:var(--color-bg);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 12px;font-size:11px;color:var(--color-text-secondary);flex-shrink:0;gap:16px;}
@@ -232,11 +242,42 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
 .status-dot{width:8px;height:8px;border-radius:50%;}
 .status-dot.online{background:var(--color-status-online);box-shadow:0 0 4px var(--color-status-online);}
 .sim-badge{background:rgba(255,183,77,0.2);color:var(--color-status-busy);padding:1px 6px;border-radius:3px;font-size:10px;border:1px solid var(--color-status-busy);}
+/* P0 范围只读徽标：非交互、非按钮，安静标注当前规划范围；略微提升对比度便于 1280 阅读，仍非主操作 */
+.scope-badge{font-size:10px;color:var(--color-text-primary);background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.16);padding:2px 7px;border-radius:3px;letter-spacing:0.3px;user-select:none;}
 .status-alert{flex:1;display:flex;align-items:center;gap:6px;color:var(--color-threat-medium);overflow:hidden;}
 .status-alert-text{white-space:nowrap;animation:scroll-alert 12s linear infinite;}
 @keyframes scroll-alert{0%{transform:translateX(100%);}100%{transform:translateX(-100%);}}
 .status-right{display:flex;align-items:center;gap:6px;}
 .status-right .threat-tag{color:var(--color-threat-high);font-weight:bold;}
+
+/* ===== 模态：模拟损毁分布生成器（MOS-015） ===== */
+.modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;z-index:50;}
+.modal-overlay.open{display:flex;}
+.modal{width:520px;background:var(--color-panel);border:1px solid var(--color-border);border-radius:6px;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.6);}
+.modal-header{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--color-border);background:var(--color-toolbar);border-radius:6px 6px 0 0;}
+.modal-title{font-size:13px;font-weight:bold;color:var(--color-text-primary);}
+.modal-title .sim{color:var(--color-status-busy);font-size:10px;margin-left:6px;}
+.modal-close{width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--color-text-secondary);border-radius:var(--radius-control);font-size:16px;}
+.modal-close:hover{background:var(--color-border);color:var(--color-text-primary);}
+.modal-body{padding:14px;display:flex;flex-direction:column;gap:12px;}
+.modal-section{display:flex;flex-direction:column;gap:6px;}
+.modal-section-title{font-size:12px;color:var(--color-text-secondary);font-weight:bold;}
+/* minmax(0,1fr) 防止 grid 项固有最小宽度撑破 520px 模态 */
+.modal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.modal-field{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.modal-field-label{font-size:11px;color:var(--color-text-secondary);}
+.modal-field-label .hint{color:var(--color-status-busy);font-size:9px;}
+.modal-input{width:100%;min-width:0;height:28px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 8px;color:var(--color-text-primary);font-size:13px;font-family:"Consolas",monospace;}
+.modal-input:focus{outline:none;border-color:var(--color-border-focus);}
+.modal-input.invalid{border-color:var(--color-threat-high);}
+.modal-banner{font-size:11px;padding:5px 10px;border-radius:var(--radius-control);display:none;}
+.modal-banner.show{display:block;}
+.modal-banner.err{background:rgba(255,82,82,0.12);color:var(--color-threat-high);border:1px solid rgba(255,82,82,0.4);}
+.modal-banner.ok{background:rgba(76,175,80,0.12);color:var(--color-status-online);border:1px solid rgba(76,175,80,0.4);}
+.modal-footer{padding:10px 14px;border-top:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.modal-footer-note{font-size:10px;color:var(--color-text-secondary);font-style:italic;flex:1;}
+.modal-footer-note .nowrap{white-space:nowrap;}
+.modal-footer-actions{display:flex;gap:8px;}
 
 /* 滚动条 */
 ::-webkit-scrollbar{width:6px;height:6px;}
@@ -246,6 +287,7 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
 </style>
 </head>
 <body>
+<div class="scaler" id="scaler">
 <div class="app">
 
   <!-- 菜单栏 -->
@@ -256,23 +298,20 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
     <div class="menu-item" data-testid="DEC-MENU-HELP">帮助<span>(H)</span></div>
   </div>
 
-  <!-- MOS工具栏 -->
+  <!-- MOS工具栏：P0 操作 + 档位切换（P1 占位已移除，扩展能力仅保留在右面板 DEC-RP-P1-SLOT） -->
   <div class="toolbar">
+    <!-- P0 范围只读徽标：非交互、非按钮，仅标注当前范围，不分配 data-testid -->
+    <span class="scope-badge">P0 · 模拟规划</span>
     <div class="toolbar-group">
+      <button class="btn btn-secondary" data-testid="DEC-TB-GEN">◈ 生成损毁场景</button>
       <button class="btn btn-secondary" data-testid="DEC-TB-PARAMS">⚙ 参数设置</button>
       <button class="btn btn-primary" data-testid="DEC-TB-REPLAN">↻ 重新规划</button>
     </div>
     <div class="toolbar-divider"></div>
-    <div class="toolbar-group">
-      <button class="btn btn-plan" data-plan="1" data-testid="DEC-TB-PLAN-1">方案1·不修复</button>
-      <button class="btn btn-plan active" data-plan="2" data-testid="DEC-TB-PLAN-2">方案2·部分修复 ▾</button>
-      <button class="btn btn-plan" data-plan="3" data-testid="DEC-TB-PLAN-3">方案3·修复更多</button>
+    <div class="toolbar-group" id="toolbarPlanGroup">
+      <!-- JS 动态生成档位按钮 DEC-TB-PLAN-1..N -->
     </div>
     <div class="toolbar-spacer"></div>
-    <div class="toolbar-group">
-      <button class="btn btn-disabled" data-testid="DEC-TB-EXTEND">扩展 (P1)</button>
-      <button class="btn btn-secondary" data-testid="DEC-TB-EXPORT">⬇ 导出报告</button>
-    </div>
   </div>
 
   <!-- 主体区域 -->
@@ -293,17 +332,17 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
       <div class="nav-spacer-2"></div>
     </div>
 
-    <!-- 左面板 -->
+    <!-- 左面板：损毁目标列表（P0） -->
     <div class="left-panel">
       <div class="panel-header"><span class="sim-tag">模拟</span>损毁目标列表</div>
       <div class="target-list" id="targetList" data-testid="DEC-LP-TARGET-LIST">
-        <!-- JS动态生成 -->
+        <!-- JS 动态生成 -->
       </div>
     </div>
 
-    <!-- 中心区 -->
+    <!-- 中心区：跑道俯视图 + 算法参数 -->
     <div class="center-area">
-      <!-- 上部：跑道俯视图 60% -->
+      <!-- 上部：跑道俯视图 -->
       <div class="center-top">
         <div class="runway-section" data-testid="DEC-CE-RUNWAY">
           <div class="runway-header">
@@ -315,8 +354,9 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
             </div>
           </div>
           <div class="runway-container">
+            <!-- 核心区 500m 叠层：与跑道水平对齐，目标圆圈按 x/y 投影渲染 -->
+            <div class="core-overlay" id="coreOverlay"></div>
             <div class="runway" id="runway">
-              <!-- 刻度线 -->
               <div class="runway-ticks">
                 <div class="runway-tick" style="left:0%"></div>
                 <div class="runway-tick" style="left:16.67%"></div>
@@ -326,55 +366,20 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
                 <div class="runway-tick" style="left:83.33%"></div>
                 <div class="runway-tick" style="left:100%"></div>
               </div>
-
-              <!-- 目标圆圈 -->
-              <!-- 弹坑-001: 坐标1200m -> 40%位置, Ø8m -> 半径约20px -->
-              <div class="target-circle crater" data-target="0" style="left:40%;width:40px;height:40px;">
-                <div class="target-label">弹坑-001 Ø8m</div>
-              </div>
-              <!-- UXO-003: 坐标1500m -> 50%位置, 影响45m -> 半径约30px -->
-              <div class="target-circle uxo" data-target="1" style="left:50%;width:60px;height:60px;">
-                <div class="target-label">UXO-003 45m</div>
-              </div>
-              <!-- 弹坑-005: 坐标800m -> 27%位置, Ø6m, 已修复 -->
-              <div class="target-circle repaired" data-target="2" style="left:27%;width:36px;height:36px;">
-                <span class="check">✓</span>
-                <div class="target-label">弹坑-005 已修复</div>
-              </div>
-              <!-- UXO-007: 坐标2200m -> 73%位置, 影响30m -> 半径约22px -->
-              <div class="target-circle uxo" data-target="3" style="left:73%;width:44px;height:44px;">
-                <div class="target-label">UXO-007 30m</div>
-              </div>
-
-              <!-- MOS矩形 -->
-              <!-- 方案1: 460×15m, 位置偏左 -->
-              <div class="mos-rect plan1" data-plan-rect="1" style="left:14%;width:15.3%;height:60px;">
-                <span class="rect-label" style="color:var(--color-threat-medium);">方案1 460×15 6900m²</span>
-              </div>
-              <!-- 方案2: 520×18m, 位置中间偏右 -->
-              <div class="mos-rect plan2 active" data-plan-rect="2" style="left:39%;width:17.3%;height:72px;">
-                <span class="rect-label" style="color:var(--color-status-online);">方案2 520×18 9360m² · 当前</span>
-              </div>
-              <!-- 方案3: 650×20m, 位置最右 -->
-              <div class="mos-rect plan3" data-plan-rect="3" style="left:60%;width:21.7%;height:80px;">
-                <span class="rect-label" style="color:#98cbff;">方案3 650×20 13000m²</span>
-              </div>
+              <!-- MOS 矩形由 JS 根据 state 渲染；目标圆圈移至上方 core-overlay -->
             </div>
+            <!-- MOS 标签独立通道：与跑道几何分离，JS 按各档位水平中心渲染文字标签 -->
+            <div class="mos-label-lane" id="mosLabelLane"></div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-            <div class="runway-legend">
-              <div class="legend-item"><div class="legend-dot crater"></div>弹坑</div>
-              <div class="legend-item"><div class="legend-dot uxo"></div>UXO</div>
-              <div class="legend-item"><div class="legend-dot repaired"></div>已修复</div>
-              <div class="legend-item"><div class="legend-rect plan1"></div>方案1</div>
-              <div class="legend-item"><div class="legend-rect plan2"></div>方案2</div>
-              <div class="legend-item"><div class="legend-rect plan3"></div>方案3</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;flex-wrap:wrap;">
+            <div class="runway-legend" id="runwayLegend">
+              <!-- JS 动态生成图例 -->
             </div>
             <div class="zoom-control">
-              <button class="zoom-btn">+</button>
-              <span class="zoom-level">1×</span>
-              <button class="zoom-btn">−</button>
-              <button class="zoom-btn" style="font-size:11px;">复位</button>
+              <button class="zoom-btn" data-testid="DEC-CE-ZOOM-IN">+</button>
+              <span class="zoom-level" data-testid="DEC-CE-ZOOM-LEVEL">1×</span>
+              <button class="zoom-btn" data-testid="DEC-CE-ZOOM-OUT">−</button>
+              <button class="zoom-btn" style="font-size:11px;" data-testid="DEC-CE-ZOOM-RESET">复位</button>
             </div>
           </div>
         </div>
@@ -385,143 +390,42 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
         <div class="params-panel" data-testid="DEC-CE-PARAMS">
           <div class="params-header">
             <div class="params-title">算法参数<span class="sim">[模拟]</span></div>
-            <button class="params-reset">恢复默认值</button>
+            <button class="params-reset" data-testid="DEC-CE-PARAM-RESET">恢复默认值</button>
           </div>
-          <div class="params-grid">
-            <div class="param-field">
-              <span class="param-label">跑道长度 (m)</span>
-              <input class="param-input" type="text" value="3000">
-            </div>
-            <div class="param-field">
-              <span class="param-label">跑道宽度 (m)</span>
-              <input class="param-input" type="text" value="50">
-            </div>
-            <div class="param-field">
-              <span class="param-label">最小起降长度 (m)</span>
-              <input class="param-input" type="text" value="460">
-            </div>
-            <div class="param-field">
-              <span class="param-label">最小起降宽度 (m)</span>
-              <input class="param-input" type="text" value="15">
-            </div>
-            <div class="param-field">
-              <span class="param-label">安全系数 K</span>
-              <input class="param-input" type="text" value="1.2">
-            </div>
-            <div class="param-field">
-              <span class="param-label">扫描步长 (m)</span>
-              <input class="param-input" type="text" value="1">
-            </div>
-            <div class="param-field">
-              <span class="param-label">回填速率 (m³/h)</span>
-              <input class="param-input" type="text" value="50">
-            </div>
-            <div class="param-field">
-              <span class="param-label">UXO 工时 (h/个)</span>
-              <input class="param-input" type="text" value="8">
-            </div>
-            <div class="param-field">
-              <span class="param-label">扩展系数</span>
-              <input class="param-input" type="text" value="1.5">
-            </div>
-            <div class="param-field">
-              <span class="param-label">方案档位数</span>
-              <input class="param-input" type="text" value="3">
-            </div>
-            <div class="param-field">
-              <span class="param-label">损毁点总数</span>
-              <div class="param-readonly">4</div>
-            </div>
-            <div class="param-field">
-              <span class="param-label">已修复数</span>
-              <div class="param-readonly green">1</div>
-            </div>
+          <div class="params-grid" id="paramsGrid">
+            <!-- JS 动态生成参数字段 -->
+          </div>
+          <div class="banner-row">
+            <div class="banner banner-info" data-testid="DEC-CE-VALIDATION" id="validationBanner"></div>
+            <div class="banner banner-ok" data-testid="DEC-CE-PLAN-STATE" id="planStateBanner"></div>
           </div>
           <div class="params-footer">
-            <div class="params-status">
+            <div class="params-status" style="font-size:11px;color:var(--color-text-secondary);">
               <span>面积单调递增校验:</span>
-              <span class="pass">✓ 通过 (6900 → 9360 → 13000)</span>
+              <span id="monoCheck" class="pass" style="color:var(--color-status-online);font-weight:bold;">✓ 通过</span>
             </div>
-            <button class="params-replan">↻ 重新规划</button>
+            <div class="params-actions">
+              <button class="params-replan" data-testid="DEC-CE-PARAM-REPLAN" id="paramReplanBtn">↻ 重新规划</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 右面板 -->
+    <!-- 右面板：候选方案 + 当前模拟选择摘要 + P1 扩展位 -->
     <div class="right-panel">
 
-      <!-- ② 候选方案卡片 -->
+      <!-- 候选方案卡片（P0） -->
       <div class="rp-section" data-testid="DEC-RP-PLANS">
         <div class="rp-section-title"><span class="sim">模拟</span>候选起降方案</div>
-        <!-- 方案1 -->
-        <div class="plan-card" data-plan-card="1" data-testid="DEC-RP-PLAN-1">
-          <div class="plan-thumb">
-            <div class="plan-thumb-runway"></div>
-            <div class="plan-thumb-mos" style="left:20%;width:15%;height:8px;border:1px dashed var(--color-threat-medium);background:rgba(255,183,77,0.1);"></div>
-          </div>
-          <div class="pc-content">
-            <div class="pc-row1">
-              <span class="pc-name">方案1·不修复</span>
-              <span class="pc-badge pc-badge-yellow">紧急可用</span>
-            </div>
-            <div class="pc-grid">
-              <div class="pc-grid-item"><span class="pc-grid-label">面积</span><span class="pc-grid-value">6900m²</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">尺寸</span><span class="pc-grid-value">460×15m</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">修复</span><span class="pc-grid-value green">0h</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">损毁</span><span class="pc-grid-value">0个</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">难度</span><span class="pc-grid-value green">无</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">安全</span><span class="pc-grid-value">8m</span></div>
-            </div>
-          </div>
-        </div>
-        <!-- 方案2 -->
-        <div class="plan-card active" data-plan-card="2" data-testid="DEC-RP-PLAN-2">
-          <div class="plan-thumb">
-            <div class="plan-thumb-runway"></div>
-            <div class="plan-thumb-mos" style="left:35%;width:20%;height:10px;border:1px solid var(--color-status-online);background:rgba(76,175,80,0.2);"></div>
-          </div>
-          <div class="pc-content">
-            <div class="pc-row1">
-              <span class="pc-name">方案2·部分修复</span>
-              <span class="pc-badge pc-badge-blue">推荐方案</span>
-            </div>
-            <div class="pc-grid">
-              <div class="pc-grid-item"><span class="pc-grid-label">面积</span><span class="pc-grid-value">9360m²</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">尺寸</span><span class="pc-grid-value">520×18m</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">修复</span><span class="pc-grid-value orange">12h</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">损毁</span><span class="pc-grid-value">3个</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">难度</span><span class="pc-grid-value orange">中等</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">安全</span><span class="pc-grid-value">23m</span></div>
-            </div>
-          </div>
-        </div>
-        <!-- 方案3 -->
-        <div class="plan-card" data-plan-card="3" data-testid="DEC-RP-PLAN-3">
-          <div class="plan-thumb">
-            <div class="plan-thumb-runway"></div>
-            <div class="plan-thumb-mos" style="left:50%;width:25%;height:12px;border:1px dashed #98cbff;background:rgba(152,203,255,0.1);"></div>
-          </div>
-          <div class="pc-content">
-            <div class="pc-row1">
-              <span class="pc-name">方案3·修复更多</span>
-              <span class="pc-badge pc-badge-gray">最大工程量</span>
-            </div>
-            <div class="pc-grid">
-              <div class="pc-grid-item"><span class="pc-grid-label">面积</span><span class="pc-grid-value">13000m²</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">尺寸</span><span class="pc-grid-value">650×20m</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">修复</span><span class="pc-grid-value red">28h</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">损毁</span><span class="pc-grid-value">7个</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">难度</span><span class="pc-grid-value red">高</span></div>
-              <div class="pc-grid-item"><span class="pc-grid-label">安全</span><span class="pc-grid-value">35m</span></div>
-            </div>
-          </div>
+        <div id="planCards" style="display:flex;flex-direction:column;gap:8px;">
+          <!-- JS 动态生成方案卡片 DEC-RP-PLAN-1..N -->
         </div>
       </div>
 
-      <!-- ③ 选定详情摘要 -->
+      <!-- 当前模拟选择摘要（P0） -->
       <div class="rp-section" data-testid="DEC-RP-DETAIL">
-        <div class="rp-section-title">选定详情摘要</div>
+        <div class="rp-section-title">当前模拟选择</div>
         <div class="detail-cards">
           <div class="detail-card">
             <div class="detail-card-value" id="detailArea">9360</div>
@@ -529,70 +433,33 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
           </div>
           <div class="detail-card">
             <div class="detail-card-value orange" id="detailTime">12h</div>
-            <div class="detail-card-unit">修复耗时</div>
+            <div class="detail-card-unit">模拟处理耗时</div>
           </div>
           <div class="detail-card">
             <div class="detail-card-value" id="detailCount">3</div>
-            <div class="detail-card-unit">损毁目标</div>
+            <div class="detail-card-unit">涉及损毁点</div>
           </div>
         </div>
+        <div class="detail-rows">
+          <div class="detail-row"><span class="detail-label">当前模拟选择:</span><span class="detail-value" id="detailPlan">档位2·部分处理假设</span></div>
+          <div class="detail-row"><span class="detail-label">起降带:</span><span class="detail-value" id="detailStrip">520×18m · 9360m²</span></div>
+          <div class="detail-row"><span class="detail-label">模拟几何间距:</span><span class="detail-value warn" id="detailClearance">23m</span></div>
+          <div class="detail-row"><span class="detail-label">模拟处理假设:</span><span class="detail-value warn" id="detailEffort">12h · 3个损毁点</span></div>
+        </div>
+        <div class="detail-disclaimer" data-testid="DEC-RP-DETAIL-NOTE">[模拟] 此处仅用于本地方案对比。选择不构成确认、下发、执行，也不建立真实安全结论。</div>
       </div>
 
-      <!-- ④ 修复优先级列表 -->
-      <div class="rp-section" data-testid="DEC-RP-PRIORITY">
-        <div class="rp-section-title"><span class="sim">模拟</span>修复优先级</div>
-        <table class="priority-table">
-          <thead>
-            <tr><th>#</th><th>类型</th><th>任务</th><th>工程量</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span class="priority-num green">①</span></td>
-              <td><span class="type-dot red"></span>弹坑</td>
-              <td>弹坑-001 回填32m³</td>
-              <td>4h·中等</td>
-            </tr>
-            <tr>
-              <td><span class="priority-num orange">②</span></td>
-              <td><span class="type-dot yellow"></span>UXO</td>
-              <td>UXO-003 排除</td>
-              <td>6h·高</td>
-            </tr>
-            <tr>
-              <td><span class="priority-num gray">③</span></td>
-              <td><span class="type-dot red"></span>弹坑</td>
-              <td>弹坑-005 回填15m³</td>
-              <td>2h·低</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- ⑤ 决策草案+确认 -->
-      <div class="rp-section" style="border-bottom:none;" data-testid="DEC-RP-DRAFT">
-        <div class="rp-section-title"><span class="sim">模拟</span>决策草案</div>
-        <div class="draft-content">
-          <div class="draft-row">
-            <span class="draft-label">选中方案:</span>
-            <span class="draft-value" id="draftPlan">方案2·部分修复</span>
-          </div>
-          <div class="draft-row">
-            <span class="draft-label">起降带:</span>
-            <span class="draft-value">520×18m · 9360m²</span>
-          </div>
-          <div class="draft-row">
-            <span class="draft-label">修复工期:</span>
-            <span class="draft-value warn">12h · 3个损毁点</span>
-          </div>
-          <div class="draft-row">
-            <span class="draft-label">草案状态:</span>
-            <span class="draft-value warn">待确认</span>
-          </div>
-          <div class="draft-btns">
-            <button class="btn btn-primary" style="flex:1;justify-content:center;" data-testid="DEC-RP-DRAFT-CONFIRM">✓ 确认选定方案</button>
-            <button class="btn btn-secondary" data-testid="DEC-RP-DRAFT-EXPORT">⬇ 导出报告</button>
-          </div>
-          <div class="draft-note">[模拟] 仅记录草案状态，不执行真实处置</div>
+      <!-- P1 扩展位：暂未实现，禁用占位，不参与 P0 流程 -->
+      <div class="p1-slot" data-testid="DEC-RP-P1-SLOT">
+        <div class="p1-slot-header">
+          <span class="p1-slot-tag">P1</span>
+          <span>扩展位（暂未实现）</span>
+        </div>
+        <div class="p1-slot-note">[模拟] 以下能力属 P1 增量，当前为空占位，不参与 P0 流程，亦不执行任何真实处置。</div>
+        <div class="p1-slot-list">
+          <div class="p1-item"><span class="p1-item-label">修复优先级排序</span><span class="p1-item-status">P1 · 禁用</span></div>
+          <div class="p1-item"><span class="p1-item-label">决策草案确认</span><span class="p1-item-status">P1 · 禁用</span></div>
+          <div class="p1-item"><span class="p1-item-label">导出规划报告</span><span class="p1-item-status">P1 · 禁用</span></div>
         </div>
       </div>
 
@@ -603,47 +470,145 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--color-bg);
   <div class="status-bar">
     <div class="status-item" data-testid="DEC-SB-DEVICE">
       <div class="status-dot online"></div>
-      <span>设备: 2/2 在线</span>
+      <span>模拟设备状态: 2/2 在线</span>
     </div>
     <div class="sim-badge" data-testid="DEC-SB-SIM">模拟模式</div>
     <div class="status-alert" data-testid="DEC-SB-ALARM">
-      <span class="status-alert-text">⚠ 模拟告警: 弹坑-001 待决策 · UXO-003 高威胁未处置 · 方案2待确认</span>
+      <span class="status-alert-text">⚠ 模拟告警: 待 renderStatusBar 初始化 · 当前为本地模拟，不执行真实处置</span>
     </div>
     <div class="status-right" data-testid="DEC-SB-TARGET">
-      <span>当前决策目标:</span>
-      <span style="color:var(--color-text-primary);" id="statusTarget">弹坑-001</span>
-      <span class="threat-tag">· 高威胁</span>
+      <span>当前分析目标:</span>
+      <span style="color:var(--color-text-primary);" id="statusTarget">—</span>
+      <span class="threat-tag">· 待初始化</span>
+    </div>
+  </div>
+
+  <!-- 模态：模拟损毁分布生成器（MOS-015） -->
+  <div class="modal-overlay" id="genModalOverlay" data-testid="DEC-GEN-MODAL">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">模拟损毁分布生成器<span class="sim">[模拟 · MOS-015]</span></div>
+        <div class="modal-close" data-testid="DEC-GEN-CLOSE">×</div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <div class="modal-section-title">弹坑参数（核心区 3000m×500m 内随机分布）</div>
+          <div class="modal-grid">
+            <div class="modal-field">
+              <span class="modal-field-label">弹坑数量 <span class="hint">(1~8)</span></span>
+              <input class="modal-input" type="text" value="2" data-testid="DEC-GEN-CRATER-COUNT" id="genCraterCount">
+            </div>
+            <div class="modal-field">
+              <span class="modal-field-label">半径最小 (m)</span>
+              <input class="modal-input" type="text" value="3" data-testid="DEC-GEN-CRATER-RMIN" id="genCraterRmin">
+            </div>
+            <div class="modal-field">
+              <span class="modal-field-label">半径最大 (m)</span>
+              <input class="modal-input" type="text" value="6" data-testid="DEC-GEN-CRATER-RMAX" id="genCraterRmax">
+            </div>
+          </div>
+        </div>
+        <div class="modal-section">
+          <div class="modal-section-title">UXO 参数 <span class="hint">（当量为模拟处理假设，非真实装药）</span></div>
+          <div class="modal-grid">
+            <div class="modal-field">
+              <span class="modal-field-label">UXO 数量 <span class="hint">(0~5)</span></span>
+              <input class="modal-input" type="text" value="2" data-testid="DEC-GEN-UXO-COUNT" id="genUxoCount">
+            </div>
+            <div class="modal-field">
+              <span class="modal-field-label">当量最小 (kg)</span>
+              <input class="modal-input" type="text" value="10" data-testid="DEC-GEN-UXO-YMIN" id="genUxoYmin">
+            </div>
+            <div class="modal-field">
+              <span class="modal-field-label">当量最大 (kg)</span>
+              <input class="modal-input" type="text" value="50" data-testid="DEC-GEN-UXO-YMAX" id="genUxoYmax">
+            </div>
+          </div>
+        </div>
+        <div class="modal-section">
+          <div class="modal-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+            <div class="modal-field">
+              <span class="modal-field-label">随机种子 <span class="hint">（同种子可复现）</span></span>
+              <input class="modal-input" type="text" value="42" data-testid="DEC-GEN-SEED" id="genSeed">
+            </div>
+            <div class="modal-field">
+              <span class="modal-field-label">预览</span>
+              <div class="modal-input" style="display:flex;align-items:center;color:var(--color-text-secondary);" id="genPreview">弹坑2 + UXO2 · 种子42</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-banner" id="genBanner" data-testid="DEC-GEN-BANNER"></div>
+      </div>
+      <div class="modal-footer">
+        <div class="modal-footer-note">[模拟] 本地种子化生成，<span class="nowrap">不联网、不持久化</span>；JSON 下载为原型占位产物，不代表真实数据。</div>
+        <div class="modal-footer-actions">
+          <button class="btn btn-secondary" data-testid="DEC-GEN-JSON" id="genJsonBtn">⬇ 下载模拟场景 JSON</button>
+          <button class="btn btn-secondary" data-testid="DEC-GEN-CANCEL" id="genCancelBtn">取消</button>
+          <button class="btn btn-primary" data-testid="DEC-GEN-APPLY" id="genApplyBtn">应用生成</button>
+        </div>
+      </div>
     </div>
   </div>
 
 </div>
+</div>
 
 <script>
-// ===== 数据 =====
-const targets = [
-  {id:'弹坑-001', type:'弹坑', threat:'high', threatText:'高', status:'已发现', coord:'1200,25', size:'Ø8m'},
-  {id:'UXO-003', type:'未爆弹', threat:'high', threatText:'高', status:'已发现', coord:'1500,30', size:'影响45m'},
-  {id:'弹坑-005', type:'弹坑', threat:'medium', threatText:'中', status:'已修复', coord:'800,15', size:'Ø6m'},
-  {id:'UXO-007', type:'未爆弹', threat:'medium', threatText:'中', status:'已发现', coord:'2200,35', size:'影响30m'},
+// ===== 默认 fixture：确定性模拟数据，P0 初始呈现 4 个损毁点 + 3 档方案 =====
+// 所有数据为本地模拟，不写入数据库、不持久化、不联网、不控制设备
+const FIXTURE_TARGETS = [
+  // 固定 fixture：y 与 coord 字符串一致，均落在核心区 [-250,250] 内
+  {id:'弹坑-001', type:'弹坑',   threat:'high',   threatText:'高', status:'已发现', coord:'1200,25', size:'Ø8m',   x:1200, y:25,  r:8,  cls:'crater'},
+  {id:'UXO-003',  type:'未爆弹', threat:'high',   threatText:'高', status:'已发现', coord:'1500,30', size:'影响45m', x:1500, y:30,  r:45, cls:'uxo'},
+  {id:'弹坑-005', type:'弹坑',   threat:'medium', threatText:'中', status:'模拟处理假设', coord:'800,15',  size:'Ø6m',   x:800,  y:15,  r:6,  cls:'repaired'},
+  {id:'UXO-007',  type:'未爆弹', threat:'medium', threatText:'中', status:'已发现', coord:'2200,35', size:'影响30m', x:2200, y:35,  r:30, cls:'uxo'},
 ];
 
-const plans = [
-  {id:1, name:'方案1·不修复', area:'6900', time:'0h', count:'0'},
-  {id:2, name:'方案2·部分修复', area:'9360', time:'12h', count:'3'},
-  {id:3, name:'方案3·修复更多', area:'13000', time:'28h', count:'7'},
+const FIXTURE_PLANS = [
+  {id:1, name:'档位1·不含处理假设',   badge:'最小面积', area:6900,  size:'460×15m', time:'0h',  timeCls:'green', count:0, countCls:'green', effort:'无',   effortCls:'green', clearance:8,  rect:{left:14, width:15.3, height:60},  color:'var(--color-threat-medium)', thumbColor:'rgba(255,183,77,0.1)', thumbBorder:'dashed'},
+  {id:2, name:'档位2·部分处理假设', badge:'中间档位', area:9360,  size:'520×18m', time:'12h', timeCls:'orange',count:3, countCls:'',     effort:'中等', effortCls:'orange',clearance:23, rect:{left:39, width:17.3, height:72},  color:'var(--color-status-online)',  thumbColor:'rgba(76,175,80,0.2)',  thumbBorder:'solid'},
+  {id:3, name:'档位3·更多处理假设', badge:'最大面积', area:13000, size:'650×20m', time:'28h', timeCls:'red',   count:7, countCls:'',     effort:'高',   effortCls:'red',   clearance:35, rect:{left:60, width:21.7, height:80},  color:'#98cbff',                     thumbColor:'rgba(152,203,255,0.1)',thumbBorder:'dashed'},
 ];
 
-let selectedTarget = 0;
-let selectedPlan = 2;
+// 算法参数默认值；K=1.5 为模拟示例值，待领域确认
+const DEFAULT_PARAMS = {
+  length:3000, width:50, minLength:460, minWidth:15, k:1.5, step:1,
+  backfill:50, uxoHours:8, expand:1.5, tiers:3,
+};
 
-// ===== 渲染目标列表 =====
-function renderTargets() {
+// 全局状态：当前模拟场景与选择
+let state = {
+  targets: clone(FIXTURE_TARGETS),
+  plans: clone(FIXTURE_PLANS),
+  params: clone(DEFAULT_PARAMS),
+  selectedTarget: 0,
+  selectedPlan: 2,
+  zoom: 1,
+  planState: 'result', // planning | loading | result | error | empty
+  seed: 42,
+};
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+
+// 种子化伪随机（mulberry32）：同种子可复现模拟分布
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+// ===== 渲染：左面板目标列表 =====
+function renderTargets(){
   const list = document.getElementById('targetList');
   list.innerHTML = '';
-  targets.forEach((t, i) => {
-    const isRepaired = t.status === '已修复';
+  state.targets.forEach((t, i) => {
+    const isRepaired = t.status === '模拟处理假设';
     const card = document.createElement('div');
-    card.className = 'target-card' + (i === selectedTarget ? ' active' : '');
+    card.className = 'target-card' + (i === state.selectedTarget ? ' active' : '');
     card.dataset.target = i;
     card.innerHTML = `
       <div class="tc-row1">
@@ -662,77 +627,562 @@ function renderTargets() {
   });
 }
 
-// ===== 选择目标 =====
-function selectTarget(index) {
-  selectedTarget = index;
-  // 更新卡片高亮
-  document.querySelectorAll('.target-card').forEach((c, i) => {
-    c.classList.toggle('active', i === index);
+// ===== 渲染：核心区叠层目标圆圈 + 跑道 MOS 矩形 =====
+function renderRunway(){
+  const runway = document.getElementById('runway');
+  const coreOverlay = document.getElementById('coreOverlay');
+  // 清除既有动态元素：MOS 矩形在跑道，目标圆圈在核心区叠层
+  runway.querySelectorAll('.mos-rect').forEach(el => el.remove());
+  coreOverlay.querySelectorAll('.target-circle').forEach(el => el.remove());
+  const runwayLen = state.params.length || 3000;
+  // 目标圆圈渲染至核心区叠层：x 横向投影到 [0,runwayLen]，y 纵向投影到 [-250,250]
+  // 视觉半径按比例换算（像素，非真实尺寸）；纵向加视觉夹取防止标签裁切，实际 y 保留在 coord/state
+  state.targets.forEach((t, i) => {
+    const pct = Math.max(0, Math.min(100, (t.x / runwayLen) * 100));
+    const px = Math.max(18, Math.min(60, t.r * 2.2));
+    const yVal = (typeof t.y === 'number') ? t.y : 0;
+    const topPct = ((yVal + 250) / 500) * 100;
+    const topClamped = Math.max(15, Math.min(85, topPct));
+    const el = document.createElement('div');
+    el.className = 'target-circle ' + t.cls + (i === state.selectedTarget ? ' active' : '');
+    el.dataset.target = i;
+    el.style.left = pct + '%';
+    el.style.top = topClamped + '%';
+    el.style.width = px + 'px';
+    el.style.height = px + 'px';
+    let inner = '';
+    if (t.cls === 'repaired') inner = '<span class="check">✓</span>';
+    // 标签仅显示目标 ID，尺寸信息保留在左侧目标列表，避免标签互相碰撞
+    inner += `<div class="target-label">${t.id}</div>`;
+    el.innerHTML = inner;
+    el.addEventListener('click', (e) => { e.stopPropagation(); selectTarget(i); });
+    coreOverlay.appendChild(el);
   });
-  // 更新跑道圆圈高亮
-  document.querySelectorAll('.target-circle').forEach((c, i) => {
-    c.classList.toggle('active', i === index);
+  // MOS 矩形：纯几何元素，仅承载颜色/边框/点击；文字标签移至独立通道
+  state.plans.forEach((p) => {
+    const el = document.createElement('div');
+    el.className = 'mos-rect plan' + p.id + (p.id === state.selectedPlan ? ' active' : '');
+    el.dataset.planRect = p.id;
+    el.style.left = p.rect.left + '%';
+    el.style.width = p.rect.width + '%';
+    el.style.height = p.rect.height + 'px';
+    el.addEventListener('click', (e) => { e.stopPropagation(); selectPlan(p.id); });
+    runway.appendChild(el);
   });
-  // 更新状态栏
-  const t = targets[index];
-  document.getElementById('statusTarget').textContent = t.id;
-  const statusRight = document.querySelector('.status-right .threat-tag');
-  statusRight.textContent = '· ' + t.threatText + '威胁';
+  // MOS 标签独立通道：按各档位矩形水平中心渲染文字标签，与跑道几何完全分离
+  const labelLane = document.getElementById('mosLabelLane');
+  labelLane.innerHTML = '';
+  state.plans.forEach((p) => {
+    const center = p.rect.left + p.rect.width / 2;
+    const tag = p.id === state.selectedPlan ? ' · 当前' : '';
+    const lbl = document.createElement('div');
+    lbl.className = 'mos-label' + (p.id === state.selectedPlan ? ' active' : '');
+    lbl.dataset.planLabel = p.id;
+    lbl.style.left = center + '%';
+    lbl.style.color = p.color;
+    lbl.textContent = `档位${p.id} ${p.size}${tag}`;
+    labelLane.appendChild(lbl);
+  });
+  renderLegend();
 }
 
-// ===== 选择方案 =====
-function selectPlan(planId) {
-  selectedPlan = planId;
-  // 更新工具栏按钮
-  document.querySelectorAll('.btn-plan').forEach(btn => {
-    btn.classList.toggle('active', parseInt(btn.dataset.plan) === planId);
+// ===== 渲染：图例（按当前档位数量） =====
+function renderLegend(){
+  const legend = document.getElementById('runwayLegend');
+  let html = `
+    <div class="legend-item"><div class="legend-dot crater"></div>弹坑</div>
+    <div class="legend-item"><div class="legend-dot uxo"></div>UXO</div>
+    <div class="legend-item"><div class="legend-dot repaired"></div>模拟处理假设</div>
+  `;
+  state.plans.forEach(p => {
+    html += `<div class="legend-item"><div class="legend-rect" style="border:1px ${p.rect.thumbBorder||'solid'} ${p.color};background:${p.thumbColor};width:16px;height:10px;border-radius:2px;"></div>档位${p.id}</div>`;
   });
-  // 更新右面板卡片
-  document.querySelectorAll('.plan-card').forEach(card => {
-    card.classList.toggle('active', parseInt(card.dataset.planCard) === planId);
+  legend.innerHTML = html;
+}
+
+// ===== 渲染：工具栏档位按钮 DEC-TB-PLAN-1..N =====
+function renderToolbarPlans(){
+  const group = document.getElementById('toolbarPlanGroup');
+  group.innerHTML = '';
+  state.plans.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-plan' + (p.id === state.selectedPlan ? ' active' : '');
+    btn.dataset.plan = p.id;
+    btn.setAttribute('data-testid', 'DEC-TB-PLAN-' + p.id);
+    btn.textContent = p.name;
+    btn.addEventListener('click', () => selectPlan(p.id));
+    group.appendChild(btn);
   });
-  // 更新跑道MOS矩形
-  document.querySelectorAll('.mos-rect').forEach(rect => {
-    rect.classList.toggle('active', parseInt(rect.dataset.planRect) === planId);
+}
+
+// ===== 渲染：右面板方案卡片 DEC-RP-PLAN-1..N =====
+function renderPlanCards(){
+  const wrap = document.getElementById('planCards');
+  wrap.innerHTML = '';
+  state.plans.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'plan-card' + (p.id === state.selectedPlan ? ' active' : '');
+    card.dataset.planCard = p.id;
+    card.setAttribute('data-testid', 'DEC-RP-PLAN-' + p.id);
+    const thumbStyle = `left:${p.rect.left}%;width:${p.rect.width}%;height:10px;border:1px ${p.rect.thumbBorder||'solid'} ${p.color};background:${p.thumbColor};`;
+    card.innerHTML = `
+      <div class="plan-thumb">
+        <div class="plan-thumb-runway"></div>
+        <div class="plan-thumb-mos" style="${thumbStyle}"></div>
+      </div>
+      <div class="pc-content">
+        <div class="pc-row1">
+          <span class="pc-name">${p.name}</span>
+          <span class="pc-badge pc-badge-gray">${p.badge}</span>
+        </div>
+        <div class="pc-grid">
+          <div class="pc-grid-item"><span class="pc-grid-label">可用面积</span><span class="pc-grid-value">${p.area}m²</span></div>
+          <div class="pc-grid-item"><span class="pc-grid-label">尺寸</span><span class="pc-grid-value">${p.size}</span></div>
+          <div class="pc-grid-item"><span class="pc-grid-label">处理耗时</span><span class="pc-grid-value ${p.timeCls}">${p.time}</span></div>
+          <div class="pc-grid-item"><span class="pc-grid-label">涉及损毁</span><span class="pc-grid-value ${p.countCls}">${p.count}个</span></div>
+          <div class="pc-grid-item"><span class="pc-grid-label">工程量</span><span class="pc-grid-value ${p.effortCls}">${p.effort}</span></div>
+          <div class="pc-grid-item"><span class="pc-grid-label">模拟几何间距</span><span class="pc-grid-value">${p.clearance}m</span></div>
+        </div>
+      </div>
+    `;
+    card.addEventListener('click', () => selectPlan(p.id));
+    wrap.appendChild(card);
   });
-  // 更新选定详情
-  const p = plans[planId - 1];
+}
+
+// ===== 渲染：当前模拟选择摘要 =====
+function renderDetail(){
+  const p = state.plans.find(x => x.id === state.selectedPlan) || state.plans[0];
   document.getElementById('detailArea').textContent = p.area;
-  document.getElementById('detailTime').textContent = p.time;
   const timeEl = document.getElementById('detailTime');
-  if (planId === 1) { timeEl.className = 'detail-card-value'; }
-  else if (planId === 2) { timeEl.className = 'detail-card-value orange'; }
-  else { timeEl.className = 'detail-card-value'; timeEl.style.color = 'var(--color-threat-high)'; }
-  if (planId !== 3) timeEl.style.color = '';
+  timeEl.textContent = p.time;
+  timeEl.className = 'detail-card-value' + (p.timeCls === 'orange' ? ' orange' : '');
+  timeEl.style.color = p.timeCls === 'red' ? 'var(--color-threat-high)' : (p.timeCls === 'green' ? 'var(--color-status-online)' : '');
   document.getElementById('detailCount').textContent = p.count;
-  // 更新草案
-  document.getElementById('draftPlan').textContent = p.name;
+  document.getElementById('detailPlan').textContent = p.name;
+  document.getElementById('detailStrip').textContent = `${p.size} · ${p.area}m²`;
+  document.getElementById('detailClearance').textContent = `${p.clearance}m`;
+  document.getElementById('detailEffort').textContent = `${p.time} · ${p.count}个损毁点`;
+}
+
+// ===== 渲染：算法参数字段 =====
+const PARAM_DEFS = [
+  {key:'length',    label:'跑道长度 (m)',      readonly:false},
+  {key:'width',     label:'跑道宽度 (m)',      readonly:false},
+  {key:'minLength', label:'最小起降长度 (m)',  readonly:false},
+  {key:'minWidth',  label:'最小起降宽度 (m)',  readonly:false},
+  {key:'k',         label:'安全系数 K',        readonly:false, hint:'模拟示例值，待领域确认'},
+  {key:'step',      label:'扫描步长 (m)',      readonly:false},
+  {key:'backfill',  label:'回填速率 (m³/h)',   readonly:false},
+  {key:'uxoHours',  label:'UXO 工时 (h/个)',   readonly:false},
+  {key:'expand',    label:'扩展系数',          readonly:false},
+  {key:'tiers',     label:'方案档位数 (2~5)',  readonly:false},
+  {key:'dmgCount',  label:'损毁点总数',        readonly:true,  derived:'targets'},
+  {key:'repaired',  label:'模拟处理假设数',  readonly:true,  derived:'repaired'},
+];
+
+function renderParams(){
+  const grid = document.getElementById('paramsGrid');
+  grid.innerHTML = '';
+  PARAM_DEFS.forEach(def => {
+    const field = document.createElement('div');
+    field.className = 'param-field';
+    const hint = def.hint ? ` <span class="hint">${def.hint}</span>` : '';
+    let control;
+    if (def.readonly) {
+      let val;
+      if (def.derived === 'targets') val = state.targets.length;
+      else if (def.derived === 'repaired') val = state.targets.filter(t => t.status === '模拟处理假设').length;
+      control = `<div class="param-readonly${def.derived==='repaired'?' green':''}">${val}</div>`;
+      field.setAttribute('data-testid', 'DEC-CE-PARAM-' + def.key.toUpperCase());
+    } else {
+      control = `<input class="param-input" type="text" value="${state.params[def.key]}" data-param="${def.key}">`;
+      field.setAttribute('data-testid', 'DEC-CE-PARAM-' + def.key.toUpperCase());
+    }
+    field.innerHTML = `<span class="param-label">${def.label}${hint}</span>${control}`;
+    grid.appendChild(field);
+  });
+  // 绑定输入：实时校验但不自动重规划
+  grid.querySelectorAll('.param-input').forEach(inp => {
+    inp.addEventListener('input', validateParams);
+  });
+}
+
+// 各可编辑参数的取值约束：min/max 为数值边界，integer 为 true 时须为整数
+const PARAM_CONSTRAINTS = {
+  length:{min:1,label:'跑道长度'}, width:{min:1,label:'跑道宽度'},
+  minLength:{min:1,label:'最小起降长度'}, minWidth:{min:1,label:'最小起降宽度'},
+  k:{min:0.1,label:'安全系数 K'}, step:{min:0.1,label:'扫描步长'},
+  backfill:{min:0,label:'回填速率'}, uxoHours:{min:0,label:'UXO 工时'},
+  expand:{min:0.1,label:'扩展系数'}, tiers:{min:2,max:5,integer:true,label:'方案档位数'},
+};
+
+// 参数校验：直接读取输入框当前值（非 state 缓存），逐字段判空/判数值/判范围/判整数；
+// 非法字段标红并在横幅列出具体错误，同时禁用工具栏与参数栏两处重新规划按钮。
+function validateParams(){
+  const errs = [];
+  let tiersVal = state.params.tiers;
+  document.querySelectorAll('.param-input').forEach(inp => {
+    const k = inp.dataset.param;
+    const c = PARAM_CONSTRAINTS[k];
+    if (!c) return;
+    const raw = inp.value.trim();
+    const v = Number(raw);
+    let invalid = false;
+    if (raw === '') { errs.push(`${c.label}不能为空`); invalid = true; }
+    else if (!Number.isFinite(v)) { errs.push(`${c.label}不是合法数值`); invalid = true; }
+    else if (v < c.min) { errs.push(`${c.label}不能小于 ${c.min}`); invalid = true; }
+    else if (c.max !== undefined && v > c.max) { errs.push(`${c.label}不能大于 ${c.max}`); invalid = true; }
+    else if (c.integer && !Number.isInteger(v)) { errs.push(`${c.label}必须为整数`); invalid = true; }
+    inp.classList.toggle('invalid', invalid);
+    if (!invalid) state.params[k] = v;
+    if (k === 'tiers') tiersVal = invalid ? NaN : v;
+  });
+  const ok = errs.length === 0;
+  const mono = state.plans.length >= 2 && state.plans.every((pl, i, arr) => i === 0 || pl.area >= arr[i-1].area);
+  const msg = ok
+    ? `参数校验通过 · K=${state.params.k}（模拟示例值，待领域确认）· 档位数=${tiersVal}`
+    : errs.join('；');
+  const banner = document.getElementById('validationBanner');
+  banner.textContent = msg;
+  banner.className = 'banner ' + (ok ? 'banner-ok' : 'banner-err');
+  const monoEl = document.getElementById('monoCheck');
+  monoEl.textContent = mono ? '✓ 通过' : '✗ 未通过';
+  monoEl.style.color = mono ? 'var(--color-status-online)' : 'var(--color-threat-high)';
+  monoEl.style.fontWeight = 'bold';
+  // 两处重新规划按钮同步启用/禁用（工具栏按钮无 id，用 data-testid 选取）
+  document.getElementById('paramReplanBtn').disabled = !ok;
+  document.querySelector('[data-testid="DEC-TB-REPLAN"]').disabled = !ok;
+  return {ok, msg, mono};
+}
+
+// ===== 渲染：规划状态横幅 =====
+function renderPlanStateBanner(){
+  const banner = document.getElementById('planStateBanner');
+  const map = {
+    planning:{cls:'banner-info', text:'规划中：本地模拟算法运行中…'},
+    loading: {cls:'banner-warn', text:'加载中：生成候选方案…'},
+    result:  {cls:'banner-ok',   text:'结果：已生成 ' + state.plans.length + ' 档模拟候选方案（仅选中档位在跑道强调）'},
+    error:   {cls:'banner-err',  text:'错误：参数或场景无法生成有效方案，请调整后重规划'},
+    empty:   {cls:'banner-warn', text:'空：当前场景无候选方案，请先生成损毁分布或调整参数'},
+  };
+  const m = map[state.planState] || map.result;
+  banner.textContent = m.text;
+  banner.className = 'banner ' + m.cls;
+}
+
+// ===== 选择目标：左面板 ↔ 跑道圆圈 双向联动 =====
+function selectTarget(i){
+  if (i < 0 || i >= state.targets.length) return;
+  state.selectedTarget = i;
+  document.querySelectorAll('.target-card').forEach((c, idx) => c.classList.toggle('active', idx === i));
+  document.querySelectorAll('.target-circle').forEach((c, idx) => c.classList.toggle('active', idx === i));
+  // 状态栏派生自当前选中目标，复用 renderStatusBar 避免硬编码 fixture 文本
+  renderStatusBar();
+}
+
+// ===== 选择档位：工具栏 ↔ 卡片 ↔ 跑道矩形 联动 =====
+function selectPlan(id){
+  const exists = state.plans.some(p => p.id === id);
+  if (!exists) return;
+  state.selectedPlan = id;
+  document.querySelectorAll('.btn-plan').forEach(btn => btn.classList.toggle('active', parseInt(btn.dataset.plan) === id));
+  document.querySelectorAll('.plan-card').forEach(card => card.classList.toggle('active', parseInt(card.dataset.planCard) === id));
+  document.querySelectorAll('.mos-rect').forEach(rect => rect.classList.toggle('active', parseInt(rect.dataset.planRect) === id));
+  // MOS 标签通道同步：更新 active 态与"· 当前"文本标记，与矩形高亮一致
+  document.querySelectorAll('.mos-label').forEach(lbl => {
+    const pid = parseInt(lbl.dataset.planLabel);
+    const isSel = pid === id;
+    lbl.classList.toggle('active', isSel);
+    const plan = state.plans.find(p => p.id === pid);
+    const tag = isSel ? ' · 当前' : '';
+    lbl.textContent = `档位${pid} ${plan.size}${tag}`;
+  });
+  renderDetail();
+}
+
+// ===== 重新规划：状态机 planning -> loading -> result/error/empty =====
+let replanTimer = null;
+function replan(){
+  const v = validateParams();
+  if (!v.ok) { state.planState = 'error'; renderPlanStateBanner(); return; }
+  if (state.targets.length === 0) { state.planState = 'empty'; renderPlanStateBanner(); renderAll(); return; }
+  state.planState = 'planning';
+  renderPlanStateBanner();
+  clearTimeout(replanTimer);
+  // 模拟异步规划过程，不调用真实算法
+  replanTimer = setTimeout(() => {
+    state.planState = 'loading';
+    renderPlanStateBanner();
+    replanTimer = setTimeout(() => {
+      generatePlansFromParams();
+      validateParams();
+      state.planState = state.plans.length === 0 ? 'empty' : 'result';
+      renderPlanStateBanner();
+      renderAll();
+    }, 500);
+  }, 350);
+}
+
+// 根据当前目标与参数（档位数）确定性生成模拟候选方案
+function generatePlansFromParams(){
+  const tiers = Math.max(2, Math.min(5, parseInt(state.params.tiers) || 3));
+  const rng = mulberry32(state.seed + 1000);
+  const baseLen = state.params.minLength || 460;
+  const baseWid = state.params.minWidth || 15;
+  const colors = ['var(--color-threat-medium)','var(--color-status-online)','#98cbff','#C77BFF','#FF8A65'];
+  const borders = ['dashed','solid','dashed','dashed','dashed'];
+  const newPlans = [];
+  // 档位面积单调递增：每档按比例放大尺寸与面积
+  for (let i = 0; i < tiers; i++){
+    const scale = 1 + i * 0.13 + rng() * 0.04;
+    const len = Math.round(baseLen * scale / 10) * 10;
+    const wid = Math.round(baseWid * (1 + i * 0.2));
+    const area = len * wid;
+    // 先算宽度，再将确定性左端夹取到 [0, 100-width]，保证 2~5 档矩形完整落在跑道内
+    const width = Math.min(24, (len / state.params.length) * 100);
+    const desiredLeft = 12 + i * 16 + rng() * 4;
+    const left = Math.max(0, Math.min(100 - width, desiredLeft));
+    const time = i === 0 ? '0h' : (4 * i + Math.round(rng()*3)) + 'h';
+    const count = i === 0 ? 0 : Math.min(state.targets.length, i + 1 + Math.round(rng()));
+    const clearance = 8 + i * 12 + Math.round(rng()*4);
+    const effort = i === 0 ? '无' : (i === 1 ? '中等' : (i >= 3 ? '很高' : '高'));
+    const tcls = i === 0 ? 'green' : (i === 1 ? 'orange' : 'red');
+    const ecls = tcls;
+    const name = `档位${i+1}·` + (i === 0 ? '不含处理假设' : (i === tiers-1 ? '更多处理假设' : '部分处理假设'));
+    const badge = i === 0 ? '最小面积' : (i === tiers-1 ? '最大面积' : '中间档位');
+    newPlans.push({
+      id:i+1, name, badge, area, size:`${len}×${wid}m`,
+      time, timeCls:tcls, count, countCls:'', effort, effortCls:ecls, clearance,
+      rect:{left, width, height:60 + i*8, thumbBorder:borders[i%5]},
+      color:colors[i%5], thumbColor:`rgba(${i%2?76:255},${i%2?175:183},${i%2?80:77},0.12)`,
+    });
+  }
+  state.plans = newPlans;
+  // 若当前选中档位不存在，回退到中间档
+  if (!state.plans.some(p => p.id === state.selectedPlan)){
+    state.selectedPlan = state.plans[Math.floor(state.plans.length/2)].id;
+  }
+}
+
+// ===== 模拟损毁分布生成器（MOS-015）=====
+function openGenerator(){
+  document.getElementById('genModalOverlay').classList.add('open');
+  setGenBanner('', '');
+  updateGenPreview();
+}
+function closeGenerator(){
+  document.getElementById('genModalOverlay').classList.remove('open');
+}
+function setGenBanner(text, kind){
+  const b = document.getElementById('genBanner');
+  if (!text){ b.className = 'modal-banner'; b.textContent = ''; return; }
+  b.className = 'modal-banner show ' + (kind === 'ok' ? 'ok' : 'err');
+  b.textContent = text;
+}
+// 数值字段读取：trim 后用 Number() 严格解析，拒绝空串与尾随垃圾（如 "3m"）；非有限值返回 NaN
+function genNum(id){
+  const raw = document.getElementById(id).value.trim();
+  if (raw === '') return NaN;
+  const v = Number(raw);
+  return Number.isFinite(v) ? v : NaN;
+}
+// 整数字段读取：trim 后用 Number() 解析并要求 Number.isInteger，拒绝空串/尾随垃圾/小数；UXO 数量为 0 仍合法
+function genInt(id){
+  const raw = document.getElementById(id).value.trim();
+  if (raw === '') return NaN;
+  const v = Number(raw);
+  return Number.isInteger(v) ? v : NaN;
+}
+
+// 生成器输入校验：数量与种子必须为整数（拒绝小数），半径与当量为正数且 min<=max
+function validateGenerator(){
+  const cc = genInt('genCraterCount'), crMin = genNum('genCraterRmin'), crMax = genNum('genCraterRmax');
+  const uc = genInt('genUxoCount'), uyMin = genNum('genUxoYmin'), uyMax = genNum('genUxoYmax');
+  const seed = genInt('genSeed');
+  const errs = [];
+  if (isNaN(cc) || cc < 1 || cc > 8) errs.push('弹坑数量须为 1~8 的整数');
+  if (isNaN(crMin) || isNaN(crMax) || crMin <= 0 || crMax <= 0) errs.push('弹坑半径须为正数');
+  else if (crMin > crMax) errs.push('弹坑半径 最小 > 最大');
+  if (isNaN(uc) || uc < 0 || uc > 5) errs.push('UXO 数量须为 0~5 的整数');
+  if (isNaN(uyMin) || isNaN(uyMax) || uyMin <= 0 || uyMax <= 0) errs.push('UXO 当量须为正数');
+  else if (uyMin > uyMax) errs.push('UXO 当量 最小 > 最大');
+  if (isNaN(seed)) errs.push('随机种子须为整数');
+  // 高亮非法字段
+  ['genCraterCount','genCraterRmin','genCraterRmax','genUxoCount','genUxoYmin','genUxoYmax','genSeed'].forEach(id => {
+    document.getElementById(id).classList.remove('invalid');
+  });
+  if (isNaN(cc)||cc<1||cc>8) document.getElementById('genCraterCount').classList.add('invalid');
+  if (isNaN(crMin)||isNaN(crMax)||crMin<=0||crMax<=0||crMin>crMax){ document.getElementById('genCraterRmin').classList.add('invalid'); document.getElementById('genCraterRmax').classList.add('invalid'); }
+  if (isNaN(uc)||uc<0||uc>5) document.getElementById('genUxoCount').classList.add('invalid');
+  if (isNaN(uyMin)||isNaN(uyMax)||uyMin<=0||uyMax<=0||uyMin>uyMax){ document.getElementById('genUxoYmin').classList.add('invalid'); document.getElementById('genUxoYmax').classList.add('invalid'); }
+  if (isNaN(seed)) document.getElementById('genSeed').classList.add('invalid');
+  return {ok: errs.length === 0, errs, cc, crMin, crMax, uc, uyMin, uyMax, seed};
+}
+
+function updateGenPreview(){
+  const cc = document.getElementById('genCraterCount').value;
+  const uc = document.getElementById('genUxoCount').value;
+  const seed = document.getElementById('genSeed').value;
+  document.getElementById('genPreview').textContent = `弹坑${cc} + UXO${uc} · 种子${seed}`;
+}
+
+// 按输入与种子生成模拟目标列表（替换当前场景）
+function applyGenerator(){
+  const v = validateGenerator();
+  if (!v.ok){ setGenBanner('输入无效：' + v.errs.join('；'), 'err'); return; }
+  const rng = mulberry32(v.seed);
+  const targets = [];
+  const runwayLen = state.params.length || 3000;
+  // 在核心区 3000m 长度范围内随机投放弹坑
+  for (let i = 0; i < v.cc; i++){
+    const r = v.crMin + rng() * (v.crMax - v.crMin);
+    const x = Math.round(200 + rng() * (runwayLen - 400));
+    // 核心区 y ∈ [-250,250]，加边缘留白到 [-200,200] 防止标签裁切
+    const y = Math.round(-200 + rng() * 400);
+    const t = i === 0 ? 'high' : (rng() > 0.5 ? 'medium' : 'high');
+    targets.push({
+      id:`弹坑-${String(i+1).padStart(3,'0')}`, type:'弹坑', threat:t, threatText:t==='high'?'高':'中',
+      status:'已发现', coord:`${x},${y}`, size:`Ø${Math.round(r*2)}m`, x, y, r:Math.round(r*2), cls:'crater',
+    });
+  }
+  // 投放 UXO，当量为模拟处理假设
+  for (let i = 0; i < v.uc; i++){
+    const yld = v.uyMin + rng() * (v.uyMax - v.uyMin);
+    const influence = Math.round(15 + yld * 0.6);
+    const x = Math.round(200 + rng() * (runwayLen - 400));
+    // 核心区 y ∈ [-250,250]，加边缘留白到 [-200,200] 防止标签裁切
+    const y = Math.round(-200 + rng() * 400);
+    const t = rng() > 0.5 ? 'high' : 'medium';
+    targets.push({
+      id:`UXO-${String(i+1).padStart(3,'0')}`, type:'未爆弹', threat:t, threatText:t==='high'?'高':'中',
+      status:'已发现', coord:`${x},${y}`, size:`影响${influence}m`, x, y, r:influence, cls:'uxo',
+    });
+  }
+  state.targets = targets;
+  state.seed = v.seed;
+  state.selectedTarget = 0;
+  // 场景变更后自动重规划
+  closeGenerator();
+  replan();
+}
+
+// 模拟场景 JSON 下载：原型占位产物，不持久化、不代表真实数据
+function downloadScenarioJson(){
+  const v = validateGenerator();
+  if (!v.ok){ setGenBanner('输入无效，无法导出：' + v.errs.join('；'), 'err'); return; }
+  const payload = {
+    _prototype_note: '本文件为设计评审原型本地模拟数据，不代表真实数据、不持久化、不用于实际操作。',
+    kind: 'MOS simulated damage scenario (prototype)',
+    seed: v.seed,
+    crater: {count: v.cc, r_min_m: v.crMin, r_max_m: v.crMax},
+    uxo: {count: v.uc, yield_min_kg: v.uyMin, yield_max_kg: v.uyMax, note: '当量为模拟处理假设'},
+    runway: {length_m: state.params.length, width_m: state.params.width},
+    generated_at: 'prototype-local',
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mos-sim-scenario-seed${v.seed}-prototype.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setGenBanner('已下载模拟场景 JSON（原型占位，不持久化）。', 'ok');
+}
+
+// ===== 缩放：仅更新显示值，不改变设计尺寸 =====
+function setZoom(dir){
+  if (dir === 'in') state.zoom = Math.min(state.zoom + 0.25, 3);
+  else if (dir === 'out') state.zoom = Math.max(state.zoom - 0.25, 0.5);
+  else state.zoom = 1;
+  document.querySelector('.zoom-level').textContent = state.zoom + '×';
+}
+
+// ===== 视口自适应缩放：1280×720 等小视口等比缩小，1920×1080 原始尺寸 =====
+function fitToViewport(){
+  const scaler = document.getElementById('scaler');
+  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  const s = scale < 1 ? scale : 1;
+  scaler.style.transform = `scale(${s})`;
+  document.body.style.width = (1920 * s) + 'px';
+  document.body.style.height = (1080 * s) + 'px';
+}
+
+// ===== 状态栏渲染：依据 state.targets 与 state.selectedTarget 派生 DEC-SB-TARGET 与 DEC-SB-ALARM =====
+// 空场景时给出明确的模拟空场景提示；告警文本只引用当前目标列表，不硬编码 fixture ID。
+function renderStatusBar(){
+  const t = state.targets[state.selectedTarget];
+  const targetEl = document.getElementById('statusTarget');
+  const tagEl = document.querySelector('.status-right .threat-tag');
+  const alertEl = document.querySelector('.status-alert-text');
+  if (!t){
+    // 空场景：无当前分析目标，告警显示模拟空场景
+    targetEl.textContent = '无';
+    tagEl.textContent = '· 无威胁';
+    alertEl.textContent = '⚠ 模拟告警: 当前为空场景，无待分析目标 · 本地模拟，不执行真实处置';
+    return;
+  }
+  targetEl.textContent = t.id;
+  tagEl.textContent = '· ' + t.threatText + '威胁';
+  // 告警：列出高威胁目标，避免引用已不存在的 fixture ID（如生成的场景无 UXO 时不出现 UXO-003）
+  const highs = state.targets.filter(x => x.threat === 'high');
+  let alertParts;
+  if (highs.length === 0){
+    alertParts = [`${state.targets.length} 个目标待本地分析`];
+  } else {
+    alertParts = highs.map(x => `${x.id} 高威胁待分析`);
+  }
+  alertEl.textContent = '⚠ 模拟告警: ' + alertParts.join(' · ') + ' · 当前为本地模拟，不执行真实处置';
+}
+
+// ===== 全量渲染 =====
+function renderAll(){
+  renderTargets();
+  renderRunway();
+  renderToolbarPlans();
+  renderPlanCards();
+  renderDetail();
+  renderParams();
+  renderPlanStateBanner();
+  renderStatusBar();
+  validateParams();
 }
 
 // ===== 事件绑定 =====
-// 跑道圆圈点击
-document.querySelectorAll('.target-circle').forEach((c, i) => {
-  c.addEventListener('click', (e) => {
-    e.stopPropagation();
-    selectTarget(i);
+// 工具栏与缩放控件仅以 data-testid 标识，未额外分配 DOM id；统一用 querySelector('[data-testid=...]') 绑定，
+// 避免调用 getElementById 找不到元素而中断后续 renderAll() 初始化。参数栏重新规划按钮与生成器模态控件已具 DOM id，保持原样。
+document.querySelector('[data-testid="DEC-TB-GEN"]').addEventListener('click', openGenerator);
+document.querySelector('[data-testid="DEC-TB-REPLAN"]').addEventListener('click', replan);
+document.getElementById('paramReplanBtn').addEventListener('click', replan);
+document.querySelector('[data-testid="DEC-CE-PARAM-RESET"]').addEventListener('click', () => {
+  state.params = clone(DEFAULT_PARAMS);
+  renderAll();
+});
+document.querySelector('[data-testid="DEC-CE-ZOOM-IN"]').addEventListener('click', () => setZoom('in'));
+document.querySelector('[data-testid="DEC-CE-ZOOM-OUT"]').addEventListener('click', () => setZoom('out'));
+document.querySelector('[data-testid="DEC-CE-ZOOM-RESET"]').addEventListener('click', () => setZoom('reset'));
+
+// 生成器模态事件
+document.getElementById('genCancelBtn').addEventListener('click', closeGenerator);
+document.getElementById('genApplyBtn').addEventListener('click', applyGenerator);
+document.getElementById('genJsonBtn').addEventListener('click', downloadScenarioJson);
+document.querySelector('[data-testid="DEC-GEN-CLOSE"]').addEventListener('click', closeGenerator);
+document.getElementById('genModalOverlay').addEventListener('click', (e) => { if (e.target.id === 'genModalOverlay') closeGenerator(); });
+['genCraterCount','genUxoCount','genSeed'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateGenPreview);
+});
+// 生成器输入实时校验反馈：每次输入都立即校验、更新预览，并写入 DEC-GEN-BANNER，
+// 合法时绿色通过提示，非法时红色并列出全部错误，满足契约要求的实时反馈语义。
+['genCraterCount','genCraterRmin','genCraterRmax','genUxoCount','genUxoYmin','genUxoYmax','genSeed'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const v = validateGenerator();
+    updateGenPreview();
+    if (v.ok) setGenBanner('输入校验通过 · 可应用生成或下载模拟场景 JSON', 'ok');
+    else setGenBanner('输入无效：' + v.errs.join('；'), 'err');
   });
 });
 
-// 方案卡片点击
-document.querySelectorAll('.plan-card').forEach(card => {
-  card.addEventListener('click', () => {
-    selectPlan(parseInt(card.dataset.planCard));
-  });
-});
-
-// 工具栏方案按钮点击
-document.querySelectorAll('.btn-plan').forEach(btn => {
-  btn.addEventListener('click', () => {
-    selectPlan(parseInt(btn.dataset.plan));
-  });
-});
-
-// 导航栏点击
+// 导航栏点击：仅切换高亮，不路由（与 CURRENT 一致）
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -740,27 +1190,23 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   });
 });
 
-// 缩放控件（模拟）
-let zoomLevel = 1;
-document.querySelectorAll('.zoom-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const text = btn.textContent.trim();
-    if (text === '+') zoomLevel = Math.min(zoomLevel + 0.25, 3);
-    else if (text === '−') zoomLevel = Math.max(zoomLevel - 0.25, 0.5);
-    else if (text === '复位') zoomLevel = 1;
-    document.querySelector('.zoom-level').textContent = zoomLevel + '×';
-  });
+// 参数设置按钮：滚动到参数栏并聚焦首个输入
+document.querySelector('[data-testid="DEC-TB-PARAMS"]').addEventListener('click', () => {
+  const panel = document.querySelector('.params-panel');
+  panel.scrollIntoView({behavior:'smooth', block:'end'});
+  const first = panel.querySelector('.param-input');
+  if (first) first.focus();
 });
 
-// 菜单项点击（模拟）
-document.querySelectorAll('.menu-item').forEach(item => {
-  item.addEventListener('click', () => {
-    // 模拟菜单，不执行实际操作
-  });
-});
+// 菜单项：无实际操作
+document.querySelectorAll('.menu-item').forEach(item => item.addEventListener('click', () => {}));
+
+// 视口缩放
+window.addEventListener('resize', fitToViewport);
 
 // ===== 初始化 =====
-renderTargets();
+renderAll();
+fitToViewport();
 </script>
 </body>
 </html>

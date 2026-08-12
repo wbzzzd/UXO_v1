@@ -10,7 +10,7 @@
 | **项目** | UXO_v1 排弹抢修指挥系统 |
 | **阶段** | MVP（模拟/占位阶段） |
 | **原始需求来源** | SRS F-080~F-092（决策模块）、美军 RADR/MOS 概念 |
-| **关联文档** | [架构设计](architecture-uxo-recognition-and-mos.md)、[MOS 产品设计](product-design-mos.md)、[UXR PRD](prd-uxr.md) |
+| **关联文档** | [MOS 架构草稿](architecture-mos.md)、[UXR PRD](prd-uxr.md) |
 
 ---
 

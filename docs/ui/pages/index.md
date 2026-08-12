@@ -1,6 +1,6 @@
 # 六页一览表
 
-状态：`TARGET / Draft / 设计评审原型 / 本地模拟`
+状态：`TARGET / 设计评审原型 / 本地模拟`（决策页 P0 已 `Approved` 2026-08-03，其余页面设计范围仍 `Draft`）
 上级：[docs/ui/README.md](../README.md)
 设计系统：[docs/ui/design-system.md](../design-system.md)
 应用壳：[docs/ui/application-shell.md](../application-shell.md)
@@ -57,22 +57,24 @@
 
 ## 3. 决策页 Decision (DEC)
 
-**定位**：MOS 起降带规划工作区（导航 `DEC-NAV-03`）。一屏呈现：左侧损毁目标列表（弹坑/UXO，带威胁/状态标记）；中心上方跑道 3000m×50m 俯视图（叠加弹坑/UXO/MOS 矩形），中心下方算法参数表单（MOSPlanParams）；右侧候选起降方案卡片 + 选定详情 + 修复优先级 + 决策草案。所有数据为本地固定模拟场景。功能依据：`docs/dev/architecture-uxo-recognition-and-mos.md`。
+**定位**：MOS 起降带规划工作区（导航 `DEC-NAV-03`）。P0 工作区一屏呈现完整可用的本地模拟规划闭环：左侧损毁目标列表（弹坑/UXO，带威胁/状态标记）；中心上方跑道 3000m×50m 俯视图（叠加目标圆圈与候选 MOS 矩形，仅当前模拟选择档位强调），中心下方算法参数栏（MOSPlanParams，10 个可编辑 + 2 个只读 + 校验与规划状态横幅 + 重新规划）；右侧候选起降方案卡片 + 当前模拟选择摘要，底部 P1 扩展位以禁用占位形式保留修复优先级排序、决策草案确认、导出规划报告三项 P1 增量。所有数据为本地种子化模拟场景，选择方案仅刷新当前模拟选择摘要，无确认、下发或执行语义。功能依据：`docs/dev/architecture-mos.md`（`Draft`/来源资料）；MOS-015 生成器依据：`docs/features/mos-planning.md`（P0 `Implemented`，P1/P2 `Draft`）。决策页 P0 TARGET 设计与 HTML 原型于 2026-08-03 通过用户评审；关联 REQ-007 P0 于 2026-08-04 完成 Qt 实现与验证。HTML 原型仍只是设计参考，CURRENT 实现事实以 Qt 源码、CTest 与视觉证据为准。
 
 **关键区域**：
 
 | 区域 | 位置 | 内容 |
 |------|------|------|
 | A 左面板 | 260px | 损毁目标列表（4 个模拟目标：弹坑/UXO，带威胁/状态/坐标/尺寸） |
-| B 中心上 | flex:1 | 跑道俯视图（3000×50m 跑道 + 4 个目标圆圈 + 3 个 MOS 矩形 + 图例 + 缩放） |
-| B' 中心下 | 固定高度 | 算法参数栏（MOSPlanParams，10 个可编辑输入 + 2 个只读 + 校验状态 + 重新规划） |
-| C 右面板 | 380px | 候选方案卡片×3 + 选定详情摘要 + 修复优先级列表 + 决策草案 |
+| B 中心上 | flex:1 | 跑道俯视图（3000×50m 跑道 + 4 个目标圆圈 + N 个 MOS 矩形 + 图例 + 缩放） |
+| B' 中心下 | max-height 260px | 算法参数栏（MOSPlanParams，10 个可编辑 + 2 个只读 + 校验横幅 + 规划状态横幅 + 重新规划） |
+| C 右面板 | 380px | 候选方案卡片×N + 当前模拟选择摘要 + P1 扩展位（禁用占位） |
 
-**控件 ID 前缀**：`DEC-`，包括 `DEC-LP-TARGET-LIST`、`DEC-CE-RUNWAY`、`DEC-CE-PARAMS`、`DEC-RP-PLANS`、`DEC-RP-DETAIL`、`DEC-RP-PRIORITY`、`DEC-RP-DRAFT` 等。
+**控件 ID 前缀**：`DEC-`，包括 `DEC-LP-TARGET-LIST`、`DEC-CE-RUNWAY`、`DEC-CE-PARAMS`、`DEC-CE-VALIDATION`、`DEC-CE-PLAN-STATE`、`DEC-CE-ZOOM-*`、`DEC-CE-PARAM-*`、`DEC-RP-PLANS`、`DEC-RP-PLAN-N`、`DEC-RP-DETAIL`、`DEC-RP-P1-SLOT`、`DEC-GEN-MODAL`、`DEC-GEN-CRATER-*`、`DEC-GEN-UXO-*`、`DEC-GEN-SEED`、`DEC-GEN-APPLY` 等。
 
-**HTML 原型**：[`../prototypes/decision/index.html`](../prototypes/decision/index.html)（单文件，4 个模拟损毁点 + 3 档起降方案）。
+**HTML 原型**：[`../prototypes/decision/index.html`](../prototypes/decision/index.html)（单文件，4 个模拟损毁点 + 3 档起降方案 + MOS-015 种子化生成器）。
 
 **详细清单**：[`decision.md`](decision.md)（逐控件规格）。
+
+**P0/P1 边界**：P0 工作区完整可用（目标选择 -> 参数调整 -> 重规划 -> 档位对比 -> 查看当前模拟选择摘要），P1 扩展位恒禁用占位。旧版"修复优先级列表"、"决策草案"、"确认选定方案"已从 P0 退役，前两者降级为 P1 占位项，"确认选定方案"因暗示真实安全结论被移除。
 
 ## 4. 设备页 Devices (DEV)
 
