@@ -3,7 +3,7 @@
 ## 事实优先级
 
 1. 当前源码、CMake 和实际构建结果。
-2. `docs/dev/` 中的当前工程事实。
+2. 四份核心基线（`docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/UI.md`、`docs/DEVELOPMENT.md`）中的当前工程事实。
 3. README 和项目级规则。
 4. SRS、SDD、UI 设计文档和 `PROJECT_STRUCTURE.md`。
 
@@ -12,4 +12,4 @@
 - SRS/SDD 是目标需求，不是当前实现证明。
 - 不要把未实现模块写成已存在代码。
 - 文档中涉及模拟、占位、未来接入时必须明确标注。
-- 改变入口、构建方式、配置、模块边界时，同步更新 `docs/dev/`。
+- 改变入口、构建方式、配置、模块边界时，同步更新对应核心基线（`docs/DEVELOPMENT.md`、`docs/ARCHITECTURE.md` 等）。

@@ -3,13 +3,13 @@
 | 字段 | 值 |
 |------|-----|
 | **文档编号** | SDD-INC-UXO-001 |
-| **状态** | Draft（来源资料，不直接指导实现；需求与坐标/算法契约以 [prd-mos.md](prd-mos.md) V2.1 为准，UI 入口与逐控件契约由 [docs/ui/pages/decision.md](../ui/pages/decision.md) 持有） |
+| **状态** | Draft（来源资料，不直接指导实现；需求与坐标/算法契约以 [prd-mos.md](../prd/prd-mos.md) V2.1 为准，UI 入口与逐控件契约由 [docs/ui/pages/decision.md](../ui/pages/decision.md) 持有） |
 | **版本** | V1.0 |
 | **日期** | 2026-07-08 |
 | **撰写人** | 架构师 高见远（Gao） |
 | **项目** | UXO_v1 排弹抢修指挥系统 |
 | **阶段** | MVP（模拟/占位阶段） |
-| **输入** | [prd-mos.md](prd-mos.md)（MOS PRD，Draft）、[prd-uxr.md](prd-uxr.md)（UXR PRD，Draft）、DDR-008、[ARCHITECTURE.md](../ARCHITECTURE.md) |
+| **输入** | [prd-mos.md](../prd/prd-mos.md)（MOS PRD，Draft）、[prd-uxr.md](../prd/prd-uxr.md)（UXR PRD，Draft）、DDR-008、[ARCHITECTURE.md](../ARCHITECTURE.md) |
 | **技术栈** | Qt 5 / CMake / C++17 桌面客户端 `UXOMissionControl` |
 
 > **状态：Draft / Pre-MOS v2 / 历史设计输入**
@@ -94,7 +94,7 @@ MVP 模拟策略落地方式：
 
 **MOS 规划算法详述（Y 轴离散化 + X 轴扫描线）**：
 
-> **与 [prd-mos.md](prd-mos.md) 对齐**：坐标系原点为跑道一端中心，x∈[0,3000]；MOS 搜索限定在 50m 道面带 y∈[-25,25]（500m 损毁分布核心区 y∈[-250,250] 仅用于障碍物分布，不参与搜索）。P0 仅轴对齐（平行）搜索，不支持斜向（斜向列为 P1 MOS-016）；同一输入结果确定可复现，面积相等的候选按确定性规则打破并列（先按 y 起点升序、再按 x 起点升序）。
+> **与 [prd-mos.md](../prd/prd-mos.md) 对齐**：坐标系原点为跑道一端中心，x∈[0,3000]；MOS 搜索限定在 50m 道面带 y∈[-25,25]（500m 损毁分布核心区 y∈[-250,250] 仅用于障碍物分布，不参与搜索）。P0 仅轴对齐（平行）搜索，不支持斜向（斜向列为 P1 MOS-016）；同一输入结果确定可复现，面积相等的候选按确定性规则打破并列（先按 y 起点升序、再按 x 起点升序）。
 
 ```
 输入：RunwayModel x∈[0,3000]，道面搜索带 y∈[-25,25]，DamagePoint 集合（含影响圆），MOSPlanParams
@@ -664,7 +664,7 @@ sequenceDiagram
 
 # Part B：任务分解
 
-> **本部分为非权威历史来源**：以下人天估算、任务分解与里程碑排期是本文档早期设想，不作为实现计划依据。权威优先级分期以 [prd-mos.md](prd-mos.md) P0/P1/P2 分配为准（P0 = MOS-001/002/003/005/006/007/015；P1 = MOS-004/008/009/010/011/012/016；P2 = MOS-013/014）。下方 T05 原表"对应需求 MOS-003（2D 可视化）、MOS-004（参数配置）"已修正为 MOS-005/006/007/015，MOS-004 移至 P1。原排期保留仅作历史对照，不作为实现依据。
+> **本部分为非权威历史来源**：以下人天估算、任务分解与里程碑排期是本文档早期设想，不作为实现计划依据。权威优先级分期以 [prd-mos.md](../prd/prd-mos.md) P0/P1/P2 分配为准（P0 = MOS-001/002/003/005/006/007/015；P1 = MOS-004/008/009/010/011/012/016；P2 = MOS-013/014）。下方 T05 原表"对应需求 MOS-003（2D 可视化）、MOS-004（参数配置）"已修正为 MOS-005/006/007/015，MOS-004 移至 P1。原排期保留仅作历史对照，不作为实现依据。
 
 ## 6. 依赖包列表
 
@@ -956,4 +956,4 @@ graph TD
 
 **文档结束**
 
-> 本架构设计为 Draft/来源资料，基于 [prd-mos.md](prd-mos.md)、[prd-uxr.md](prd-uxr.md)、DDR-008 和现有代码结构，覆盖 UXR 和 MOS 两个功能的 P0 需求。所有 MOS 规划基于本地模拟损毁数据，不接入真实传感器、不执行真实排弹或抢修动作；模拟场景 fixture JSON（如 `mos-demo-scenario.json`）为本地模拟输入，不是运行态持久化。所有模拟/占位实现均明确标注，接口边界清晰，为未来真实接入预留替换路径。Part B 任务分解与排期为非权威历史来源，不作为实现计划依据。
+> 本架构设计为 Draft/来源资料，基于 [prd-mos.md](../prd/prd-mos.md)、[prd-uxr.md](../prd/prd-uxr.md)、DDR-008 和现有代码结构，覆盖 UXR 和 MOS 两个功能的 P0 需求。所有 MOS 规划基于本地模拟损毁数据，不接入真实传感器、不执行真实排弹或抢修动作；模拟场景 fixture JSON（如 `mos-demo-scenario.json`）为本地模拟输入，不是运行态持久化。所有模拟/占位实现均明确标注，接口边界清晰，为未来真实接入预留替换路径。Part B 任务分解与排期为非权威历史来源，不作为实现计划依据。

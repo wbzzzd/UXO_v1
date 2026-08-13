@@ -5,7 +5,7 @@
 | **状态** | Draft（来源资料，不直接指导实现） |
 | **关联需求** | REQ-007（P0 `Implemented`；P1/P2 `Draft`；见 [`../PRODUCT.md`](../PRODUCT.md) §9.3） |
 | **关联功能设计** | [`../features/mos-planning.md`](../features/mos-planning.md)（`Implemented`，仅 P0；P1/P2 `Draft`） |
-| **关联 PRD** | [`prd-mos.md`](prd-mos.md)（Draft/来源资料） |
+| **关联 PRD** | [`prd-mos.md`](../prd/prd-mos.md)（Draft/来源资料） |
 | **UI 契约** | [`../ui/pages/decision.md`](../ui/pages/decision.md)（由 UI 设计流程维护） |
 
 > 本文是自包含的 MOS 架构 Draft 技术评审材料，不是实现方案、任务排期或接口批准。2026-08-03 的技术架构/性能/安全评审已通过，本文作为来源支持 [`../features/mos-planning.md`](../features/mos-planning.md) 已批准并实现验证的 P0 功能契约；功能本地权威仍是该功能文档，本文不单独授权代码实现，也不构成 CURRENT 实现事实。本文评审 MOS 特有的会话归属与流程作为功能本地 Draft 提案；算法正确性契约、有限输入包络、MOS-015 确定性、fixture 家族与性能验收目标由 [`../features/mos-planning.md`](../features/mos-planning.md) §§4、8 拥有，本文不复制或改写这些门禁。本提案不依赖核心 [`../ARCHITECTURE.md`](../ARCHITECTURE.md) 的任何特定章节。
