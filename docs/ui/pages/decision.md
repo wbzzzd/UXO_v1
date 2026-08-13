@@ -1,7 +1,7 @@
 # 决策页面设计
 
 状态：`TARGET / P0 Approved / 设计评审原型 / 本地模拟`
-批准：P0 `Approved`（2026-08-03 用户评审）；P1/P2 `Draft`；`docs/dev/architecture-mos.md` `Draft`/来源资料
+批准：P0 `Approved`（2026-08-03 用户评审）；P1/P2 `Draft`；`docs/architecture/architecture-mos.md` `Draft`/来源资料
 上级：[docs/ui/README.md](../README.md)
 设计系统：[docs/ui/design-system.md](../design-system.md)
 应用壳：[docs/ui/application-shell.md](../application-shell.md)
@@ -27,7 +27,7 @@ CURRENT 来源：决策页 P0 Qt 实现已完成并通过验证。`DecisionView`
 
 > **CURRENT 与 TARGET 的关系**：本文档最初作为 TARGET P0 Approved 设计契约交付，HTML 原型是设计证据。CURRENT Qt 实现已落地该契约的 P0 子集，但本文下文的 TARGET 规格（如 `MOSPlanParams`/`MOSPlanResult` 概念模型名、HTML 原型本地 `state` 对象、`mulberry32()` 原型函数）仍保留为设计参考，不因 Qt 已实现而被删除。Qt 实现不声明 P1/P2 已实现：修复优先级排序、决策草案确认、导出规划报告仍为 `Draft`，在 Qt 中以禁用占位形式保留在右面板 `DEC-RP-P1-SLOT`。
 
-MOS 功能依据：`docs/dev/architecture-mos.md`（MOS 架构 `Draft`/来源资料，§§2-4）与 `docs/features/mos-planning.md` 的功能级 P0 Implemented 契约。该草稿只描述概念职责，不定义任何 C++ 类、头文件、接口或 Qt 契约：§2 把 `RunwayModel`/`DamagePoint`/`MOSPlanParams`/`MOSPlanResult` 列为概念模型名（合成 fixture 几何与派生结果，非真实跑道/工程/安全结论），§3 把纯 MOS 计算/估算描述为只返回派生值的服务职责，§4 把 QPainter 2D 可视化与参数配置面板描述为与核心解耦的 UI 展示职责。本页面是该草稿的 UI 参考呈现，文中出现的 `RunwayModel`/`DamagePoint`/`MOSPlanParams`/`MOSPlanResult` 等名称均为概念模型名，不是 CURRENT C++ 类或 Qt 契约。
+MOS 功能依据：`docs/architecture/architecture-mos.md`（MOS 架构 `Draft`/来源资料，§§2-4）与 `docs/features/mos-planning.md` 的功能级 P0 Implemented 契约。该草稿只描述概念职责，不定义任何 C++ 类、头文件、接口或 Qt 契约：§2 把 `RunwayModel`/`DamagePoint`/`MOSPlanParams`/`MOSPlanResult` 列为概念模型名（合成 fixture 几何与派生结果，非真实跑道/工程/安全结论），§3 把纯 MOS 计算/估算描述为只返回派生值的服务职责，§4 把 QPainter 2D 可视化与参数配置面板描述为与核心解耦的 UI 展示职责。本页面是该草稿的 UI 参考呈现，文中出现的 `RunwayModel`/`DamagePoint`/`MOSPlanParams`/`MOSPlanResult` 等名称均为概念模型名，不是 CURRENT C++ 类或 Qt 契约。
 
 MOS-015 生成器依据：`docs/features/mos-planning.md` 中 MOS-015 条目（P0 Implemented）——种子化本地随机生成弹坑与 UXO 分布，弹坑数量与半径范围受限，UXO 数量与当量范围受限，可下载 JSON 占位产物。该 JSON 属脱离设计期原型 fixture 产物，非运行时持久化/导入/集成；生成器不联网、不持久化。
 
@@ -117,7 +117,7 @@ MOS-015 生成器依据：`docs/features/mos-planning.md` 中 MOS-015 条目（P
 - 第 2 行：状态文字（模拟处理假设带 ✓ 前缀并灰色）+ 坐标（等宽字体）
 - 第 3 行：尺寸（等宽字体）
 
-**功能依据**：`DamagePoint` 概念模型列表，属 `docs/dev/architecture-mos.md` §2 的合成模拟损毁数据（算法输入概念），非 CURRENT C++ 类。每个目标在跑道俯视图上有对应的圆圈标注。
+**功能依据**：`DamagePoint` 概念模型列表，属 `docs/architecture/architecture-mos.md` §2 的合成模拟损毁数据（算法输入概念），非 CURRENT C++ 类。每个目标在跑道俯视图上有对应的圆圈标注。
 
 **交互**：点击卡片 -> 卡片高亮 + 跑道图对应圆圈脉冲高亮 + 状态栏 `DEC-SB-TARGET` 更新当前分析目标。
 
@@ -127,7 +127,7 @@ MOS-015 生成器依据：`docs/features/mos-planning.md` 中 MOS-015 条目（P
 
 ### 4.1 跑道俯视图 `DEC-CE-RUNWAY`
 
-**功能依据**：QPainter 2D 可视化属 `docs/dev/architecture-mos.md` §4 的 Draft UI 展示职责（自绘跑道/弹坑/合成避让几何/MOS 矩形，支持缩放/平移），概念职责，非 CURRENT C++ 类或 Qt 契约；功能级 P0 Implemented 边界见 `docs/features/mos-planning.md`。
+**功能依据**：QPainter 2D 可视化属 `docs/architecture/architecture-mos.md` §4 的 Draft UI 展示职责（自绘跑道/弹坑/合成避让几何/MOS 矩形，支持缩放/平移），概念职责，非 CURRENT C++ 类或 Qt 契约；功能级 P0 Implemented 边界见 `docs/features/mos-planning.md`。
 
 HTML 原型标题为"跑道 3000m × 50m [模拟]"，标题右侧比例尺为"0 — 500m"；CURRENT Qt 测试阶段初始标题为"跑道 300m × 50m [模拟]"，长度参数可调整。跑道容器背景 `#1a2a1a`，跑道使用 `--color-runway` #3D3D3D 与 #555 边框，中线为虚线。
 
@@ -170,7 +170,7 @@ HTML 原型标题为"跑道 3000m × 50m [模拟]"，标题右侧比例尺为"0 
 
 矩形本身为纯几何元素（颜色/边框/填充），文字标注位于跑道下方独立的 `mos-label-lane` 标注通道，按各档位矩形水平中心对齐：`档位N <size>`，选中档位追加"· 当前"短标记；面积与完整方案说明保留在右侧候选卡片与当前模拟选择摘要，不在跑道上重复。档位2 默认选中，z-index 最高（7）。选中态：边框 3px + `box-shadow: 0 0 12px` 对应颜色。标注通道等宽字体 9px，半透明黑底，非交互；点击交互保留在跑道上的 MOS 矩形。
 
-**功能依据**：`MOSPlanResult`（概念模型名，非 CURRENT C++ 类）多档方案，`docs/dev/architecture-mos.md` §2 定义的模拟派生结果。矩形位置和尺寸对应 `MOSPlanResult` 的起降带坐标和尺寸。
+**功能依据**：`MOSPlanResult`（概念模型名，非 CURRENT C++ 类）多档方案，`docs/architecture/architecture-mos.md` §2 定义的模拟派生结果。矩形位置和尺寸对应 `MOSPlanResult` 的起降带坐标和尺寸。
 
 **强调策略**：P0 仅渲染当前模拟选择档位（`m_selectedTier`）的 MOS 矩形，不渲染未选中档位。全档位叠加对比视图为 P1 Draft（MOS-008）。选中档位中属于该档位 `repairedIds` 的障碍物以 `Qt::DashLine` 虚线轮廓 + 斜十字标记绘制，模拟"已处理"假设，不暗示真实修复或安全结论。
 
@@ -193,7 +193,7 @@ HTML 原型标题为"跑道 3000m × 50m [模拟]"，标题右侧比例尺为"0 
 
 ### 4.2 算法参数栏 `DEC-CE-PARAMS`
 
-**功能依据**：`MOSPlanParams`（概念模型名，非 CURRENT C++ 类，`docs/dev/architecture-mos.md` §2 定义的合成规划参数）+ 参数配置面板（`docs/dev/architecture-mos.md` §4 的 Draft UI 展示职责，概念，非 CURRENT Qt 类；功能级 P0 Implemented 边界见 `docs/features/mos-planning.md`）。
+**功能依据**：`MOSPlanParams`（概念模型名，非 CURRENT C++ 类，`docs/architecture/architecture-mos.md` §2 定义的合成规划参数）+ 参数配置面板（`docs/architecture/architecture-mos.md` §4 的 Draft UI 展示职责，概念，非 CURRENT Qt 类；功能级 P0 Implemented 边界见 `docs/features/mos-planning.md`）。
 
 面板背景 `--color-panel`，1px 边框，圆角，内边距 10px 12px。三段结构：标题行 + 参数网格 + 校验与状态横幅 + 底部状态行。
 
@@ -234,7 +234,7 @@ HTML 原型标题为"跑道 3000m × 50m [模拟]"，标题右侧比例尺为"0 
 
 底部状态行：左侧"面积单调递增校验: ✓ 通过 / ✗ 未通过"（绿色通过 / 红色未通过），右侧 `DEC-CE-PARAM-REPLAN`"↻ 重新规划"主按钮。按钮在参数非法时禁用。
 
-**功能依据**：面积单调递增校验是 `docs/dev/architecture-mos.md` §2 定义的 `MOSPlanResult`（概念模型名，非 CURRENT C++ 类）校验标志（档位 1->2->...->N 面积应单调不降）。
+**功能依据**：面积单调递增校验是 `docs/architecture/architecture-mos.md` §2 定义的 `MOSPlanResult`（概念模型名，非 CURRENT C++ 类）校验标志（档位 1->2->...->N 面积应单调不降）。
 
 > **CURRENT Qt 参数初始值**：CURRENT Qt `MosParamsPanel` 的跑道长度 L 初始值为 300（范围 100..6000），最小起降长度 minLength 初始值为 100（范围 1..6000），均为本地测试阶段可调初始值，非永久领域/机型/安全默认值（见 `MosParamsPanel.cpp`）。TARGET 原型中的 3000/460 仅保留为设计展示值与待业务确认示例，不是 CURRENT Qt 默认值。
 
@@ -244,7 +244,7 @@ HTML 原型标题为"跑道 3000m × 50m [模拟]"，标题右侧比例尺为"0 
 
 ### 5.1 候选起降方案 `DEC-RP-PLANS`
 
-**功能依据**：`MOSPlanResult`（概念模型名，非 CURRENT C++ 类，`docs/dev/architecture-mos.md` §2）多档方案对比。
+**功能依据**：`MOSPlanResult`（概念模型名，非 CURRENT C++ 类，`docs/architecture/architecture-mos.md` §2）多档方案对比。
 
 标题"[模拟] 候选起降方案"。默认 3 张方案卡片竖排（随档位数动态生成 2~5 张），ID 形如 `DEC-RP-PLAN-1..N`：
 
@@ -432,7 +432,7 @@ P1 扩展位（修复优先级排序、决策草案确认、导出规划报告�
 
 ### 8.6 P0 Approved 会话边界
 
-上述 8.3 与 8.4 流程在 HTML 原型中以本地展示机制演示。`docs/dev/architecture-mos.md` §3 与 `docs/features/mos-planning.md` 的功能级 P0 Implemented 契约为批准的实现定义了一条 P0 Approved 共享会话边界：UI 请求 -> 应用层校验 -> 纯 fixture 构造/计算 -> 会话状态与中心内存日志原子提交 -> 一次变更通知 -> UI 回查与渲染；被拒绝的请求只返回原因并在同一内存日志原子追加一条拒绝记录，业务状态不变。
+上述 8.3 与 8.4 流程在 HTML 原型中以本地展示机制演示。`docs/architecture/architecture-mos.md` §3 与 `docs/features/mos-planning.md` 的功能级 P0 Implemented 契约为批准的实现定义了一条 P0 Approved 共享会话边界：UI 请求 -> 应用层校验 -> 纯 fixture 构造/计算 -> 会话状态与中心内存日志原子提交 -> 一次变更通知 -> UI 回查与渲染；被拒绝的请求只返回原因并在同一内存日志原子追加一条拒绝记录，业务状态不变。
 
 CURRENT Qt 实现的 `DecisionView` + `MosPlanningController` 已落地该边界的 P0 子集：本地确定性状态机（planning -> loading -> result/error/empty）、实时参数校验、档位互斥选中、生成器本地种子化 fixture、JSON 单向导出。该实现严格遵守本地/合成边界：所有数据为本地 fixture，不联网、不写入数据库、不控制设备、不提供 import/reload/运行时持久化/外部集成通道。`mos_decision_ui` 与 `mos_decision_view` 测试覆盖 happy / invalid / no-solution / tier / generator / export 工作流。历史三视口证据见 `.omo/evidence/mos-p0-qt-final/REPORT.md`，但采集时间早于本轮单档位渲染修正，不能作为修正后的 fresh 多视口证据。本页 HTML 原型中的 `state` 原型本地状态对象（含目标列表与种子等字段）、原型本地生成函数、`mulberry32()` 等名称只是原型本地展示机制，不是架构契约、C++ 类、Qt 接口或运行时会话实现；CURRENT Qt 实现中的对应 C++ 类（`MosPlanningController` 等）以源码为准，不与本页概念模型名一一对应。
 

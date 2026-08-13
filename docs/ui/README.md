@@ -47,6 +47,8 @@
 | `images/<page>/overview-1920x1080.png` | 各页 1920×1080 权威整体设计图 |
 | `prototypes/screenshot.js` | Playwright 截图脚本（参数化，`node screenshot.js [page]`，无参数跑全部六页） |
 | `prototypes/package.json` | 原型工具链 npm 配置（依赖 playwright，本地安装不提交） |
+| `mos-ui-design-brief.md` | MOS 页 UI 设计简报，从 `docs/dev/` 迁入的 UI 设计输入 |
+| `product-design-mos.md` | MOS 产品设计文档，从 `docs/dev/` 迁入的 UI 设计输入 |
 
 ## 4. 阅读顺序
 

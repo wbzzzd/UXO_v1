@@ -44,12 +44,11 @@
 
 本轮除上述五份工程基线快照和 OMO 适配计划外，以下类别未移动，仍在原位：
 
-- UI 文档：`docs/UI.md`、`docs/ui/`、`docs/dev/mos-ui-design-brief.md`、`docs/dev/product-design-mos.md`。
+- UI 文档：`docs/UI.md`、`docs/ui/`。
 - DDR 决策记录：`docs/ddr/`。
 - 研究资料：`docs/research/`。
-- `docs/dev/` 中其余 Draft 草稿与来源资料，包括 `docs/dev/decisions/`。
 
-注：原 `docs/前端UI详细设计文档.md` 已迁入 [`../sources/`](../sources/)，不再保留原位。这些保留类别的权威状态以其自身文档为准，不因本归档动作而改变。
+注：原 `docs/前端UI详细设计文档.md` 已迁入 [`../sources/`](../sources/)。原 `docs/dev/` 已解散：UI 设计输入迁入 `docs/ui/`，历史决策迁入 `docs/ddr/`，Draft PRD/架构草稿与 Mermaid 图迁入 `docs/sources/`。这些保留类别的权威状态以其自身文档为准，不因本归档动作而改变。
 
 ## 归档操作约束
 

@@ -13,7 +13,7 @@
 
 CURRENT 与 TARGET 不一致只表示架构缺口，不能通过修改需求迁就代码；只有关联需求和功能设计均为 `Approved` 后，缺口才能进入整改计划。NEXT 草案在批准前不得直接指导实现。
 
-阅读导航：CURRENT 构建与边界见第 2-6 节；长期 TARGET 客户端上下文与构建模块见第 7-8 节；NEXT 候选架构（Draft）见第 9 节；演进映射与架构差距见第 10 节。UI 控件与交互行为见 [UI.md](./UI.md)；构建与质量门禁见 [DEVELOPMENT.md](./DEVELOPMENT.md)；产品边界与需求 ID 见 [PRODUCT.md](./PRODUCT.md)；安全边界见 [AGENTS.md](../AGENTS.md)。
+阅读导航：CURRENT 构建与边界见第 2-3 节；CURRENT 启动装配、状态所有权与已验证调用链的细节见 [`architecture/`](./architecture/) 子目录（[启动装配](./architecture/startup.md)、[状态所有权](./architecture/state-ownership.md)、[调用链](./architecture/call-chains.md)）；长期 TARGET 客户端上下文与构建模块见第 4-5 节；NEXT 候选架构（Draft）见 [candidate-architecture.md](./architecture/candidate-architecture.md)；演进映射与架构差距见第 6 节。UI 控件与交互行为见 [UI.md](./UI.md)；构建与质量门禁见 [DEVELOPMENT.md](./DEVELOPMENT.md)；产品边界与需求 ID 见 [PRODUCT.md](./PRODUCT.md)；安全边界见 [AGENTS.md](../AGENTS.md)。
 
 ## 2. CURRENT 工程概览与构建目标
 
@@ -39,176 +39,12 @@ flowchart LR
 
 `MainWindow` 库内 `MosPlanningController` 拥有同步 `MosReplanWorker`（值持有，`Qt::DirectConnection` 直连），不引入生产 `QThread`；worker 调用 plain Core `MosPlanner::planProgressive` 后同步返回完成结果。`DecisionView` 只持有 `MosPlanningSnapshot` 副本，不拥有会话状态、不发起规划、不联网。`MosRunwayWidget` 的 P0 渲染只绘制并命中当前选中档位（`m_selectedTier`），在单一共享坐标系下使用各向同性 `pxPerM`（X/Y 共用同一比例），障碍物影响圆像素半径 = `influenceRadius × pxPerM`，绘制与命中测试共用同一公式且无钳制或系数。
 
-## 3. CURRENT 启动与对象装配
+> CURRENT 启动装配、状态所有权与已验证调用链的细节见：
+> - [startup.md](./architecture/startup.md)：启动时序与对象装配
+> - [state-ownership.md](./architecture/state-ownership.md)：状态树与权威位置
+> - [call-chains.md](./architecture/call-chains.md)：目标处置链与 MOS 重规划链
 
-```mermaid
-sequenceDiagram
-    participant Main as main()
-    participant App as CURRENT Application生命周期类
-    participant Window as MainWindow
-    participant Demo as DemoScenarioProvider
-    participant Flow as SimulationWorkflow
-    participant Ctrl as MosPlanningController
-    participant Panels as UI Panels
-
-    Main->>App: initialize()
-    App->>App: 配置/日志/数据库/通信/模块初始化
-    Note over App: 五个函数当前直接返回成功
-    App->>Window: new MainWindow()
-    Window->>Window: setupUi()
-    Window->>Ctrl: new MosPlanningController(this)
-    Note over Ctrl: 在 UI 构造完成前创建，<br/>controller 为 window 的 QObject 子对象
-    Window->>Ctrl: bootstrap seed=42 revision=1
-    Ctrl-->>Window: 首次 fixture/plan/tier1 已就绪
-    Window->>Demo: create()
-    Demo-->>Window: 2设备 + 1任务 + 无人机航线 + 检测数据 + 机场边界（空起步：0 目标）
-    Window->>Flow: reset(空目标列表)
-    Window->>Panels: 下发missions/devices/航线/检测数据/机场边界
-    Window->>Panels: 下发首次 MOS 快照(DecisionView)
-    App->>Window: show()
-    Main->>App: run()
-    App->>Window: 再次show同一窗口
-```
-
-装配事实：
-
-- CURRENT `Application` 生命周期类创建 `MainWindow` 并负责显示。
-- `MainWindow` 创建并按值拥有 `SimulationWorkflow`。
-- `MosPlanningController` 在 `MainWindow` 构造早期、UI 创建前创建，作为 `MainWindow` 的 `QObject` 子对象；它内部按值持有 plain Core `MosPlanningSession` 与同步 `MosReplanWorker`，不引入生产 `QThread`。
-- 启动期 controller 调用 `bootstrap(seed=42, revision=1)`，使用确定性 mulberry32 生成初始 fixture 与 tier1 规划，结果同步回 controller 与 `DecisionView` 快照；该 seed 只在 `MainWindow` 启动期使用，`MosGeneratorDialog` 中后续修改不持久化、不回写。
-- `DemoScenarioProvider` 只提供初始模拟数据，不参与运行时状态。
-- CURRENT `Application` 生命周期类的五个初始化函数（配置/日志/数据库/通信/模块）当前直接返回成功。
-- 配置文件和外部依赖没有进入装配流程。
-
-页面栈路由事实（`pageStack` 为 `QStackedWidget`，索引 0 = `SituationView`，索引 1 = `DecisionView`）：
-
-- `NavigationWidget` 共 6 个导航项，索引 2 的 `key` 为 `decision`/`决策`。
-- `onNavigationChanged(navIndex)` 路由：`navIndex == 2` -> `pageStack` 切到索引 1（`DecisionView`）并隐藏顶部工具栏；其他 nav 索引 -> `pageStack` 切到索引 0（`SituationView`）。
-- `DecisionView` 不在 `pageStack` 之外的任何容器内重复实例化；它只持有 `MosPlanningSnapshot` 副本，不拥有会话状态、不发起规划、不联网。
-
-## 4. CURRENT 状态所有权
-
-```text
-MainWindow
-├── m_missions（任务，静态）
-├── m_devices（设备，静态）
-├── SimulationWorkflow（按值持有）
-│   ├── targets（目标，空起步：探测阶段由 DetectionSimulator 动态注入）
-│   ├── 当前选择
-│   └── logEntries（操作日志）
-├── DroneTelemetrySimulator（无人机遥测模拟器）
-├── DetectionSimulator（检测结果模拟器，由视频位置驱动检测时机，输出 DetectionResult）
-├── m_evidenceByTargetId（冻结标注证据，内存 QMap<QString, DetectionEvidence>）
-├── m_tacticalMap（2D 战术地图目标列表）
-├── VideoStreamPanel（视频 PiP 面板，QMediaPlayer + QVideoWidget + QVideoProbe，播放本地视频文件）
-├── VideoOverlayWidget（HUD 叠加层，VideoStreamPanel 子 widget，无业务状态）
-├── DeviceResourceBar（设备资源条，36px，显示设备在线状态，无业务状态）
-├── TargetDetailOverlay（目标详情浮层，340px 不透明面板，显示选中目标的冻结标注证据）
-└── MosPlanningController（QObject 子对象）
-    ├── MosPlanningSession（按值持有，plain Core）
-    │   ├── committedFixture / params / result / selectedTier（按值）
-    │   ├── committedRevision（int）
-    │   └── sequencedLog（按值快照）
-    ├── MosReplanWorker（按值持有，同步）
-    │   └── 内部持有 controller 指针，调用 MosPlanner::planProgressive
-    └── pendingRevision（同步 revision guard）
-
-AlertPanel（自身告警展示数据）
-StatusBarWidget（自身告警展示数据）
-DecisionView（持有 MosPlanningSnapshot 副本，不拥有会话状态）
-```
-
-| 状态 | 当前权威位置 | 复制/展示位置 | 问题 |
-|------|--------------|--------------|------|
-| 目标、当前选择、操作日志 | `SimulationWorkflow` | LeftPanel、DecisionPanel、TacticalMap、DetectionControlPanel 日志 | 需 MainWindow 手工同步到各 UI |
-| 探测阶段遥测与检测模拟 | `DroneTelemetrySimulator`、`DetectionSimulator` | 视频位置/遥测 -> MainWindow 四区同步；2D 地图为 aspect-fit 卫星图共享 WGS84 叠加矩形，无人机沿跑道轴向本地模拟巡航，目标偏移按 UAV 航向旋转后转 WGS84 | 本地模拟数据，非真实 GIS/飞控；真实接入不在当前范围 |
-| 视频管线 | `VideoStreamPanel`（QMediaPlayer + QVideoWidget + QVideoProbe） | 播放本地视频文件驱动检测时机；QVideoProbe 探测帧用于冻结证据捕获 | 本地文件回放，非真实视频流；无真实视频分析或 AI 推理 |
-| 冻结标注证据 | `MainWindow::m_evidenceByTargetId`（内存 QMap）+ `TargetDetailOverlay` 显示 | 检测时捕获并标注，选中目标时在详情浮层显示 | 由 MainWindow 在检测事件中捕获、选择事件中下发到详情浮层 |
-| 2D 地图目标列表 | `TacticalMapWidget` 内部 m_items | 与目标表保持同步 | 副本，由 MainWindow 手工同步 |
-| 任务 | `MainWindow::m_missions` | LeftPanel、DecisionPanel | 静态，不随目标处置变化 |
-| 设备 | `MainWindow::m_devices` | LeftPanel、DeviceStatusPanel、StatusBar | 静态，不随任务变化 |
-| 告警展示数据 | `AlertPanel` 与 `StatusBarWidget` 各自保存 | 两套 UI | 启动时注入，无统一告警状态 |
-| MOS 会话（fixture/params/result/tier/revision/log） | `MosPlanningController` 内 `MosPlanningSession` | `DecisionView` 持有 `MosPlanningSnapshot` 副本 | 控制器单点所有权，快照按值下发；UI 无回写路径 |
-| MOS pendingRevision（同步防陈旧） | `MosPlanningController` | worker 启动时读取 | 仅同步语义，无跨线程竞态；若未来线程化需保留 revision guard |
-
-## 5. CURRENT 已验证操作调用链
-
-下图为当前经自动测试与 UI 契约测试验证的两条完整操作路径：目标处置链（原有）与 MOS 重规划链（新增）。
-
-### 5.1 目标处置链
-
-```mermaid
-sequenceDiagram
-    actor User as 用户
-    participant Left as LeftPanelWidget
-    participant Window as MainWindow
-    participant Flow as SimulationWorkflow
-    participant Control as DetectionControlPanel
-    participant Decision as DecisionSuggestionPanel
-
-    User->>Left: 点击目标行
-    Left->>Window: targetSelected(target副本)
-    Window->>Flow: selectTarget(target.id)
-    Window->>Control: setSelectedTarget()
-    Window->>Decision: setTarget()
-    User->>Control: 模拟确认/处置/完成
-    Control->>Window: 对应requested信号
-    Window->>Flow: requestSelectedTargetStatus()
-    Window->>Left: updateTargetStatus()
-    Window->>Control: 刷新状态和日志
-    Window->>Decision: 刷新目标状态
-```
-
-### 5.2 MOS 重规划链
-
-```mermaid
-sequenceDiagram
-    actor User as 用户
-    participant DV as DecisionView
-    participant Window as MainWindow
-    participant Ctrl as MosPlanningController
-    participant Worker as MosReplanWorker(同步)
-    participant Planner as MosPlanner(Core)
-    participant Session as MosPlanningSession(Core)
-
-    User->>DV: 修改参数并请求重规划
-    DV->>Window: replanRequested()
-    Window->>Ctrl: requestReplan(obstacles, params)
-    Ctrl->>Ctrl: 分配 revision 并替换 pending 请求
-    Ctrl->>Worker: replan(request副本)
-    Worker->>Planner: planProgressive(obstacles, params)
-    Planner-->>Worker: MosProgressiveResult
-    Worker-->>Ctrl: replanCompleted(revision, result)
-    alt revision 与 pending 不匹配
-        Ctrl-->>Window: IgnoredStale（无日志、无状态通知）
-    else worker 返回拒绝结果
-        Ctrl->>Session: rejectReplan(reason)
-        Ctrl-->>Window: mosStateChanged()
-    else worker 返回接受结果
-        Ctrl->>Planner: 按 supplied tiers 重新规划
-        alt supplied tiers 非法或完成结果不一致
-            Ctrl->>Session: rejectReplan(具体原因或 CompletionMismatch)
-        else 重算结果逐位一致
-            Ctrl->>Session: commitReplan(request副本, result)
-        end
-        Ctrl-->>Window: mosStateChanged()
-        Window->>Ctrl: snapshot()
-        Ctrl-->>Window: MosPlanningSnapshot 副本
-        Window->>DV: setSnapshot(snapshot副本)
-    end
-```
-
-通知语义事实：
-
-- 控制器接受提交或拒绝日志落盘后发出无载荷 `mosStateChanged()`；`MainWindow` 随后调用 `snapshot()` 拉取按值副本并交给 `DecisionView::setSnapshot`。陈旧或重复完成返回 `IgnoredStale`，不发状态通知。
-- `MosPlanningSnapshot` 按值复制 fixture、params、result、selectedTier、committedRevision 与 sequencedLog；`DecisionView` 不持有控制器或会话指针，无法回写。
-- revision guard 完全同步：controller 在请求时分配单调 revision 并保存 pending 请求；只有完成 revision 与 pending 相等才可进入重算/提交，陈旧或重复完成直接忽略。worker 不写 session，controller 对接受结果按 supplied tiers 重算并逐位比对后才提交。当前实现不引入生产 `QThread`；若未来线程化必须保留同一 guard 与重算边界。
-- 合法无解是接受结果：复合结果仍提交，具体 tier 以 `rectangle.valid=false` 与 `NoFeasibleRectangle` 表示；它不是 `IgnoredStale`。
-- 导出链为 `MosGeneratorDialog` 请求 -> `DecisionView::exportRequested` -> `MainWindow` -> `MosPlanningController::exportFixture`。仅 controller 使用 `QSaveFile` 写出当前已提交障碍物的 canonical bytes；导出不改业务状态、revision、日志或通知计数，也无导入、网络或数据库路径。
-
-导航、任务选择、设备选择、批量操作、紧急停止和 3D 目标点击没有形成等价的完整消费链。
-
-## 6. CURRENT 结构问题
+## 3. CURRENT 结构问题
 
 | 结构问题 | 影响 |
 |----------|------|
@@ -220,9 +56,9 @@ sequenceDiagram
 | 根 CMake 查找 `Qt5::Network`、`Qt5::Sql`、ZeroMQ、PostgreSQL 但无生产目标使用 | 误导存在外部集成 |
 | 外部数据边界未开始 | 无网络、存储、设备或服务适配器 |
 
-各问题的长期归属集中见第 10.1 节，避免在两处维护同一迁移决定。
+各问题的长期归属集中见第 6.1 节，避免在两处维护同一迁移决定。
 
-## 7. 长期 TARGET 客户端上下文
+## 4. 长期 TARGET 客户端上下文
 
 长期 TARGET 描述客户端与外部环境之间的责任边界，不指定协议、端口、数据库、厂商或部署形态。箭头表示概念性的信息、结果或任务意图流向；虚线表示责任仍未确定。真实校验与执行始终位于客户端之外。本节内容属于长期方向，不是当前实现，也不是已批准接口合同。
 
@@ -254,7 +90,7 @@ flowchart LR
 
 上述关系不构成已批准接口合同。客户端不执行真实排爆动作、不写入真实数据库或外部系统，未来任何外部接入须经过单独评审和授权（见 [PRODUCT.md](./PRODUCT.md) §5.5、§5.6 与 [AGENTS.md](../AGENTS.md)）。
 
-## 8. TARGET 项目模块与构建依赖
+## 5. TARGET 项目模块与构建依赖
 
 本节是长期责任架构，描述客户端的逻辑分层与构建依赖方向，不是 CURRENT 实现，也不是已批准的接口设计。箭头语义：实线箭头表示编译/链接依赖（A -> B 表示 A 依赖 B）；虚线箭头表示未来或未批准的外部集成。本图只表达编译/链接依赖，不表达状态、数据或通知流。
 
@@ -294,49 +130,11 @@ flowchart TB
 
 模块按需增量引入：仅当批准的工作需要时才创建对应目标与目录，不预先创建空目标或空目录以匹配本图。不新增通用 Repository、Store、服务容器或事件总线。
 
-## 9. NEXT 候选架构（Draft）
+> NEXT 候选架构（Draft）见 [candidate-architecture.md](./architecture/candidate-architecture.md)。
 
-NEXT 是已确认产品边界但尚未批准实施的草案，全部对应 `PRODUCT.md` 第 9 节中状态为 `Draft` 的 REQ-001 至 REQ-006。NEXT 必须先通过架构与 UI 设计评审并获用户批准，才能进入实现计划；本节为候选架构责任，不等于已批准实施。NEXT 是从 CURRENT 向长期 TARGET 演进的首个迁移切片，不是长期目标本身。
+## 6. 演进关系与架构差距
 
-### 9.1 需求到架构责任映射
-
-`PRODUCT.md` 统一管理需求 ID、验收结果与状态；本文档只映射由需求推导出的架构责任，不创建或重编号需求，不复制验收标准，不改变需求状态。
-
-| 产品需求引用（PRODUCT §9.2，Draft） | 架构责任/约束（非验收标准） |
-|----------|----------|
-| REQ-001 统一模拟会话状态 | 一个业务对象统一拥有目标、任务、设备、选择和日志 |
-| REQ-002 模拟设备指派 | 命令为已选目标对应的待执行模拟任务指派设备，并原子校验目标、任务和设备可用性 |
-| REQ-003 模拟任务执行 | 状态机必须同时维护目标、任务和设备状态 |
-| REQ-004 跨面板一致反馈 | UI 只能查询权威状态，不能维护独立业务副本 |
-| REQ-005 可复现场景 | 场景提供器只构造初始数据，不成为运行时状态所有者 |
-| REQ-006 完整操作记录 | 所有成功和拒绝命令进入同一进程内日志 |
-
-### 9.2 NEXT 候选组件架构
-
-下图只表达对象创建、注入和 UI 组合关系，不表达命令、状态或通知流。
-
-```mermaid
-flowchart LR
-    Lifecycle[CURRENT Application<br/>生命周期类] -->|创建并持有| Flow[SimulationWorkflow]
-    Lifecycle -->|创建并注入 Flow| Window[MainWindow]
-    Window -->|组合| Panels[UI Panels]
-```
-
-NEXT 候选设计规则：
-
-- CURRENT `Application` 生命周期类创建并持有 `SimulationWorkflow`，再注入 `MainWindow`。
-- `DemoScenarioProvider` 只构造初始场景并交给 `SimulationWorkflow` 加载，不成为运行时状态所有者。
-- `SimulationWorkflow` 统一拥有目标、任务、设备、当前选择和操作日志。
-- 命令同步返回成功/失败及原因；非法命令不得产生部分状态修改。
-- 状态变化发出统一 Qt 通知，MainWindow 回查权威状态后刷新 UI。
-- Panel 只保存选中索引、折叠状态等 UI 状态，不保存可独立修改的业务状态。
-- 不新增通用 Repository、Store、服务容器、事件总线或预留外部接口。
-
-候选类名为现有实现事实，仅属于 NEXT 迁移切片；长期 TARGET 模块划分见第 8 节，NEXT 评审通过后是否向 TARGET 模块对齐由批准后的功能设计决定。
-
-## 10. 演进关系与架构差距
-
-### 10.1 CURRENT 到 TARGET 的模块映射
+### 6.1 CURRENT 到 TARGET 的模块映射
 
 | CURRENT 模块 | 长期 TARGET 归属 | 演进说明 |
 |--------------|------------------|----------|
@@ -345,7 +143,7 @@ NEXT 候选设计规则：
 | `Core` | `Domain` + TARGET `Application` + `Simulation` + `Visualization` | 领域模型归 Domain；工作流编排归 TARGET Application；场景提供器归 Simulation；Qt3D 渲染归 Visualization |
 | `Common` | 消除为通用目标 | `GlobalStyle` 归 Presentation；`MockDataGenerator` 归 Simulation 或在无用时移除 |
 
-### 10.2 NEXT 组件到长期 TARGET 的归属
+### 6.2 NEXT 组件到长期 TARGET 的归属
 
 | NEXT 候选组件 | 长期 TARGET 归属 | 说明 |
 |---------------|------------------|------|
@@ -354,7 +152,7 @@ NEXT 候选设计规则：
 | `DemoScenarioProvider` | `Simulation` | 只提供本地初始场景和模拟数据 |
 | `MainWindow`、UI Panels | `Presentation`；渲染相关部分归 `Visualization` | UI 组合与渲染边界分离，业务编排不留在 UI |
 
-### 10.3 CURRENT 到 NEXT 的差距
+### 6.3 CURRENT 到 NEXT 的差距
 
 | 差距 | CURRENT | NEXT 候选（Draft） |
 |------|---------|--------|
@@ -365,7 +163,7 @@ NEXT 候选设计规则：
 | 任务/设备状态机 | 不存在 | 支持指派、执行、完成和拒绝路径 |
 | 页面导航 | 只改变高亮 | 页面路由行为由 UI 设计确定并实现 |
 
-### 10.4 NEXT 到长期 TARGET 的差距
+### 6.4 NEXT 到长期 TARGET 的差距
 
 下表只列出 `PRODUCT.md` 已支持的长期缺口；每项均需后续需求或设计评审，不属于已承诺工作。
 

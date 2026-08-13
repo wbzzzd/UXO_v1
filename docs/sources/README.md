@@ -19,8 +19,9 @@
 ## 与其他目录的区别
 
 - [`../archive/`](../archive/)：已被核心基线取代、不再直接指导当前开发的内部工程快照。来源资料则是上游原始输入，未被内部基线"取代"，只是不再具备当前事实权威。
+- [`../prd/`](../prd/)：内部 PM 撰写的 Draft PRD 需求定义，位于上游来源与功能增量设计之间。
+- [`../architecture/`](../architecture/)：从 ARCHITECTURE.md 拆出的架构细节子文档与历史架构草稿。
 - [`../research/`](../research/)：研发阶段的技术调研与可行性证据，不直接成为需求。
-- [`../dev/`](../dev/)：重整评审未完成的开发草稿与 Draft 输入。
 
 ## 文件索引
 
@@ -36,6 +37,8 @@
 | [`排弹抢修系统_产品形态设计说明书_v1.0.md`](排弹抢修系统_产品形态设计说明书_v1.0.md) | 产品来源 | Markdown | 产品形态设计来源 | [`../PRODUCT.md`](../PRODUCT.md)、[`../ARCHITECTURE.md`](../ARCHITECTURE.md) | 含目标产品形态与设备选型设想，属上游设计输入，非已实现事实 |
 | [`排弹抢修系统_硬件功能设计说明书_v2.2.md`](排弹抢修系统_硬件功能设计说明书_v2.2.md) | 硬件来源 | Markdown | 硬件功能设计来源 | [`../ARCHITECTURE.md`](../ARCHITECTURE.md) | 含真实设备功能需求与作业流程描述，属上游设计输入，非已实现事实 |
 | [`硬件设备技术规格说明书_v1.0.md`](硬件设备技术规格说明书_v1.0.md) | 硬件来源 | Markdown | 硬件设备规格来源 | [`../ARCHITECTURE.md`](../ARCHITECTURE.md) | 含真实设备技术规格，属上游设计输入，非已实现事实 |
+
+> Draft PRD（`prd-mos.md`、`prd-uxr.md`）已迁至 [`../prd/`](../prd/)，架构草稿（`architecture-mos.md` 及 3 份 Mermaid 图）已迁至 [`../architecture/`](../architecture/)。
 
 ## Git 追溯与字节保留说明
 

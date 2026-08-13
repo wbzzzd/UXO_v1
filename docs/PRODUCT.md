@@ -204,7 +204,7 @@ REQ-007 不并入 NEXT 切片，不改变第 9.4 节 NEXT 切片的排除范围�
 |----|----------|----------------|----------|------|
 | REQ-007 | 最小应急起降带（MOS）规划 | 跑道受损后无可用起降区域规划与递进修复方案 | 在模拟损毁跑道上输出满足最小起降尺寸的轴对齐起降带，并按修复程度递增给出多方案；仅本地模拟数据，不接真实传感器、真实 AI、真实数据库或通信 | `Implemented`（仅 P0；P1/P2 `Draft`） |
 
-候选设计来源见 [`features/mos-planning.md`](./features/mos-planning.md)（`Implemented`，仅 P0；P1/P2 `Draft`），来源 PRD 见 [`dev/prd-mos.md`](./dev/prd-mos.md)（`Draft`/来源资料）。来源 PRD 不直接指导实现。
+候选设计来源见 [`features/mos-planning.md`](./features/mos-planning.md)（`Implemented`，仅 P0；P1/P2 `Draft`），来源 PRD 见 [`prd/prd-mos.md`](./prd/prd-mos.md)（`Draft`/来源资料）。来源 PRD 不直接指导实现。
 
 ### 9.4 范围与批准门禁
 

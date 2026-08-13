@@ -7,7 +7,7 @@
 - 本仓库交付 Qt 5 / CMake / C++17 桌面客户端 `UXOMissionControl`，不交付完整外部设备和安全执行系统。
 - `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/UI.md`、`docs/DEVELOPMENT.md` 是当前核心基线，分别负责产品、架构、界面和工程事实。
 - CURRENT 实现事实以源码、CMake 和实际验证结果为准；具体模块及启动过程见 `docs/ARCHITECTURE.md`。
-- SRS、SDD、旧 UI 设计和功能草案仅作为来源资料；`docs/dev/` 仅保留 Draft 输入（由 `docs/dev/README.md` 索引），已被核心基线取代的工程快照归档于 `docs/archive/development/`；与核心基线冲突时不得直接指导实现。
+- SRS、SDD、旧 UI 设计和功能草案仅作为来源资料；`docs/sources/` 收录上游来源，`docs/prd/` 收录 Draft PRD 需求定义，`docs/architecture/` 收录从 ARCHITECTURE.md 拆出的架构细节与历史架构草稿，`docs/ddr/` 收录历史决策记录，已被核心基线取代的工程快照归档于 `docs/archive/development/`；与核心基线冲突时不得直接指导实现。
 - 当前 NEXT 仍是草稿，完成对应设计评审并获得用户确认前不得实施。
 
 ## 安全边界
@@ -64,7 +64,7 @@ cmake --build build --target UXOMissionControl -j2
 ## 文档纪律
 
 - `README.md` 只做入口导航。
-- 四份核心文档是默认开发入口；已被核心基线取代的工程快照移至 `docs/archive/development/`，`docs/dev/` 仅保留 Draft 输入并由 `docs/dev/README.md` 索引。
+- 四份核心文档是默认开发入口；已被核心基线取代的工程快照移至 `docs/archive/development/`，上游来源资料归入 `docs/sources/`，Draft PRD 需求定义归入 `docs/prd/`，ARCHITECTURE.md 架构细节与历史架构草稿归入 `docs/architecture/`，历史决策记录归入 `docs/ddr/`。
 - `docs/features/` 只放功能增量设计；`Draft` 文档不能直接指导实现。
 - `docs/archive/` 与 `docs/research/` 不进入默认开发上下文，仅在追溯历史或验证依据时读取。
 - `.omo/rules/` 放项目级 OMO 规则；`.omo/plans/` 放可评审计划；`.omo/run-continuation/` 等运行态数据不得提交。

@@ -4,7 +4,7 @@
 关联产品需求：REQ-007
 关联版本：待确认
 
-> 本文档 P0 已于 2026-08-03 获批、2026-08-04 完成实现与验证，状态为 `Implemented`（仅 P0；P1/P2 `Draft`）。关联需求 REQ-007 状态见 [`../PRODUCT.md`](../PRODUCT.md) 第 9.3 节。来源 PRD 见 [`../dev/prd-mos.md`](../dev/prd-mos.md)（`Draft`/来源资料），架构草稿见 [`../dev/architecture-mos.md`](../dev/architecture-mos.md)（`Draft`/来源资料），两者均非权威。
+> 本文档 P0 已于 2026-08-03 获批、2026-08-04 完成实现与验证，状态为 `Implemented`（仅 P0；P1/P2 `Draft`）。关联需求 REQ-007 状态见 [`../PRODUCT.md`](../PRODUCT.md) 第 9.3 节。来源 PRD 见 [`../prd/prd-mos.md`](../prd/prd-mos.md)（`Draft`/来源资料），架构草稿见 [`../architecture/architecture-mos.md`](../architecture/architecture-mos.md)（`Draft`/来源资料），两者均非权威。
 
 ## 1. 问题与目标
 
@@ -49,7 +49,7 @@ P1 阶段补充：多方案叠加对比视图、修复优先级排序、斜向�
 
 ## 4. 需求增量
 
-以下需求编号沿用来源 PRD [`../dev/prd-mos.md`](../dev/prd-mos.md) 的 MOS-NNN 编号，仅在本候选范围内描述增量。P0 范围已获批并在功能级标记为 `Implemented`，本节作为设计目标与验收历史保留；各条目的实际满足度并不完全相同，以第 10 节的“已实现 / 简化实现 / 部分实现”分类为准。P1/P2 仍为 `Draft`，未获批准。
+以下需求编号沿用来源 PRD [`../prd/prd-mos.md`](../prd/prd-mos.md) 的 MOS-NNN 编号，仅在本候选范围内描述增量。P0 范围已获批并在功能级标记为 `Implemented`，本节作为设计目标与验收历史保留；各条目的实际满足度并不完全相同，以第 10 节的“已实现 / 简化实现 / 部分实现”分类为准。P1/P2 仍为 `Draft`，未获批准。
 
 ### P0：MVP 最小可用闭环
 
@@ -93,7 +93,7 @@ P1 阶段补充：多方案叠加对比视图、修复优先级排序、斜向�
 - **场景生成**：新增模拟损毁分布生成器（MOS-015），按可配置随机种子生成可复现分布。当前实现为确定性生成器 UI 加当前提交 fixture 的规范化导出，生成范围为 [-40, 40]，未达设计目标 [-250, 250]（详见 §10）。
 - **接口边界**：设计目标要求服务类名或注释明确模拟语义。当前 `Core::MOS` 类型与源码注释明确其本地合成边界，不实现真实接入；现有类名不统一使用 `Mock` 前缀。
 
-CURRENT 具体类、状态流和调用链以源码及 [`../ARCHITECTURE.md`](../ARCHITECTURE.md) 为准；来源草稿 [`../dev/architecture-mos.md`](../dev/architecture-mos.md) 仍为非权威历史输入。P1/P2 新增类与调用链须在对应需求获批后另行评审。
+CURRENT 具体类、状态流和调用链以源码及 [`../ARCHITECTURE.md`](../ARCHITECTURE.md) 为准；来源草稿 [`../architecture/architecture-mos.md`](../architecture/architecture-mos.md) 仍为非权威历史输入。P1/P2 新增类与调用链须在对应需求获批后另行评审。
 
 ## 6. UI 增量
 
@@ -134,7 +134,7 @@ P1/P2 获批准前，不修改上述核心文档的 P1/P2 实现状态描述。
 
 ## 9. 待确认事项
 
-以下问题来自来源 PRD [`../dev/prd-mos.md`](../dev/prd-mos.md) 第 5 节，均为 `Draft`，需在评审中与业务方确认。
+以下问题来自来源 PRD [`../prd/prd-mos.md`](../prd/prd-mos.md) 第 5 节，均为 `Draft`，需在评审中与业务方确认。
 
 | 编号 | 问题 | 当前假设/默认值 |
 |:---:|------|---------------|

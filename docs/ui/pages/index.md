@@ -57,7 +57,7 @@
 
 ## 3. 决策页 Decision (DEC)
 
-**定位**：MOS 起降带规划工作区（导航 `DEC-NAV-03`）。一屏呈现：左侧损毁目标列表（弹坑/UXO，带威胁/状态标记）；中心上方跑道 3000m×50m 俯视图（叠加弹坑/UXO/MOS 矩形），中心下方算法参数表单（MOSPlanParams）；右侧候选起降方案卡片 + 选定详情 + 修复优先级 + 决策草案。所有数据为本地固定模拟场景。功能依据：`docs/dev/architecture-uxo-recognition-and-mos.md`。
+**定位**：MOS 起降带规划工作区（导航 `DEC-NAV-03`）。一屏呈现：左侧损毁目标列表（弹坑/UXO，带威胁/状态标记）；中心上方跑道 3000m×50m 俯视图（叠加弹坑/UXO/MOS 矩形），中心下方算法参数表单（MOSPlanParams）；右侧候选起降方案卡片 + 选定详情 + 修复优先级 + 决策草案。所有数据为本地固定模拟场景。功能依据：`docs/architecture/architecture-mos.md`。
 
 **关键区域**：
 
