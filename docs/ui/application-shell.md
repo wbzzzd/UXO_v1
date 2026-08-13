@@ -75,28 +75,28 @@ CURRENT 主区域为 `QHBoxLayout`：导航 | 左面板 | 中心区 | 右面板�
 
 ### 3.1 导航项清单
 
-CURRENT 只切换高亮，不切换页面（`onNavigationChanged` 仅 `qDebug`）。本试点原型按此保持：点击仅切换选中态，不路由到其他页面。
+CURRENT 通过 `QStackedWidget` 路由：index0=态势 live、index2=决策 live（`DecisionView`），index1/3/4/5 未实现独立页面，回退到态势占位。`onNavigationChanged` 不再仅 `qDebug`，而是切换 `QStackedWidget` 当前页。本试点原型保持与 CURRENT 一致的路由行为。
 
 每个导航项为一个 `QPushButton`，固定高 56px，无外边距，左侧 3px 透明边框。图标与文字双行显示，字号 `--font-size-caption`，居中对齐。
 
 | ID | 标签 | 图标 | CURRENT index | 用途 | 默认态 | hover | 选中态 |
 |----|------|------|------|------|--------|-------|--------|
 | `SIT-NAV-LOGO` | UXO | - | - | 仅展示，不可交互 | 主色文字 | 同默认 | 同默认 |
-| `SIT-NAV-01` | 态势 | ◎ | 0 | 当前页面（默认选中） | 透明背景、辅助色文字 | 背景 `--color-row-hover`、主文本色 | 背景 `--color-selection`、主色左边框 3px、主文本色、加粗 |
-| `SIT-NAV-02` | 探测 | ◎ | 1 | 未实现页面（占位） | 同上 | 同上 | 同上 |
-| `SIT-NAV-03` | 决策 | ◎ | 2 | 未实现页面（占位） | 同上 | 同上 | 同上 |
-| `SIT-NAV-04` | 设备 | ◎ | 3 | 未实现页面（占位） | 同上 | 同上 | 同上 |
-| `SIT-NAV-05` | 统计 | ◎ | 4 | 未实现页面（占位） | 同上 | 同上 | 同上 |
-| `SIT-NAV-06` | 配置 | ◎ | 5 | 未实现页面（占位） | 同上 | 同上 | 同上 |
+| `SIT-NAV-01` | 态势 | ◎ | 0 | 态势 live 页面（默认选中） | 透明背景、辅助色文字 | 背景 `--color-row-hover`、主文本色 | 背景 `--color-selection`、主色左边框 3px、主文本色、加粗 |
+| `SIT-NAV-02` | 探测 | ◎ | 1 | 未实现独立页面（回退态势占位） | 同上 | 同上 | 同上 |
+| `SIT-NAV-03` | 决策 | ◎ | 2 | 决策 live 页面（`DecisionView`，MOS P0） | 同上 | 同上 | 同上 |
+| `SIT-NAV-04` | 设备 | ◎ | 3 | 未实现独立页面（回退态势占位） | 同上 | 同上 | 同上 |
+| `SIT-NAV-05` | 统计 | ◎ | 4 | 未实现独立页面（回退态势占位） | 同上 | 同上 | 同上 |
+| `SIT-NAV-06` | 配置 | ◎ | 5 | 未实现独立页面（回退态势占位） | 同上 | 同上 | 同上 |
 
 ### 3.2 交互
 
 | 字段 | 值 |
 |------|----|
-| 点击结果 | 切换该项为选中态，左侧 3px 主色边框出现，背景变为 `--color-selection`。CURRENT 仅 `qDebug`，不切换页面。 |
+| 点击结果 | 切换该项为选中态，左侧 3px 主色边框出现，背景变为 `--color-selection`；CURRENT 通过 `QStackedWidget` 路由：`SIT-NAV-01` -> index0（态势 live）、`SIT-NAV-03` -> index2（决策 live `DecisionView`）、其余 -> 回退态势占位。 |
 | 键盘 | Tab 聚焦到按钮；Enter/Space 触发点击。 |
-| 原型行为 | 同 CURRENT：仅高亮选中，不路由。`SIT-NAV-02` 至 `SIT-NAV-06` 选中后中心区仍显示态势页面内容，并在信息面板头标注“该页面为占位，未实现”。 |
-| CURRENT 映射 | `NavigationWidget.cpp` `setupUi`、`setCurrentIndex`、`updateSelection`；`MainWindow.cpp` `onNavigationChanged` |
+| 原型行为 | 同 CURRENT：选中 + 路由。`SIT-NAV-02`/`04`/`05`/`06` 选中后中心区回退到态势占位，并在信息面板头标注"该页面为占位，未实现"。 |
+| CURRENT 映射 | `NavigationWidget.cpp` `setupUi`、`setCurrentIndex`、`updateSelection`；`MainWindow.cpp` `onNavigationChanged`（切换 `QStackedWidget` 当前页） |
 | 安全 | 无设备控制、无副作用 |
 
 ## 4. 菜单栏
@@ -226,7 +226,8 @@ TARGET 原型行为：**按钮禁用并标注“模拟占位，无实际效果�
 | 工具栏“同步状态”“书签”标签 `SIT-TB-SYNC`/`SIT-TB-BOOKMARK` | QLabel 占位，无实际效果 | 省略 |
 | 菜单“历史回放/日志查看/数据同步”（无 ID，省略） | lambda 空 | 省略 |
 | 菜单“新建任务/打开预案/保存方案/系统设置” `SIT-MENU-NEW-TASK`/`SIT-MENU-OPEN-PLAN`/`SIT-MENU-SAVE-PLAN`/`SIT-MENU-SETTINGS` | 槽函数占位 | 禁用并标注“占位” |
-| 导航 `SIT-NAV-02` 至 `SIT-NAV-06` | 未实现页面 | 保留可点击高亮，但中心区不切换，并标注“占位” |
+| 导航 `SIT-NAV-02`/`04`/`05`/`06` | 未实现独立页面 | 保留可点击高亮，中心区回退态势占位并标注"占位" |
+| 导航 `SIT-NAV-03` | 已实现独立决策页面（`DecisionView` MOS P0） | 路由到决策 live 页面（详见 `pages/decision.md`） |
 
 ## 8. 视口适配
 
@@ -236,7 +237,7 @@ TARGET 原型行为：**按钮禁用并标注“模拟占位，无实际效果�
 | 1920x1080 | 默认尺寸；所有区域按 token 比例展开；信息面板头 28px、状态栏 28px 固定 |
 | 3840x2160 | 固定区域不变；中心区与右面板弹性区按比例放大；右面板可至 420px（TARGET）；字号与控件尺寸保持固定 px |
 
-CURRENT 在 1280x720 下右面板决策区存在约 5px 底部溢出（`UI.md` 第 3 节）。TARGET 通过右面板弹性高度修正，prototype 实现属于后续任务。
+CURRENT 在 1280x720 下态势页右面板旧 `DecisionSuggestionPanel` 仍存在约 5px 底部溢出（`UI.md` 第 3 节已知问题）。该问题属于态势页壳，与决策页 `DecisionView` 无关：`DecisionView` 三视口几何 TSV 全部 `overflow_rows=0`（证据 `.omo/evidence/mos-p0-qt-final/REPORT.md`）。TARGET 通过右面板弹性高度修正态势页溢出，prototype 实现属于后续任务。
 
 ## 9. CURRENT 映射总结
 
@@ -250,6 +251,6 @@ CURRENT 在 1280x720 下右面板决策区存在约 5px 底部溢出（`UI.md` �
 | 状态栏内容 | `StatusBarWidget.cpp` `setupUi`（第 38-110 行） |
 | 紧急停止槽 | `StatusBarWidget.cpp` `onEmergencyStop`（第 151-161 行） |
 | 导航栏 | `NavigationWidget.cpp` 全文 |
-| 导航切换槽 | `MainWindow.cpp` `onNavigationChanged`（第 349-352 行，仅 `qDebug`） |
+| 导航切换槽 | `MainWindow.cpp` `onNavigationChanged`（切换 `QStackedWidget` 当前页：index0=态势 live、index2=决策 live、其余回退态势占位） |
 | 信号连接 | `MainWindow.cpp` `createConnections`（第 258-287 行） |
 | 模拟数据加载 | `MainWindow.cpp` `loadMockData`（第 290-347 行） |

@@ -9,7 +9,7 @@
 | **项目** | UXO_v1 排弹抢修指挥系统 |
 | **阶段** | MVP（模拟/占位阶段） |
 | **原始需求来源** | SRS F-020~F-032（识别模块）、DDR-008（当量识别可行性） |
-| **关联文档** | [架构设计](../architecture/architecture-mos.md)、[MOS PRD](prd-mos.md) |
+| **关联文档** | [UXR 架构草稿](../architecture/architecture-uxr.md)、[MOS PRD](prd-mos.md) |
 
 ---
 

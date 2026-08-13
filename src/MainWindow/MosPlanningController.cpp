@@ -4,6 +4,8 @@
 // 非真实设备、真实跑道或真实作业参数。
 
 #include "MainWindow/MosPlanningController.h"
+#include "Core/MOS/MosFixtureGenerator.h"
+#include "Core/MOS/MosValidation.h"
 
 #include <QFileInfo>
 #include <QIODevice>
@@ -206,47 +208,72 @@ bool MosPlanningController::selectTier(int tierIndex)
     return true;
 }
 
-MosExportResult MosPlanningController::exportFixture(const QString &targetPath) const
+MosExportResult MosPlanningController::exportFixture(
+    const QString &targetPath,
+    const MosRunwayParams &runwayParams,
+    const MosGeneratorParams &generatorParams,
+    qint32 seed) const
 {
-    // 单向观测导出：按值快照，序列化已提交障碍物，写入显式路径。
-    // 不改业务状态/revision/日志/通知计数。
-    // 安全策略：仅允许本地 fixture 的显式绝对 .json 路径；拒绝无提交快照、空/相对路径、
-    // 非 .json 后缀、符号链接目标及已存在的非普通文件目标（目录/设备/管道等）。
-    const MosPlanningSnapshot snap = m_session.snapshot();
+    // 单向观测导出：实时生成合成 fixture 障碍物，序列化写入显式路径。
+    // 不改业务状态/revision/日志/通知计数；不依赖已提交快照。
+    // 安全策略：校验跑道/生成器/种子参数；仅允许显式绝对 .json 路径；
+    // 拒绝空/相对路径、非 .json 后缀、符号链接目标及已存在的非普通文件目标。
 
-    // 守卫 1：必须有已接受的提交快照。hasResult 表示已 commit，result.accepted 二次确认。
-    if (!snap.hasResult || !snap.result.accepted) {
-        return {false, QStringLiteral("本地 fixture 导出被拒：无已接受的提交快照")};
+    // 守卫 1：校验跑道参数。
+    const auto runwayResult = validateRunwayParams(runwayParams);
+    if (!runwayResult.valid) {
+        return {false, runwayResult.message};
     }
 
-    // 守卫 2：目标路径必须非空。
+    // 守卫 2：校验生成器参数。
+    const auto genResult = validateGeneratorParams(generatorParams);
+    if (!genResult.valid) {
+        return {false, genResult.message};
+    }
+
+    // 守卫 3：校验种子（须在 signed int32 范围内）。
+    const auto seedResult = validateSeed(static_cast<qint64>(seed));
+    if (!seedResult.valid) {
+        return {false, seedResult.message};
+    }
+
+    // 守卫 4：目标路径必须非空。
     if (targetPath.isEmpty()) {
         return {false, QStringLiteral("本地 fixture 导出被拒：目标路径为空")};
     }
 
     const QFileInfo targetInfo(targetPath);
 
-    // 守卫 3：目标路径必须为绝对路径，避免相对路径随 CWD 漂移写到任意位置。
+    // 守卫 5：目标路径必须为绝对路径，避免相对路径随 CWD 漂移写到任意位置。
     if (targetInfo.isRelative()) {
         return {false, QStringLiteral("本地 fixture 导出被拒：目标路径必须为绝对路径：%1").arg(targetPath)};
     }
 
-    // 守卫 4：目标路径必须以 .json 结尾（大小写不敏感），明确本地 fixture 语义。
+    // 守卫 6：目标路径必须以 .json 结尾（大小写不敏感），明确本地 fixture 语义。
     if (targetInfo.suffix().compare(QStringLiteral("json"), Qt::CaseInsensitive) != 0) {
         return {false, QStringLiteral("本地 fixture 导出被拒：目标路径必须以 .json 结尾：%1").arg(targetPath)};
     }
 
-    // 守卫 5：已存在的目标不得为符号链接（不论是否悬空），避免写穿或替换到任意路径。
+    // 守卫 7：已存在的目标不得为符号链接（不论是否悬空），避免写穿或替换到任意路径。
     if (targetInfo.isSymLink()) {
         return {false, QStringLiteral("本地 fixture 导出被拒：目标已存在为符号链接：%1").arg(targetPath)};
     }
 
-    // 守卫 6：已存在的目标必须是普通文件，拒绝目录/设备/管道等非普通文件。
+    // 守卫 8：已存在的目标必须是普通文件，拒绝目录/设备/管道等非普通文件。
     if (targetInfo.exists() && !targetInfo.isFile()) {
         return {false, QStringLiteral("本地 fixture 导出被拒：目标已存在且非普通文件：%1").arg(targetPath)};
     }
 
-    const QByteArray payload = serializeObstacleSetBytes(snap.obstacles);
+    // 实时生成合成障碍物集合（确定性 mulberry32，非真实随机源）。
+    const MosObstacleSet obstacles = MosFixtureGenerator::generate(runwayParams, generatorParams, seed);
+
+    // 校验生成的障碍物集合（坐标/ID/数量/影响半径等）。
+    const auto obstacleResult = validateObstacleSet(obstacles, runwayParams);
+    if (!obstacleResult.valid) {
+        return {false, obstacleResult.message};
+    }
+
+    const QByteArray payload = serializeObstacleSetBytes(obstacles);
 
     QSaveFile file(targetPath);
     file.setDirectWriteFallback(false);  // 显式禁用直接写回退，强制原子替换语义

@@ -25,6 +25,8 @@ class QScrollBar;
 class QSplitter;
 class QVBoxLayout;
 
+namespace Core::MOS { class MosPlanningController; }
+
 class DecisionView : public QWidget
 {
     Q_OBJECT
@@ -46,6 +48,9 @@ public:
     // 读取当前视口缩放系数（用于测试断言）
     double viewportScale() const;
 
+    // 注入权威 controller，转发到生成器模态供 JSON 按钮直接调用
+    void setMosController(Core::MOS::MosPlanningController *controller);
+
 signals:
     // DEC-TB-GEN 点击：请求打开生成器模态
     void generatorRequested();
@@ -57,8 +62,6 @@ signals:
     void targetSelected(const QString &targetId);
     // 生成器应用（DEC-GEN-APPLY 校验通过后）
     void generatorApplied(const Core::MOS::MosGeneratorParams &params, qint32 seed);
-    // JSON 导出请求（DEC-GEN-JSON）
-    void exportRequested(const QString &path);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;

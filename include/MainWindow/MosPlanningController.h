@@ -104,9 +104,12 @@ public:
     // 切换档位；越界返回 false；有效切换写入会话并发出 mosStateChanged。
     bool selectTier(int tierIndex);
 
-    // 单向导出：将当前已接受 fixture 序列化到显式目标路径（通过 QSaveFile），
-    // 不改业务状态/revision/日志/通知计数。
-    MosExportResult exportFixture(const QString &targetPath) const;
+    // 单向导出：实时生成合成 fixture 障碍物并序列化到显式目标路径（通过 QSaveFile），
+    // 不改业务状态/revision/日志/通知计数；不依赖已提交快照。
+    MosExportResult exportFixture(const QString &targetPath,
+                                  const MosRunwayParams &runwayParams,
+                                  const MosGeneratorParams &generatorParams,
+                                  qint32 seed) const;
 
 signals:
     // 发起 replan 时发出（携带 pending 不可变请求副本）。

@@ -200,6 +200,23 @@ private slots:
     // === 拒绝时输入不变 ===
     void rejectedRunwayParamsLeavesInputUnchanged();
     void rejectedObstacleSetLeavesInputUnchanged();
+    // === 障碍物几何：x∈[0,L], y∈[-40,40] ===
+    void craterXBoundaryLowIsValid();
+    void craterXBoundaryHighIsValid();
+    void craterYBoundaryLowIsValid();
+    void craterYBoundaryHighIsValid();
+    void uxoXBoundaryLowIsValid();
+    void uxoXBoundaryHighIsValid();
+    void uxoYBoundaryLowIsValid();
+    void uxoYBoundaryHighIsValid();
+    void craterXBelowLowIsRejected();
+    void craterXAboveLIsRejected();
+    void craterYBelowLowIsRejected();
+    void craterYAboveHighIsRejected();
+    void uxoXBelowLowIsRejected();
+    void uxoXAboveLIsRejected();
+    void uxoYBelowLowIsRejected();
+    void uxoYAboveHighIsRejected();
 };
 
 // === 跑道参数：合法基线 ===
@@ -1015,6 +1032,152 @@ void MosValidationTest::rejectedObstacleSetLeavesInputUnchanged()
     const auto badResult = Core::MOS::validateObstacleSet(badObstacles, defaultRunwayParams());
     QVERIFY(!badResult.valid);
     QCOMPARE(badObstacles.craters.size(), 14); // 未被修改
+}
+
+// === 障碍物几何：x∈[0,L], y∈[-40,40] ===
+// 当前校验覆盖整数坐标包络；坐标为 int，不测试 NaN/Inf。
+void MosValidationTest::craterXBoundaryLowIsValid()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.craters[0].x = 0; // 边界合法（x=0）
+    auto params = defaultRunwayParams();
+    QVERIFY(Core::MOS::validateObstacleSet(obstacles, params).valid);
+}
+
+void MosValidationTest::craterXBoundaryHighIsValid()
+{
+    auto obstacles = defaultObstacleSet();
+    auto params = defaultRunwayParams();
+    obstacles.craters[0].x = static_cast<int>(std::floor(params.L)); // 边界合法（x=floor(L)）
+    QVERIFY(Core::MOS::validateObstacleSet(obstacles, params).valid);
+}
+
+void MosValidationTest::craterYBoundaryLowIsValid()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.craters[0].y = -40; // 边界合法（y=-40）
+    auto params = defaultRunwayParams();
+    QVERIFY(Core::MOS::validateObstacleSet(obstacles, params).valid);
+}
+
+void MosValidationTest::craterYBoundaryHighIsValid()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.craters[0].y = 40; // 边界合法（y=40）
+    auto params = defaultRunwayParams();
+    QVERIFY(Core::MOS::validateObstacleSet(obstacles, params).valid);
+}
+
+void MosValidationTest::uxoXBoundaryLowIsValid()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.uxo[0].x = 0; // 边界合法（x=0）
+    auto params = defaultRunwayParams();
+    QVERIFY(Core::MOS::validateObstacleSet(obstacles, params).valid);
+}
+
+void MosValidationTest::uxoXBoundaryHighIsValid()
+{
+    auto obstacles = defaultObstacleSet();
+    auto params = defaultRunwayParams();
+    obstacles.uxo[0].x = static_cast<int>(std::floor(params.L)); // 边界合法（x=floor(L)）
+    QVERIFY(Core::MOS::validateObstacleSet(obstacles, params).valid);
+}
+
+void MosValidationTest::uxoYBoundaryLowIsValid()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.uxo[0].y = -40; // 边界合法（y=-40）
+    auto params = defaultRunwayParams();
+    QVERIFY(Core::MOS::validateObstacleSet(obstacles, params).valid);
+}
+
+void MosValidationTest::uxoYBoundaryHighIsValid()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.uxo[0].y = 40; // 边界合法（y=40）
+    auto params = defaultRunwayParams();
+    QVERIFY(Core::MOS::validateObstacleSet(obstacles, params).valid);
+}
+
+void MosValidationTest::craterXBelowLowIsRejected()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.craters[0].x = -1; // 越界（x < 0）
+    auto params = defaultRunwayParams();
+    const auto result = Core::MOS::validateObstacleSet(obstacles, params);
+    QVERIFY(!result.valid);
+    QCOMPARE(result.reason, Core::MOS::MosValidationReason::ObstacleCoordinate);
+}
+
+void MosValidationTest::craterXAboveLIsRejected()
+{
+    auto obstacles = defaultObstacleSet();
+    auto params = defaultRunwayParams();
+    obstacles.craters[0].x = static_cast<int>(std::floor(params.L)) + 1; // 越界（x > L）
+    const auto result = Core::MOS::validateObstacleSet(obstacles, params);
+    QVERIFY(!result.valid);
+    QCOMPARE(result.reason, Core::MOS::MosValidationReason::ObstacleCoordinate);
+}
+
+void MosValidationTest::craterYBelowLowIsRejected()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.craters[0].y = -41; // 越界（y < -40）
+    auto params = defaultRunwayParams();
+    const auto result = Core::MOS::validateObstacleSet(obstacles, params);
+    QVERIFY(!result.valid);
+    QCOMPARE(result.reason, Core::MOS::MosValidationReason::ObstacleCoordinate);
+}
+
+void MosValidationTest::craterYAboveHighIsRejected()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.craters[0].y = 41; // 越界（y > 40）
+    auto params = defaultRunwayParams();
+    const auto result = Core::MOS::validateObstacleSet(obstacles, params);
+    QVERIFY(!result.valid);
+    QCOMPARE(result.reason, Core::MOS::MosValidationReason::ObstacleCoordinate);
+}
+
+void MosValidationTest::uxoXBelowLowIsRejected()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.uxo[0].x = -1; // 越界（x < 0）
+    auto params = defaultRunwayParams();
+    const auto result = Core::MOS::validateObstacleSet(obstacles, params);
+    QVERIFY(!result.valid);
+    QCOMPARE(result.reason, Core::MOS::MosValidationReason::ObstacleCoordinate);
+}
+
+void MosValidationTest::uxoXAboveLIsRejected()
+{
+    auto obstacles = defaultObstacleSet();
+    auto params = defaultRunwayParams();
+    obstacles.uxo[0].x = static_cast<int>(std::floor(params.L)) + 1; // 越界（x > L）
+    const auto result = Core::MOS::validateObstacleSet(obstacles, params);
+    QVERIFY(!result.valid);
+    QCOMPARE(result.reason, Core::MOS::MosValidationReason::ObstacleCoordinate);
+}
+
+void MosValidationTest::uxoYBelowLowIsRejected()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.uxo[0].y = -41; // 越界（y < -40）
+    auto params = defaultRunwayParams();
+    const auto result = Core::MOS::validateObstacleSet(obstacles, params);
+    QVERIFY(!result.valid);
+    QCOMPARE(result.reason, Core::MOS::MosValidationReason::ObstacleCoordinate);
+}
+
+void MosValidationTest::uxoYAboveHighIsRejected()
+{
+    auto obstacles = defaultObstacleSet();
+    obstacles.uxo[0].y = 41; // 越界（y > 40）
+    auto params = defaultRunwayParams();
+    const auto result = Core::MOS::validateObstacleSet(obstacles, params);
+    QVERIFY(!result.valid);
+    QCOMPARE(result.reason, Core::MOS::MosValidationReason::ObstacleCoordinate);
 }
 
 QTEST_APPLESS_MAIN(MosValidationTest)
