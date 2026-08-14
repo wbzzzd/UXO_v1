@@ -8,7 +8,8 @@
 
 | 文档 | 职责 |
 |------|------|
-| [`PRODUCT.md`](PRODUCT.md) | 产品目标、范围、需求注册表（第 9 节是 `REQ-NNN` ID 与状态的唯一权威）、路线 |
+| [`PRODUCT.md`](PRODUCT.md) | 产品目标、范围、路线 |
+| [`requirements/`](requirements/) | 需求注册表（`REQ-NNN` ID 与状态的唯一权威） |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | 模块、状态所有权、依赖、运行流程 |
 | [`UI.md`](UI.md) | 信息架构、交互、页面状态、设计系统契约 |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | 构建、测试、质量门禁、完成定义 |
@@ -18,11 +19,11 @@
 | 目录 | 用途 | 入口 |
 |------|------|------|
 | [`features/`](features/) | 进入评审的功能增量设计；只描述相对核心基线的变化，`Draft` 不得直接指导实现 | [`features/README.md`](features/README.md) |
+| [`requirements/`](requirements/) | 需求注册表（`REQ-NNN` ID 与状态的唯一权威）；每个 REQ 独立文件，多 agent 并行加需求不冲突 | [`requirements/README.md`](requirements/README.md) |
 | [`ddr/`](ddr/) | 开发决策记录（DDR）；历史决策依据，与核心基线冲突时以核心基线为准 | [`ddr/README.md`](ddr/README.md) |
 | [`research/`](research/) | 研究和技术调研资料；仅作证据引用，不直接成为需求，不进入默认开发上下文 | [`research/README.md`](research/README.md) |
 | [`archive/`](archive/) | 不再直接指导当前开发的历史资料；含已迁入的 [`archive/core-baselines/`](archive/core-baselines/) 五份旧基线；不删除内容、不破坏 Git 追溯 | [`archive/README.md`](archive/README.md) |
 | [`architecture/`](architecture/) | 从 ARCHITECTURE.md 拆出的架构细节子文档（CURRENT 启动/状态/调用链、NEXT 候选架构）与历史架构草稿 | [`architecture/README.md`](architecture/README.md) |
-| [`prd/`](prd/) | Draft PRD 需求定义（内部 PM 撰写，位于 features 上游）；Draft 设计输入，不代表 Approved 需求 | [`prd/README.md`](prd/README.md) |
 | [`sources/`](sources/) | 原始上游来源资料（SRS、SDD、排弹方案、前端 UI 说明等）；保留 Git 追溯，仅作溯源，不是 CURRENT 实现事实或 Approved 需求 | [`sources/README.md`](sources/README.md) |
 | [`ui/`](ui/) | 六页 UI 设计文档与 HTML 原型；状态 `TARGET / Draft / 设计评审原型 / 本地模拟`，不连接真实设备、不执行真实排爆动作 | [`ui/README.md`](ui/README.md) |
 
@@ -51,11 +52,10 @@
 ### 3.3 与其他目录的区分
 
 - [`sources/`](sources/) 是上游原始输入，未被内部基线"取代"，仅不再具备当前事实权威。
-- [`prd/`](prd/) 是内部 PM 撰写的 Draft PRD 需求定义，位于上游来源与功能增量设计之间。
 - [`architecture/`](architecture/) 是从 ARCHITECTURE.md 拆出的架构细节子文档与历史架构草稿。
 - [`archive/`](archive/) 是已被核心基线取代的内部工程快照。
 - [`research/`](research/) 是研发阶段技术调研与可行性证据，不直接成为需求。
 
 ## 4. 实现前置条件
 
-进入 `.omo/plans/` 执行计划前，关联的 `REQ-NNN` 在 [`PRODUCT.md`](PRODUCT.md) 第 9 节必须为 `Approved`，且对应 [`features/<feature>.md`](features/) 自身状态为 `Approved`。`Draft` 需求或 `Draft` 功能设计不得进入实现计划。
+进入 `.omo/plans/` 执行计划前，关联的 `REQ-NNN` 在 [`requirements/`](requirements/) 必须为 `Approved`，且对应 [`features/<feature>.md`](features/) 自身状态为 `Approved`。`Draft` 需求或 `Draft` 功能设计不得进入实现计划。

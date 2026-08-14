@@ -115,7 +115,7 @@ UXOMissionControl executable
 
 ## 6. 开发规则
 
-- 功能开发必须关联 `PRODUCT.md` 中已批准的需求 ID。
+- 功能开发必须关联 `docs/requirements/` 中已批准的需求 ID。
 - 新功能必须先有状态为 `Approved` 的 `docs/features/<feature>.md`。
 - Core 不依赖 MainWindow；UI 不自行成为业务状态权威。
 - 代码注释使用中文。

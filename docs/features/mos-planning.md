@@ -4,7 +4,7 @@
 关联产品需求：REQ-007
 关联版本：待确认
 
-> 本文档 P0 已于 2026-08-03 获批、2026-08-04 完成实现与验证，状态为 `Implemented`（仅 P0；P1/P2 `Draft`）。关联需求 REQ-007 状态见 [`../PRODUCT.md`](../PRODUCT.md) 第 9.3 节。来源 PRD 见 [`../prd/prd-mos.md`](../prd/prd-mos.md)（`Draft`/来源资料），架构草稿见 [`../architecture/architecture-mos.md`](../architecture/architecture-mos.md)（`Draft`/来源资料），两者均非权威。
+> 本文档 P0 已于 2026-08-03 获批、2026-08-04 完成实现与验证，状态为 `Implemented`（仅 P0；P1/P2 `Draft`）。关联需求 REQ-007 状态见 [`../requirements/REQ-007.md`](../requirements/REQ-007.md)。来源 PRD 见 [`../archive/requirements/prd-mos.md`](../archive/requirements/prd-mos.md)（`Draft`/来源资料），架构草稿见 [`../architecture/architecture-mos.md`](../architecture/architecture-mos.md)（`Draft`/来源资料），两者均非权威。
 
 ## 1. 问题与目标
 
@@ -49,7 +49,7 @@ P1 阶段补充：多方案叠加对比视图、修复优先级排序、斜向�
 
 ## 4. 需求增量
 
-以下需求编号沿用来源 PRD [`../prd/prd-mos.md`](../prd/prd-mos.md) 的 MOS-NNN 编号，仅在本候选范围内描述增量。P0 范围已获批并在功能级标记为 `Implemented`，本节作为设计目标与验收历史保留；各条目的实际满足度并不完全相同，以第 10 节的“已实现 / 简化实现 / 部分实现”分类为准。P1/P2 仍为 `Draft`，未获批准。
+以下需求编号沿用来源 PRD [`../archive/requirements/prd-mos.md`](../archive/requirements/prd-mos.md) 的 MOS-NNN 编号，仅在本候选范围内描述增量。P0 范围已获批并在功能级标记为 `Implemented`，本节作为设计目标与验收历史保留；各条目的实际满足度并不完全相同，以第 10 节的“已实现 / 简化实现 / 部分实现”分类为准。P1/P2 仍为 `Draft`，未获批准。
 
 ### P0：MVP 最小可用闭环
 
@@ -125,7 +125,7 @@ P0 页面契约、CURRENT 控件和布局见 [`../UI.md`](../UI.md) 与 [`../ui/
 
 P0 实现已对核心文档产生以下影响（P1/P2 仍为 `Draft`，未发生）：
 
-- [`../PRODUCT.md`](../PRODUCT.md)：REQ-007 需求注册与状态见第 9.3 节。
+- [`../requirements/REQ-007.md`](../requirements/REQ-007.md)：REQ-007 需求注册与状态。
 - [`../ARCHITECTURE.md`](../ARCHITECTURE.md)：P0 MOS 数据结构、算法服务、规划框架和场景生成器的模块、状态所有权和调用链已同步至当前基线；JSON 导入/配置加载路径与完整 Y 离散化算法仍待补充（详见 §10）。
 - [`../UI.md`](../UI.md)：P0 MOS 规划视图、参数面板和损毁场景生成器弹窗的页面状态和交互契约已同步至当前基线；P1 多方案叠加对比和修复进度切换仍为 `Draft`。
 - [`../DEVELOPMENT.md`](../DEVELOPMENT.md)：P0 MOS 相关的测试策略和质量门禁已同步至当前基线（15 个 CTest 全部通过，详见 §10.3）。
@@ -134,7 +134,7 @@ P1/P2 获批准前，不修改上述核心文档的 P1/P2 实现状态描述。
 
 ## 9. 待确认事项
 
-以下问题来自来源 PRD [`../prd/prd-mos.md`](../prd/prd-mos.md) 第 5 节，均为 `Draft`，需在评审中与业务方确认。
+以下问题来自来源 PRD [`../archive/requirements/prd-mos.md`](../archive/requirements/prd-mos.md) 第 5 节，均为 `Draft`，需在评审中与业务方确认。
 
 | 编号 | 问题 | 当前假设/默认值 |
 |:---:|------|---------------|

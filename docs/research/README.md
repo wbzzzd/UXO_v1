@@ -4,7 +4,7 @@
 
 ## 权威性
 
-- research 资料是证据与设计输入，不是 [`PRODUCT.md`](../PRODUCT.md) 第 9 节需求注册表的权威、CURRENT 实现事实或 `.omo/plans/` 已批准计划的权威。
+- research 资料是证据与设计输入，不是 [`../requirements/`](../requirements/) 需求注册表的权威、CURRENT 实现事实或 `.omo/plans/` 已批准计划的权威。
 - 与四份核心基线冲突时，以 [`PRODUCT.md`](../PRODUCT.md)、[`ARCHITECTURE.md`](../ARCHITECTURE.md)、[`UI.md`](../UI.md)、[`DEVELOPMENT.md`](../DEVELOPMENT.md) 为准；research 不得指导实现。
 - 引用 research 时须注明为证据或来源，不得写成当前实现或已批准需求。
 
