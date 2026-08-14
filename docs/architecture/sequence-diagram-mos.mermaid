@@ -22,7 +22,7 @@ sequenceDiagram
         APP->>FX: 构造合成本地 fixture（纯构造）
         FX-->>APP: 返回合成 fixture
         APP->>MOS: 调用纯计算（轴对齐空矩形/递进方案/估算）
-        Note over MOS: 在离散化 Y 候选集合上计算<br/>相切视为碰撞、总排序、嵌套档位由功能契约定义
+        Note over MOS: 在 X 轴投影上计算最大空隙（P0 简化：Y 固定全宽）<br/>相切视为碰撞、总排序、嵌套档位由功能契约定义
         alt 存在可行矩形
             MOS-->>APP: 返回可行结果
         else 无可行矩形

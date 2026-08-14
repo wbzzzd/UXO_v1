@@ -1,7 +1,7 @@
 #ifndef CORE_MOS_MOSPLANNER_H
 #define CORE_MOS_MOSPLANNER_H
 
-// MOS P0 合成规划器：Y 边界离散 + X 连续扫描的最大空矩形与递进档位规划。
+// MOS P0 合成规划器：X 全投影 + Y 固定全宽的最大空矩形与递进档位规划。
 // 所有几何与估算均为合成本地 fixture 语义，非真实跑道、真实弹坑或真实作业参数。
 // Core 仅依赖 Qt 值类型，不依赖 UI/3D/网络/数据库。
 
@@ -75,7 +75,8 @@ class MosPlanner
 {
 public:
     // 单次最大空矩形：在给定已修复 ID 集合下，于 [0,L]×[-W/2,W/2] 内
-    // 按 Y 边界离散 + X 连续扫描寻找满足 minLength/minWidth 的最大面积矩形。
+    // 按 X 全投影 + Y 固定全宽寻找满足 minLength 的最大面积矩形。
+    // P0 简化：step/minWidth 不参与搜索，Y 固定为跑道全宽，宽度恒等于 W。
     // 相切视为碰撞；开放自由端点用 std::nextafter 向内规范化为可表示的有限 double。
     // 合法无解返回 valid=false 且 reason=NoFeasibleRectangle。
     static MosRectangleResult planSingle(const MosObstacleSet &obstacles,
