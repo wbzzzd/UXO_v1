@@ -208,7 +208,7 @@ HTML 原型标题为"跑道 3000m × 50m [模拟]"，标题右侧比例尺为"0 
 | 最小起降长度 (m) | `DEC-CE-PARAM-MINLENGTH` | 可编辑 | TARGET 原型 460；CURRENT Qt 100 | 本地测试阶段可调初始化值，不是机型或安全阈值 |
 | 最小起降宽度 (m) | `DEC-CE-PARAM-MINWIDTH` | 可编辑 | 15 | `MOSPlanParams.minWidth` |
 | 合成 standoff 系数 K（非真实安全参数） | `DEC-CE-PARAM-K` | 可编辑 | **1.5** | 合成示例值，待领域确认 |
-| 扫描步长 (m) | `DEC-CE-PARAM-STEP` | 可编辑 | 1 | Y 轴离散化步长 |
+| 扫描步长 (m) | `DEC-CE-PARAM-STEP` | 可编辑 | 1 | Y 轴离散化步长（P0 简化：当前算法不使用此参数，仅做输入校验） |
 | 回填速率 (m³/h) | `DEC-CE-PARAM-BACKFILL` | 可编辑 | 50 | 弹坑修复工时计算 |
 | UXO 工时 (h/个) | `DEC-CE-PARAM-UXOHOURS` | 可编辑 | 8 | UXO 排除固定工时 |
 | 扩展系数 | `DEC-CE-PARAM-EXPAND` | 可编辑 | 1.5 | 弹坑可见半径扩展 |
