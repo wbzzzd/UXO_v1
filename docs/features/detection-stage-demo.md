@@ -1,7 +1,7 @@
 # 探测阶段动态演示（时间线驱动方案）
 
 状态：Superseded
-关联产品需求：REQ-008（PRODUCT.md §9.2，Superseded）
+关联产品需求：REQ-008（requirements/REQ-008.md，Superseded）
 关联版本：待确认
 
 > **已被 REQ-009 / [drone-detection-demo.md](./drone-detection-demo.md) 取代。**
@@ -51,7 +51,7 @@ SRS《排弹抢修指挥系统》v1.0 定义四阶段：探测 -> 识别 -> 规�
 - **不做决策页/规划工作区**：跑道画布/三方案/算法参数属于后续规划阶段。
 - **不做数据层全量重构**：不新建 SimulationSession，不把 SimulationWorkflow 改为 QObject + 六信号（那是 REQ-001/004 的全量方案）。本功能在现有 MainWindow 手工同步模式上增量改造。
 - **不删除 Qt3D 代码**：`SituationView.cpp/h` 和 Qt3D 依赖保留，探测页不使用但暂不清理，后续确认不再用 Qt3D 再处理。
-- **不做真实设备控制、真实排爆、外部通信、持久化、UXR、MOS**（PRODUCT.md §9.3 排除范围）。
+- **不做真实设备控制、真实排爆、外部通信、持久化、UXR、MOS**（requirements/ 排除范围）。
 - **不做识别/规划/排弹阶段**（各自独立功能）。
 
 ## 3. 用户流程
@@ -98,7 +98,7 @@ SRS《排弹抢修指挥系统》v1.0 定义四阶段：探测 -> 识别 -> 规�
 - `DemoScenarioProvider` 坐标统一为本地米坐标系，不再混用经纬度。
 - 所有模拟数据明确标注"模拟"或"演示"。
 
-**状态**：Approved（已纳入 PRODUCT.md §9.2，REQ-008）
+**状态**：Approved（已纳入 requirements/REQ-008.md，REQ-008）
 
 ## 5. 架构增量
 
@@ -122,7 +122,7 @@ SRS《排弹抢修指挥系统》v1.0 定义四阶段：探测 -> 识别 -> 规�
 
 ### 5.3 不新增
 
-- 不新建 SimulationSession（PRODUCT.md §9.3 排除范围，ARCHITECTURE.md §9.2 约束）。
+- 不新建 SimulationSession（requirements/ 排除范围，ARCHITECTURE.md §9.2 约束）。
 - 不把 SimulationWorkflow 改为 QObject + 六信号（那是 REQ-001/004 全量方案，本功能不全量重构）。
 - 不新增通用 Repository、Store、服务容器、事件总线或预留外部接口（ARCHITECTURE.md §9.2）。
 - 不删除 SituationView/Qt3D 代码（保留，后续清理）。
@@ -208,8 +208,8 @@ SRS《排弹抢修指挥系统》v1.0 定义四阶段：探测 -> 识别 -> 规�
 
 | 文档 | 变更 |
 |------|------|
-| `docs/PRODUCT.md` §9.2 | 新增 REQ-008，状态从 Draft 升级为 Approved（REQ-007 已被 MOS 占用） |
-| `docs/PRODUCT.md` §9.3 | 包含范围补充探测阶段动态演示 |
+| `docs/requirements/REQ-008.md` | 新增 REQ-008，状态从 Draft 升级为 Approved（REQ-007 已被 MOS 占用） |
+| `docs/requirements/README.md` | 包含范围补充探测阶段动态演示 |
 | `docs/ARCHITECTURE.md` §4 | 状态所有权表补充 DetectionTimelineController（探测脚本数据） |
 | `docs/ARCHITECTURE.md` §6 | 结构问题表更新：Qt3D 降级为 2D 已处理；视频占位已处理 |
 | `docs/UI.md` §4.3 | 中央工作区矩阵更新：2D 战术地图 + UAV-1 视频区 |

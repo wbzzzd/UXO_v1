@@ -7,7 +7,7 @@
 - 本仓库交付 Qt 5 / CMake / C++17 桌面客户端 `UXOMissionControl`，不交付完整外部设备和安全执行系统。
 - `docs/PRODUCT.md`、`docs/ARCHITECTURE.md`、`docs/UI.md`、`docs/DEVELOPMENT.md` 是当前核心基线，分别负责产品、架构、界面和工程事实。
 - CURRENT 实现事实以源码、CMake 和实际验证结果为准；具体模块及启动过程见 `docs/ARCHITECTURE.md`。
-- SRS、SDD、旧 UI 设计和功能草案仅作为来源资料；`docs/sources/` 收录上游来源，`docs/prd/` 收录 Draft PRD 需求定义，`docs/architecture/` 收录从 ARCHITECTURE.md 拆出的架构细节与历史架构草稿，`docs/ddr/` 收录历史决策记录，已被核心基线取代的工程快照归档于 `docs/archive/core-baselines/`；与核心基线冲突时不得直接指导实现。
+- SRS、SDD、旧 UI 设计和功能草案仅作为来源资料；`docs/sources/` 收录上游来源，`docs/architecture/` 收录从 ARCHITECTURE.md 拆出的架构细节与历史架构草稿，`docs/ddr/` 收录历史决策记录，已被核心基线取代的工程快照归档于 `docs/archive/core-baselines/`；与核心基线冲突时不得直接指导实现。
 - 当前 NEXT 仍是草稿，完成对应设计评审并获得用户确认前不得实施。
 
 ## 安全边界
@@ -21,13 +21,13 @@
 ## 开发流程
 
 - `AGENTS.md` 是默认常驻上下文；不要在每次任务中无差别读取全部核心文档。
-- 产品范围、需求或路线任务：读取 `docs/PRODUCT.md`。
+- 产品范围或路线任务：读取 `docs/PRODUCT.md`；需求状态任务：读取 `docs/requirements/`。
 - 状态、模块、依赖或业务逻辑任务：读取相关需求及 `docs/ARCHITECTURE.md`、`docs/DEVELOPMENT.md`。
 - 页面或交互任务：读取相关需求及 `docs/UI.md`、`docs/DEVELOPMENT.md`；涉及状态边界时再读 `docs/ARCHITECTURE.md`。
 - 构建、测试、发布或工程流程任务：读取 `docs/DEVELOPMENT.md`。
 - 功能开发：读取获批的 `docs/features/<feature>.md` 和它明确引用的核心文档章节，不遍历全部历史资料。
-- `docs/PRODUCT.md` 第 9 节是项目唯一需求注册表与状态权威，唯一负责分配 `REQ-NNN` ID 和 `Draft`/`Approved`/`Implemented`/`Superseded` 状态；其他文档只能引用需求 ID，不得创建或重编号需求，也不得复制或修改需求状态。
-- 功能开发与执行计划必须同时满足两项前提：关联的 `REQ-NNN` 在 `PRODUCT.md` 中状态为 `Approved`，且对应 `docs/features/<feature>.md` 自身状态为 `Approved`；`Draft` 需求或 `Draft` 功能设计不得进入实现计划。
+- `docs/requirements/` 是项目唯一需求注册表与状态权威，唯一负责分配 `REQ-NNN` ID 和 `Draft`/`Approved`/`Implemented`/`Superseded` 状态；其他文档只能引用需求 ID，不得创建或重编号需求，也不得复制或修改需求状态。
+- 功能开发与执行计划必须同时满足两项前提：关联的 `REQ-NNN` 在 `docs/requirements/` 中状态为 `Approved`，且对应 `docs/features/<feature>.md` 自身状态为 `Approved`；`Draft` 需求或 `Draft` 功能设计不得进入实现计划。
 - `TARGET`、`NEXT 草稿` 和归档资料不得直接触发实现。
 - 多文件或架构性修改必须先计划，得到用户确认后再实现。
 - 修改前检查 `git status --short`，不要还原、覆盖或提交用户已有改动。
@@ -64,7 +64,7 @@ cmake --build build --target UXOMissionControl -j2
 ## 文档纪律
 
 - `README.md` 只做入口导航。
-- 四份核心文档是默认开发入口；已被核心基线取代的工程快照移至 `docs/archive/core-baselines/`，上游来源资料归入 `docs/sources/`，Draft PRD 需求定义归入 `docs/prd/`，ARCHITECTURE.md 架构细节与历史架构草稿归入 `docs/architecture/`，历史决策记录归入 `docs/ddr/`。
+- 四份核心文档是默认开发入口；已被核心基线取代的工程快照移至 `docs/archive/core-baselines/`，上游来源资料归入 `docs/sources/`，ARCHITECTURE.md 架构细节与历史架构草稿归入 `docs/architecture/`，历史决策记录归入 `docs/ddr/`。
 - `docs/features/` 只放功能增量设计；`Draft` 文档不能直接指导实现。
 - `docs/archive/` 与 `docs/research/` 不进入默认开发上下文，仅在追溯历史或验证依据时读取。
 - `.omo/rules/` 放项目级 OMO 规则；`.omo/plans/` 放可评审计划；`.omo/run-continuation/` 等运行态数据不得提交。

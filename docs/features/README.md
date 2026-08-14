@@ -40,6 +40,6 @@
 
 ## 需求关联与状态
 
-- `关联产品需求` 字段只能引用 `docs/PRODUCT.md` 第 9 节分配的 `REQ-NNN`；`PRODUCT.md` 是需求 ID 与需求状态的唯一权威。
+- `关联产品需求` 字段只能引用 `docs/requirements/` 分配的 `REQ-NNN`；`docs/requirements/` 是需求 ID 与需求状态的唯一权威。
 - 功能文档只管理自身的设计评审状态（`Draft`/`Approved`/`Implemented`/`Superseded`），不得在文档内复制、改写或覆盖 `REQ-NNN` 的需求状态。
 - `Draft` 需求或 `Draft` 功能设计不得进入实现计划；进入 `.omo/plans/` 执行计划前，关联需求与功能文档自身都必须为 `Approved`。

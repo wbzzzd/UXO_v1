@@ -1,7 +1,7 @@
 # 无人机探测态势演示
 
 状态：Implemented
-关联产品需求：REQ-009（PRODUCT.md §9.2，Approved）
+关联产品需求：REQ-009（requirements/REQ-009.md，Approved）
 关联版本：待确认
 
 ## 1. 问题与目标
@@ -53,7 +53,7 @@ REQ-008（时间线驱动方案）已被标记为 `Superseded`，本功能（REQ
 - **不做决策页/规划工作区**：跑道画布/三方案/算法参数属于后续规划阶段。
 - **不做数据层全量重构**：不新建 SimulationSession，不把 SimulationWorkflow 改为 QObject + 六信号（那是 REQ-001/004 的全量方案）。本功能在现有 MainWindow 手工同步模式上增量改造。
 - **不删除 Qt3D 代码**：`SituationView.cpp/h` 和 Qt3D 依赖保留，后续确认不再用 Qt3D 再处理。
-- **不做真实设备控制、真实排爆、外部通信、持久化、UXR、MOS**（PRODUCT.md §9.3 排除范围）。
+- **不做真实设备控制、真实排爆、外部通信、持久化、UXR、MOS**（requirements/ 排除范围）。
 - **不做识别/规划/排弹阶段**（各自独立功能）。
 - **不做真实视频分析/AI 目标识别**：检测模拟器内部用预设数据驱动，但接口贴合真实检测器输出格式。
 - **不做真实无人机飞控**：遥测模拟器内部用预设航线，但接口贴合真实遥测输出格式。
@@ -134,7 +134,7 @@ REQ-008（时间线驱动方案）已被标记为 `Superseded`，本功能（REQ
 
 ### 5.4 不新增
 
-- 不新建 SimulationSession（PRODUCT.md §9.3 排除范围，ARCHITECTURE.md §9.2 约束）。
+- 不新建 SimulationSession（requirements/ 排除范围，ARCHITECTURE.md §9.2 约束）。
 - 不把 SimulationWorkflow 改为 QObject + 六信号（那是 REQ-001/004 全量方案）。
 - 不新增通用 Repository、Store、服务容器、事件总线或预留外部接口（ARCHITECTURE.md §9.2）。
 - 不删除 SituationView/Qt3D 代码（保留，后续清理）。
@@ -261,8 +261,8 @@ DroneTelemetrySimulator -> telemetryUpdated(lat, lng, alt, heading)
 
 | 文档 | 变更 |
 |------|------|
-| `docs/PRODUCT.md` §9.2 | REQ-008 标记为 `Superseded`，新增 REQ-009 |
-| `docs/PRODUCT.md` §9.3 | 包含范围更新为 REQ-009 描述 |
+| `docs/requirements/REQ-008.md` | REQ-008 标记为 `Superseded`，新增 REQ-009 |
+| `docs/requirements/README.md` | 包含范围更新为 REQ-009 描述 |
 | `docs/ARCHITECTURE.md` §4 | 状态所有权表更新：`DetectionTimelineController` -> `DroneTelemetrySimulator` + `DetectionSimulator` |
 | `docs/UI.md` §4.3 | 中央工作区矩阵更新：卫星底图 + 经纬度坐标 + 无人机航迹 |
 

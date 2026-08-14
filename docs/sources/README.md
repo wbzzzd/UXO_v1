@@ -8,18 +8,18 @@
 
 当来源资料与下列当前权威冲突时，一律以当前权威为准：
 
-- [`../PRODUCT.md`](../PRODUCT.md)：产品范围与需求注册表（第 9 节是 `REQ-NNN` ID 与状态的唯一权威）
+- [`../PRODUCT.md`](../PRODUCT.md)：产品范围与路线
+- [`../requirements/`](../requirements/)：需求注册表（`REQ-NNN` ID 与状态的唯一权威）
 - [`../ARCHITECTURE.md`](../ARCHITECTURE.md)：模块、状态所有权、依赖、运行流程
 - [`../UI.md`](../UI.md)：信息架构、交互、页面状态、设计系统契约
 - [`../DEVELOPMENT.md`](../DEVELOPMENT.md)：构建、测试、质量门禁、完成定义
 - [`../../AGENTS.md`](../../AGENTS.md)：项目规则、安全边界、开发流程
 
-来源资料不得直接指导实现。任何来自来源资料的需求或设计若要进入实现，必须先通过 [`../PRODUCT.md`](../PRODUCT.md) 第 9 节的需求状态提升为 `Approved`，并经对应 [`../features/`](../features/) 功能增量设计评审获得 `Approved` 状态。`Draft` 需求或 `Draft` 功能设计不进入实现计划。
+来源资料不得直接指导实现。任何来自来源资料的需求或设计若要进入实现，必须先通过 [`../requirements/`](../requirements/) 的需求状态提升为 `Approved`，并经对应 [`../features/`](../features/) 功能增量设计评审获得 `Approved` 状态。`Draft` 需求或 `Draft` 功能设计不进入实现计划。
 
 ## 与其他目录的区别
 
-- [`../archive/`](../archive/)：已被核心基线取代、不再直接指导当前开发的内部工程快照。来源资料则是上游原始输入，未被内部基线"取代"，只是不再具备当前事实权威。
-- [`../prd/`](../prd/)：内部 PM 撰写的 Draft PRD 需求定义，位于上游来源与功能增量设计之间。
+- [`../archive/`](../archive/)：已被核心基线取代、不再直接指导当前开发的内部工程快照（含已归档的 Draft PRD）。来源资料则是上游原始输入，未被内部基线"取代"，只是不再具备当前事实权威。
 - [`../architecture/`](../architecture/)：从 ARCHITECTURE.md 拆出的架构细节子文档与历史架构草稿。
 - [`../research/`](../research/)：研发阶段的技术调研与可行性证据，不直接成为需求。
 
@@ -29,7 +29,7 @@
 
 | 文件 | 类别 | 格式 | 角色 | 当前替代/权威 | 风险提示 |
 |------|------|------|------|---------------|----------|
-| [`SRS排弹抢修指挥系统_v1.0.md`](SRS排弹抢修指挥系统_v1.0.md) | 需求来源 | Markdown | 软件需求规格说明书来源 | [`../PRODUCT.md`](../PRODUCT.md) 需求注册表 | 含大量尚未实现模块和真实设备控制/排弹动作描述，不代表 CURRENT 实现 |
+| [`SRS排弹抢修指挥系统_v1.0.md`](SRS排弹抢修指挥系统_v1.0.md) | 需求来源 | Markdown | 软件需求规格说明书来源 | [`../requirements/`](../requirements/) 需求注册表 | 含大量尚未实现模块和真实设备控制/排弹动作描述，不代表 CURRENT 实现 |
 | [`排弹方案0919.docx`](排弹方案0919.docx) | 需求来源 | Word 文档 | 系统总体设计方案 | [`../PRODUCT.md`](../PRODUCT.md)、[`../ARCHITECTURE.md`](../ARCHITECTURE.md) | 含真实设备参数与作业流程描述，属上游设计输入，非已实现事实 |
 | [`SDD排弹抢修指挥系统_v1.0.md`](SDD排弹抢修指挥系统_v1.0.md) | 架构来源 | Markdown | 软件设计说明书来源 | [`../ARCHITECTURE.md`](../ARCHITECTURE.md) | 描述的是目标架构，不代表其中每个模块都已在代码中实现 |
 | [`排弹抢修系统指挥席客户端 软件前端UI详细设计说明书.txt`](排弹抢修系统指挥席客户端%20软件前端UI详细设计说明书.txt) | UI 来源 | 纯文本 | 前端 UI 详细设计来源 | [`../UI.md`](../UI.md)、[`../ui/`](../ui/) | 含未实现页面与状态描述，不代表当前 UI 实现 |
@@ -38,7 +38,7 @@
 | [`排弹抢修系统_硬件功能设计说明书_v2.2.md`](排弹抢修系统_硬件功能设计说明书_v2.2.md) | 硬件来源 | Markdown | 硬件功能设计来源 | [`../ARCHITECTURE.md`](../ARCHITECTURE.md) | 含真实设备功能需求与作业流程描述，属上游设计输入，非已实现事实 |
 | [`硬件设备技术规格说明书_v1.0.md`](硬件设备技术规格说明书_v1.0.md) | 硬件来源 | Markdown | 硬件设备规格来源 | [`../ARCHITECTURE.md`](../ARCHITECTURE.md) | 含真实设备技术规格，属上游设计输入，非已实现事实 |
 
-> Draft PRD（`prd-mos.md`、`prd-uxr.md`）已迁至 [`../prd/`](../prd/)，架构草稿（`architecture-mos.md` 及 3 份 Mermaid 图）已迁至 [`../architecture/`](../architecture/)。
+> Draft PRD（`prd-mos.md`、`prd-uxr.md`）已归档至 [`../archive/requirements/`](../archive/requirements/)，架构草稿（`architecture-mos.md` 及 3 份 Mermaid 图）已迁至 [`../architecture/`](../architecture/)。
 
 ## Git 追溯与字节保留说明
 

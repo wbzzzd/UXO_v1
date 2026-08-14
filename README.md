@@ -21,10 +21,9 @@
 
 ## 来源资料与设计输入
 
-原始上游来源资料归入 [`docs/sources/`](./docs/sources/README.md)，Draft PRD 需求定义归入 [`docs/prd/`](./docs/prd/README.md)，架构细节子文档与历史架构草稿归入 [`docs/architecture/`](./docs/architecture/README.md)。来源资料与 Draft PRD 仅作溯源与证据引用，不代表 CURRENT 实现事实或 Approved 需求。
+原始上游来源资料归入 [`docs/sources/`](./docs/sources/README.md)，架构细节子文档与历史架构草稿归入 [`docs/architecture/`](./docs/architecture/README.md)。来源资料仅作溯源与证据引用，不代表 CURRENT 实现事实或 Approved 需求。
 
 - [来源资料索引](./docs/sources/README.md)
-- [Draft PRD 需求定义](./docs/prd/README.md)
 - [架构细节与历史草稿](./docs/architecture/README.md)
 - [研究资料](./docs/research/)
 - [历史文档归档说明](./docs/archive/README.md)
