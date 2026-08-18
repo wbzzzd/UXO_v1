@@ -1,6 +1,6 @@
 # 探测页面设计
 
-状态：`TARGET / Draft / 设计评审原型 / 本地模拟`
+状态：`CURRENT 部分实现（AI 自动检测工作流）/ TARGET 契约保留`
 上级：[docs/ui/README.md](../README.md)
 设计系统：[docs/ui/design-system.md](../design-system.md)
 应用壳：[docs/ui/application-shell.md](../application-shell.md)
@@ -11,13 +11,15 @@
 > 本文是探测页面（detection page）的完整设计契约。每个交互控件拥有稳定 `DET-*` ID 与全字段规格。HTML 原型实现必须以本文为唯一依据，控件 ID、区域结构和状态规则不得在实现阶段自行变更。所有视觉值取自 `design-system.md`。
 
 CURRENT 来源：
-- **本页在 CURRENT Qt 客户端中未实现为独立页面。** 以下 CURRENT 映射指向态势页复用子组件或标注"未实现"。
+- **本页已实现为导航 index 1 独立页面（`DetectionView`，objectName `detectionPage`）。** 视频（态势页 PiP）每 3 秒抽帧送 `DetectionEngine` 真实 ONNX 推理，结果自动填充左侧结果表；点击行查看干净原图 + 分类结果（异常热力图在右侧独立模块展示），确认/拒绝（误报）人工二次校验联动目标状态机。
 - 导航栏/菜单栏/工具栏/状态栏：见 [`application-shell.md`](../application-shell.md)
-- 态势页复用子组件：
-  - [`src/MainWindow/LeftPanelWidget.cpp`](../../../src/MainWindow/LeftPanelWidget.cpp)（搜索框、目标表、刷新）
-  - [`src/MainWindow/DetectionControlPanel.cpp`](../../../src/MainWindow/DetectionControlPanel.cpp)（模拟确认按钮、目标/状态标签）
-  - [`src/MainWindow/DecisionSuggestionPanel.cpp`](../../../src/MainWindow/DecisionSuggestionPanel.cpp)（目标详情字段）
+- 页面实现与关联组件：
+  - [`src/MainWindow/DetectionView.cpp`](../../../src/MainWindow/DetectionView.cpp)（探测页布局与结果交互）
+  - [`src/Detection/DetectionEngine.cpp`](../../../src/Detection/DetectionEngine.cpp)（PatchCore + YOLOv8-cls 双阶段 ONNX 推理）
+  - [`src/MainWindow/VideoStreamPanel.cpp`](../../../src/MainWindow/VideoStreamPanel.cpp)（视频播放与每 3 秒抽帧）
+  - [`src/MainWindow/LeftPanelWidget.cpp`](../../../src/MainWindow/LeftPanelWidget.cpp)（态势页目标表，与探测页/详情浮层三向联动）
   - [`include/Core/Data/Types.h`](../../../include/Core/Data/Types.h)（数据类型枚举）
+- 功能契约：[`docs/features/detection-onnx-integration.md`](../features/detection-onnx-integration.md)
 
 ## 1. 页面概述
 

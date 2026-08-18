@@ -204,7 +204,7 @@
 
 - **结构**：`QLabel` 或自定义 `QWidget`，`aspectRatioMode` 保持 16:9，最小高 `Sizes::EvidenceViewportHeight = 180px`，宽填满浮层内容区（316px）。背景 `Colors::EvidenceViewport #161616`，1px `Border` 边框，3px 圆角。
 - **内容**：冻结标注截图（`QImage`），与实时视频 PiP 区分--视频 PiP 是实时流且 HUD-only（十字准星、REC、遥测 LAT/LON/ALT/HDG、时间码），证据视口是冻结快照。视口内只读，不可裁剪、不可缩放交互（最小实现）。
-- **所有权与生命周期**：冻结 `QImage` 由 `MainWindow` 内存持有，按目标 ID 索引；检测发生时（`DetectionSimulator::detectionOccurred`）捕获并标注，仅在详情浮层显示（detail-only）。[结束] 保留已有证据（`onStopDetection` 保留目标/侧栏/选中），[重置] 清空（`onResetDetection` 清空目标/冻结证据/航迹）。不持久化到磁盘，进程结束即释放。
+- **所有权与生命周期**：冻结 `QImage` 由 `MainWindow` 内存持有，按目标 ID 索引；检测发生时（`DetectionEngine::imageAnalyzed` 异常帧）捕获引擎热力图叠加图（`heatmapOverlay`，已含标注），仅在详情浮层显示（detail-only）。[结束] 保留已有证据（`onStopDetection` 保留目标/侧栏/选中），[重置] 清空（`onResetDetection` 清空目标/冻结证据/航迹）。不持久化到磁盘，进程结束即释放。
 - **冻结标识**：左上角小 chip，`CaptionSize`，`TextSecondary` 文本 "证据快照（已冻结）"，`PanelBackground` 半透明底，配锁形 SVG 图标。不新增颜色，复用现有 token。冻结语义由文字+图标承担，不靠新颜色。
 - **变体**：有证据（显示截图）/ 无证据（占位：`EvidenceViewport` 底 + `TextDisabled` "暂无证据快照[模拟]"）/ 待检测态（整个浮层为待检测提示，视口不显示）。
 - **状态**：默认只读。无 hover/active 交互（非交互元素，符合"motion serves meaning"）。
