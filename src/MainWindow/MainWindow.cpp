@@ -8,12 +8,13 @@
 #include "MainWindow/DeviceResourceBar.h"
 #include "MainWindow/TargetDetailOverlay.h"
 #include "MainWindow/DecisionView.h"
+#include "MainWindow/DetectionView.h"
 #include "MainWindow/MosPlanningController.h"
 
 #include "Core/Data/Types.h"
 #include "Core/Simulation/DemoScenarioProvider.h"
 #include "Core/Simulation/DroneTelemetrySimulator.h"
-#include "Core/Simulation/DetectionSimulator.h"
+#include "Detection/DetectionEngine.h"
 #include "Core/MOS/MosFixtureGenerator.h"
 #include "Common/GlobalStyle.h"
 
@@ -33,8 +34,6 @@
 #include <QResizeEvent>
 #include <QDebug>
 #include <QtMath>
-#include <QPainter>
-#include <QFontMetrics>
 
 // PiP 尺寸常量
 namespace {
@@ -46,7 +45,7 @@ constexpr int kPipMargin = 12;
 constexpr int kMapToolbarHeight = 32;
 
 // 模拟素材路径（演示用，真实系统从配置加载）
-const char* const kVideoPath = "/home/lin/uxo-assets/video/perth_airport_drone_edit.mp4";
+const char* const kVideoPath = "/home/lin/uxo-assets/video/perth_airport_drone_uxo.mp4";
 const char* const kSatellitePath = "/home/lin/uxo-assets/satellite/shenyang_yuhong_satellite.png";
 
 // 视频时长（秒），与 DroneTelemetrySimulator 航线时长一致
@@ -74,7 +73,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_stopBtn(nullptr)
     , m_resetBtn(nullptr)
     , m_droneSimulator(nullptr)
-    , m_detectionSimulator(nullptr)
+    , m_detectionEngine(nullptr)
     , m_pageStack(nullptr)
     , m_situationPage(nullptr)
     , m_decisionView(nullptr)
@@ -112,13 +111,21 @@ void MainWindow::setupUi()
     createMenuBar();
     createMainLayout();
 
-    // 创建模拟器（在 createConnections 之前，供信号槽接线）
+    // 创建遥测模拟器与 AI 检测引擎（在 createConnections 之前，供信号槽接线）
     m_droneSimulator = new Core::Simulation::DroneTelemetrySimulator(this);
-    m_detectionSimulator = new Core::Simulation::DetectionSimulator(this);
+    m_detectionEngine = new DetectionEngine(this);
+    m_detectionEngine->setObjectName(QStringLiteral("detectionEngine"));
 
     createMapToolbar();
     createStatusBar();
     createConnections();
+
+    // AI 检测引擎: 加载 ONNX 模型（createConnections 之后 error 信号已接线，
+    // 失败时 initialize 返回 false 并 emit error -> 状态栏告警）
+    const QString modelsDir = QStringLiteral(DETECTION_ASSETS_DIR) + QStringLiteral("/models");
+    m_detectionEngine->initialize(modelsDir + QStringLiteral("/patchcore_512.onnx"),
+                                  modelsDir + QStringLiteral("/yolov8_cls_224.onnx"),
+                                  modelsDir + QStringLiteral("/patchcore_params.json"));
 
     repositionFloatingWidgets();
 }
@@ -223,11 +230,16 @@ void MainWindow::createMainLayout()
     // 中心区加入态势工作区布局
     situationLayout->addWidget(centerArea, 1);
 
-    // MOS 决策页：页面栈 index 1
+    // 探测页：页面栈 index 1
+    m_detectionView = new DetectionView;
+    m_detectionView->setObjectName(QStringLiteral("detectionPage"));
+
+    // MOS 决策页：页面栈 index 2
     m_decisionView = new DecisionView;
     m_decisionView->setObjectName(QStringLiteral("mosDecisionPage"));
-    m_pageStack->addWidget(m_situationPage);
-    m_pageStack->addWidget(m_decisionView);
+    m_pageStack->addWidget(m_situationPage);    // index 0
+    m_pageStack->addWidget(m_detectionView);     // index 1
+    m_pageStack->addWidget(m_decisionView);      // index 2
     m_pageStack->setCurrentIndex(0);
     mainLayout->addWidget(m_pageStack, 1);
 
@@ -323,13 +335,19 @@ void MainWindow::createConnections()
     connect(m_leftPanel, &LeftPanelWidget::refreshSimulationRequested,
             this, &MainWindow::onRefreshSimulationRequested);
 
-    // 视频位置 -> 检测模拟器
-    connect(m_videoPiP, &VideoStreamPanel::positionChanged,
-            m_detectionSimulator, &Core::Simulation::DetectionSimulator::onPositionChanged);
+    // 视频抽帧 -> AI 检测引擎异步分析
+    connect(m_videoPiP, &VideoStreamPanel::frameExtracted,
+            m_detectionEngine, &DetectionEngine::analyzeFrame);
 
-    // 检测模拟器 -> 目标生成 + 四区同步
-    connect(m_detectionSimulator, &Core::Simulation::DetectionSimulator::detectionOccurred,
-            this, &MainWindow::onDetectionOccurred);
+    // AI 分析结果 -> 目标生成 + 四区同步
+    connect(m_detectionEngine, &DetectionEngine::imageAnalyzed,
+            this, &MainWindow::onFrameAnalyzed);
+
+    // 引擎错误 -> 状态栏告警
+    connect(m_detectionEngine, &DetectionEngine::error,
+            this, [this](const QString& message) {
+        m_statusBarWidget->addAlarm(QStringLiteral("[AI] 检测引擎错误: %1").arg(message));
+    });
 
     // 无人机遥测 -> 地图无人机标记 + 航迹 + 视频 HUD
     connect(m_droneSimulator, &Core::Simulation::DroneTelemetrySimulator::telemetryUpdated,
@@ -359,6 +377,14 @@ void MainWindow::createConnections()
     connect(m_targetDetailOverlay, &TargetDetailOverlay::viewHistoryRequested,
             this, &MainWindow::onViewHistoryRequested);
 
+    // 探测页: 人工校验 -> 工作流状态流转; 选中结果行 -> 三向联动
+    connect(m_detectionView, &DetectionView::targetConfirmed,
+            this, &MainWindow::onTargetConfirmed);
+    connect(m_detectionView, &DetectionView::targetRejected,
+            this, &MainWindow::onTargetRejected);
+    connect(m_detectionView, &DetectionView::resultSelected,
+            this, &MainWindow::onSelectTargetEverywhere);
+
     // MOS P0 决策页接线
     // mosStateChanged 不自动触发 setSnapshot：档位选择 emit 该信号后同步全量重建会
     // 在 PlanCardWidget 信号链中删除发信控件。改为 requestReplan/replaceObstacles 后
@@ -387,7 +413,7 @@ void MainWindow::createConnections()
     });
 }
 
-// 加载模拟演示场景：设备/任务/航线/检测数据/卫星图/视频
+// 加载模拟演示场景：设备/任务/航线/卫星图/视频
 // 空起步：不自动播放，等待用户点击 [开始]
 void MainWindow::loadMockData()
 {
@@ -425,9 +451,6 @@ void MainWindow::loadMockData()
     // 无人机遥测模拟器: 加载航线
     m_droneSimulator->loadRoute(scenario.droneRoute, kVideoDurationSec);
 
-    // 检测模拟器: 加载检测数据
-    m_detectionSimulator->loadDetections(scenario.detections);
-
     // MOS 初始规划：seed=42 生成确定性 fixture，同步触发首次 replan 后显式推送快照
     if (m_decisionView && m_mosController) {
         Core::MOS::MosRunwayParams runwayParams;
@@ -439,32 +462,29 @@ void MainWindow::loadMockData()
     }
 }
 
-// [开始]: 播放视频 + 启动遥测和检测模拟器
+// [开始]: 播放视频 + 启动遥测模拟器（视频抽帧定时器随播放自动启动）
 void MainWindow::onStartDetection()
 {
     m_videoPiP->play();
     m_droneSimulator->start();
-    m_detectionSimulator->start();
-    m_statusBarWidget->addAlarm(QStringLiteral("[模拟] 探测已开始"));
+    m_statusBarWidget->addAlarm(QStringLiteral("探测已开始"));
 }
 
-// [结束]: 停止视频并回 0s + 停止模拟器（保留目标/地图/侧栏/选中状态）
+// [结束]: 停止视频并回 0s + 停止遥测模拟器（保留目标/地图/侧栏/选中状态）
 void MainWindow::onStopDetection()
 {
-    m_videoPiP->stop();
+    m_videoPiP->pause();
     m_videoPiP->seek(0);
     m_droneSimulator->stop();
-    m_detectionSimulator->stop();
-    m_statusBarWidget->addAlarm(QStringLiteral("[模拟] 探测已结束，视频回 0s"));
+    m_statusBarWidget->addAlarm(QStringLiteral("探测已结束，视频回 0s"));
 }
 
-// [重置]: 停止视频 + 复位模拟器 + 清空目标/检测框/航迹
+// [重置]: 停止视频 + 复位遥测模拟器 + 清空目标/检测框/航迹/探测页结果
 void MainWindow::onResetDetection()
 {
-    m_videoPiP->stop();
+    m_videoPiP->pause();
     m_videoPiP->seek(0);
     m_droneSimulator->reset();
-    m_detectionSimulator->reset();
 
     // 清空目标
     m_simulationWorkflow.reset({});
@@ -473,6 +493,7 @@ void MainWindow::onResetDetection()
     m_tacticalMap->clearDroneTrack();
     m_videoPiP->overlay()->clear();
     m_targetDetailOverlay->reset();
+    m_detectionView->clearResults();
 
     m_targetCounter = 0;
     m_evidenceByTargetId.clear();
@@ -482,7 +503,7 @@ void MainWindow::onResetDetection()
     m_currentDroneHeading = 0.0;
 
     repositionFloatingWidgets();
-    m_statusBarWidget->addAlarm(QStringLiteral("[模拟] 探测已重置"));
+    m_statusBarWidget->addAlarm(QStringLiteral("探测已重置"));
 }
 
 // 无人机遥测更新: 地图无人机标记 + 航迹 + 视频 HUD
@@ -501,64 +522,62 @@ void MainWindow::onTelemetryUpdated(double lat, double lng, double alt, double h
     m_videoPiP->overlay()->setTelemetry(lat, lng, alt, heading);
 }
 
-// 检测到目标: 生成 TargetInfo + 推算坐标 + 四区同步
-void MainWindow::onDetectionOccurred(const Core::DetectionResult& result)
+// AI 分析结果落地: 异常帧生成目标 + 四区同步; 正常帧仅记录到探测页
+void MainWindow::onFrameAnalyzed(const ImageDetectionResult& result)
 {
-    // 生成目标 ID
+    // 正常帧: 仅记录到探测页（无目标生成）
+    if (!result.hasAnomaly) {
+        m_detectionView->onFrameAnalyzed(result, QString());
+        return;
+    }
+
+    // 两阶段语义：PatchCore 标记异常后，还需 YOLO 分类确认才生成目标；
+    // 未获确认的异常帧与正常帧一样仅记录到探测页（对齐 Python 参考管线）
+    bool yoloConfirmed = false;
+    for (const ClassificationResult& c : result.classifications) {
+        if (c.bestClass >= 0) {
+            yoloConfirmed = true;
+            break;
+        }
+    }
+    if (!yoloConfirmed) {
+        m_detectionView->onFrameAnalyzed(result, QString());
+        return;
+    }
+
+    // 异常帧: 生成目标 ID + TargetInfo
     m_targetCounter++;
-    QString targetId = QStringLiteral("T-%1").arg(m_targetCounter, 3, 10, QLatin1Char('0'));
+    const QString targetId = QStringLiteral("T-%1").arg(m_targetCounter, 3, 10, QLatin1Char('0'));
+    const Core::TargetInfo target = createDetectedTarget(result, targetId);
 
-    // 推算目标地面坐标（经纬度）
-    double targetLat = 0.0;
-    double targetLng = 0.0;
-    calculateTargetCoord(m_currentDroneLat, m_currentDroneLng, m_currentDroneAlt,
-                         m_currentDroneHeading, result.videoRect, targetLat, targetLng);
-
-    // 构造 TargetInfo
-    // position: x=经度, y=纬度, z=高度(地面=0)
-    Core::TargetInfo target;
-    target.id = targetId;
-    target.type = result.type;
-    target.typeName = targetTypeName(result.type);
-    target.position = QVector3D(targetLng, targetLat, 0.0f);
-    target.confidence = result.confidence;
-    target.status = Core::TargetStatus::Detected;
-    target.threatLevel = Core::ThreatLevel::High;
-    target.detectTime = QDateTime::currentDateTime();
-    target.remark = QStringLiteral("[模拟] 无人机视频检测");
-
-    // 1. 目标表插行
+    // 1. 目标表插行 + 地图红点 + 工作流目标集
     m_leftPanel->addTargetRow(target);
-
-    // 2. 战术地图加红点（经纬度坐标）
     m_tacticalMap->addTarget(target);
-
-    // 3. 工作流追加目标
     m_simulationWorkflow.addTarget(target);
 
-    // 4. 状态栏告警
-    const QString alarmMsg = QStringLiteral("[模拟] 探测到目标 %1（%2）").arg(targetId, target.typeName);
-    m_statusBarWidget->addAlarm(alarmMsg);
+    // 2. 探测页记录异常帧（先入工作流，避免行选中联动查不到目标）
+    m_detectionView->onFrameAnalyzed(result, targetId);
 
-    // 5. 证据快照: 捕获当前视频帧 + 标注检测框 -> 冻结到内存
-    QImage snapshot = m_videoPiP->currentFrameSnapshot();
-    if (!snapshot.isNull()) {
-        annotateEvidenceImage(snapshot, result, targetId);
-    }
+    // 3. 状态栏告警
+    m_statusBarWidget->addAlarm(
+        QStringLiteral("[AI] 探测到目标 %1（%2）").arg(targetId, target.typeName));
+
+    // 4. 证据冻结: AI 红框标注图（无则回退热力图叠加图）+ 时间戳，不手工标注
     DetectionEvidence evidence;
-    evidence.annotatedImage = snapshot;
+    evidence.annotatedImage = result.annotatedImage.isNull()
+                                   ? result.heatmapOverlay
+                                   : result.annotatedImage;
     evidence.captureTime = target.detectTime;
-    evidence.videoPositionMs = m_videoPiP->position();
-    evidence.provenance = QStringLiteral("[模拟] 无人机视频检测");
+    evidence.videoPositionMs = result.timestampMs;
+    evidence.provenance = QStringLiteral("[AI] PatchCore+YOLO 自动检测");
     m_evidenceByTargetId.insert(targetId, evidence);
 }
 
-// 视频播放结束: 停止模拟器
+// 视频播放结束: 停止遥测模拟器
 void MainWindow::onVideoEnded()
 {
     m_droneSimulator->stop();
-    m_detectionSimulator->stop();
-    m_statusBarWidget->addAlarm(QStringLiteral("[模拟] 视频播放结束，探测完成"));
+    m_statusBarWidget->addAlarm(QStringLiteral("视频播放结束，探测完成"));
 }
 
 // 三向联动: 目标表/地图/视频框 任一选中 -> 同步其他两区
@@ -605,6 +624,16 @@ QString MainWindow::targetTypeName(Core::TargetType type) const
         return QStringLiteral("子母弹");
     case Core::TargetType::IED:
         return QStringLiteral("简易爆炸装置");
+    case Core::TargetType::Rocket:
+        return QStringLiteral("火箭弹");
+    case Core::TargetType::Mortar:
+        return QStringLiteral("迫击炮弹");
+    case Core::TargetType::Grenade:
+        return QStringLiteral("手榴弹");
+    case Core::TargetType::Projectile:
+        return QStringLiteral("投射物");
+    case Core::TargetType::Fuze:
+        return QStringLiteral("引信");
     default:
         return QStringLiteral("未知目标");
     }
@@ -646,62 +675,135 @@ void MainWindow::calculateTargetCoord(double droneLat, double droneLng, double d
     outLng = droneLng + deltaLng;
 }
 
-void MainWindow::annotateEvidenceImage(QImage& image, const Core::DetectionResult& result,
-                                        const QString& targetId) const
+Core::TargetType MainWindow::targetTypeFromClassName(const QString& className) const
 {
-    if (image.isNull()) {
-        return;
+    if (className == QLatin1String("aircraft-bombs")) {
+        return Core::TargetType::AirBomb;
+    }
+    if (className == QLatin1String("landmines")) {
+        return Core::TargetType::AntiRunwayMine;
+    }
+    if (className == QLatin1String("rockets")) {
+        return Core::TargetType::Rocket;
+    }
+    if (className == QLatin1String("submunitions")) {
+        return Core::TargetType::ClusterBomb;
+    }
+    if (className == QLatin1String("mortars")) {
+        return Core::TargetType::Mortar;
+    }
+    if (className == QLatin1String("grenades")) {
+        return Core::TargetType::Grenade;
+    }
+    if (className == QLatin1String("projectiles")) {
+        return Core::TargetType::Projectile;
+    }
+    if (className == QLatin1String("fuzes")) {
+        return Core::TargetType::Fuze;
+    }
+    return Core::TargetType::Other;
+}
+
+Core::TargetInfo MainWindow::createDetectedTarget(const ImageDetectionResult& result,
+                                                  const QString& targetId) const
+{
+    // 置信度最高的有效分类；onFrameAnalyzed 已按 YOLO 确认门控，
+    // 无分类分支仅为防御性兜底，置信度不再回退异常分数（此前会显示 >100%）
+    const ClassificationResult *bestClass = nullptr;
+    for (const ClassificationResult& c : result.classifications) {
+        if (c.bestClass >= 0 && (bestClass == nullptr || c.confidence > bestClass->confidence)) {
+            bestClass = &c;
+        }
+    }
+    const PatchResult *worstPatch = nullptr;
+    for (const PatchResult& p : result.patches) {
+        if (p.isAnomalous && (worstPatch == nullptr || p.normalizedScore > worstPatch->normalizedScore)) {
+            worstPatch = &p;
+        }
     }
 
-    QPainter painter(&image);
-    painter.setRenderHint(QPainter::Antialiasing);
-
-    // 归一化坐标 [0,1] -> 像素坐标
-    const int imgW = image.width();
-    const int imgH = image.height();
-    const QRectF pixelRect(
-        result.videoRect.x() * imgW,
-        result.videoRect.y() * imgH,
-        result.videoRect.width() * imgW,
-        result.videoRect.height() * imgH);
-
-    QPen pen(GlobalStyle::Colors::ThreatHigh);
-    pen.setWidth(2);
-    painter.setPen(pen);
-    painter.setBrush(Qt::NoBrush);
-    painter.drawRect(pixelRect);
-
-    // 标签条（目标 ID + 置信度），检测框上方；若超出图像顶部则下移到框内
-    const QString label = QStringLiteral("%1 %2%")
-        .arg(targetId)
-        .arg(static_cast<int>(result.confidence * 100));
-    QFont font = painter.font();
-    font.setPointSize(10);
-    font.setBold(true);
-    painter.setFont(font);
-
-    const QFontMetrics fm(font);
-    const int labelW = fm.horizontalAdvance(label) + 8;
-    const int labelH = fm.height() + 4;
-    const qreal labelX = pixelRect.x();
-    qreal labelY = pixelRect.y() - labelH;
-    if (labelY < 0) {
-        labelY = pixelRect.y();
+    Core::TargetInfo target;
+    target.id = targetId;
+    if (bestClass != nullptr) {
+        target.type = targetTypeFromClassName(bestClass->bestClassName);
+        target.confidence = bestClass->confidence;
+    } else {
+        target.type = Core::TargetType::Other;
+        target.confidence = 0.0f;
     }
-    painter.fillRect(QRectF(labelX, labelY, labelW, labelH), QColor(0, 0, 0, 160));
-    painter.setPen(GlobalStyle::Colors::TextPrimary);
-    painter.drawText(QRectF(labelX, labelY, labelW, labelH), Qt::AlignCenter, label);
+    target.typeName = targetTypeName(target.type);
+
+    // UXO 紧包框 -> 归一化视频框（与引擎红框同源）；无有效框时回退格子框（4x4 网格，每格 0.25）
+    const PatchResult *selPatch = nullptr;
+    if (bestClass != nullptr) {
+        for (const PatchResult& p : result.patches) {
+            if (p.row == bestClass->patchRow && p.col == bestClass->patchCol) {
+                selPatch = &p;
+                break;
+            }
+        }
+    }
+    if (selPatch == nullptr) {
+        selPatch = worstPatch;
+    }
+    QRectF videoRect(0.0, 0.0, 0.25, 0.25);
+    if (selPatch != nullptr && selPatch->targetRect.isValid()) {
+        const qreal kInvImage = 1.0 / static_cast<qreal>(DetectionConst::IMAGE_SIZE);
+        videoRect = QRectF(static_cast<qreal>(selPatch->targetRect.x()) * kInvImage,
+                           static_cast<qreal>(selPatch->targetRect.y()) * kInvImage,
+                           static_cast<qreal>(selPatch->targetRect.width()) * kInvImage,
+                           static_cast<qreal>(selPatch->targetRect.height()) * kInvImage);
+    } else {
+        const int gridRow = (bestClass != nullptr) ? bestClass->patchRow
+                            : ((worstPatch != nullptr) ? worstPatch->row : 0);
+        const int gridCol = (bestClass != nullptr) ? bestClass->patchCol
+                            : ((worstPatch != nullptr) ? worstPatch->col : 0);
+        videoRect = QRectF(static_cast<qreal>(gridCol) / 4.0,
+                           static_cast<qreal>(gridRow) / 4.0,
+                           0.25, 0.25);
+    }
+
+    // 推算目标地面坐标（经纬度）
+    double targetLat = 0.0;
+    double targetLng = 0.0;
+    calculateTargetCoord(m_currentDroneLat, m_currentDroneLng, m_currentDroneAlt,
+                         m_currentDroneHeading, videoRect, targetLat, targetLng);
+
+    target.position = QVector3D(targetLng, targetLat, 0.0f);
+    target.status = Core::TargetStatus::Detected;
+    target.threatLevel = Core::ThreatLevel::High;
+    target.detectTime = QDateTime::currentDateTime();
+    target.remark = QStringLiteral("[AI] 视频抽帧分析");
+    return target;
+}
+
+void MainWindow::onTargetConfirmed(const QString& targetId)
+{
+    if (m_simulationWorkflow.selectTarget(targetId)
+            && m_simulationWorkflow.requestSelectedTargetStatus(Core::TargetStatus::Confirmed)) {
+        m_leftPanel->updateTargetStatus(targetId, Core::TargetStatus::Confirmed);
+    }
+}
+
+void MainWindow::onTargetRejected(const QString& targetId)
+{
+    if (m_simulationWorkflow.selectTarget(targetId)
+            && m_simulationWorkflow.markSelectedTargetFalseAlarm()) {
+        m_leftPanel->updateTargetStatus(targetId, Core::TargetStatus::FalseAlarm);
+    }
 }
 
 void MainWindow::onNavigationChanged(int index)
 {
     qDebug() << "Navigation changed to:" << index;
 
-    // P0 路由：导航 index 2（决策）切到 MOS 决策页，其余 index 保持态势工作区
+    // 路由：导航 index 1（探测）切到探测页，index 2（决策）切到 MOS 决策页，
+    // 其余 index 保持态势工作区
     if (!m_pageStack) {
         return;
     }
-    m_pageStack->setCurrentIndex(index == 2 ? 1 : 0);
+    int page = (index == 1) ? 1 : (index == 2) ? 2 : 0;
+    m_pageStack->setCurrentIndex(page);
 }
 
 void MainWindow::onRefreshSimulationRequested()
