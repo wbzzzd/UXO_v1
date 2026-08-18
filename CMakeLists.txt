@@ -13,6 +13,7 @@ find_package(Qt5 REQUIRED COMPONENTS
     Core
     Widgets
     Gui
+    Concurrent
     3DCore
     3DRender
     3DInput
@@ -30,8 +31,12 @@ find_package(PostgreSQL QUIET)
 set(HEADERS_DIR ${CMAKE_SOURCE_DIR}/include)
 set(SOURCES_DIR ${CMAKE_SOURCE_DIR}/src)
 
+# RPATH so the executable finds libonnxruntime.so at build time
+set(CMAKE_BUILD_RPATH "${CMAKE_SOURCE_DIR}/third_party/onnxruntime/lib")
+
 add_subdirectory(src/Common)
 add_subdirectory(src/Core)
+add_subdirectory(src/Detection)
 add_subdirectory(src/MainWindow)
 add_subdirectory(src/App)
 
