@@ -17,7 +17,12 @@ enum class TargetType {
     AntiRunwayMine,    // 反跑道雷
     CruiseMissile,     // 巡航导弹
     IED,               // 简易爆炸装置
-    Other              // 其他
+    Other,             // 其他
+    Rocket,            // 火箭弹
+    Mortar,            // 迫击炮弹
+    Grenade,           // 手榴弹
+    Projectile,        // 投射物
+    Fuze               // 引信
 };
 
 enum class ThreatLevel {

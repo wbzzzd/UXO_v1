@@ -11,7 +11,7 @@ void SimulationWorkflow::reset(const QVector<Core::TargetInfo> &targets)
     m_nextSequence = 1;
 }
 
-// 阶段4 探测脚本驱动: 运行时插入新目标并追加探测日志
+// 探测阶段驱动: 运行时插入 AI 检测新目标并追加探测日志
 // 目标 ID 已存在时不重复插入, 但仍追加日志 (避免脚本回放时重复插行)
 void SimulationWorkflow::addTarget(const Core::TargetInfo &target)
 {
@@ -23,7 +23,7 @@ void SimulationWorkflow::addTarget(const Core::TargetInfo &target)
               target.id,
               Core::TargetStatus::Unknown,
               target.status,
-              QStringLiteral("[模拟] 探测到目标 %1（%2，置信度 %3%）")
+              QStringLiteral("[AI] 探测到目标 %1（%2，置信度 %3%）")
                   .arg(target.id,
                        target.typeName,
                        QString::number(target.confidence * 100, 'f', 0)),
@@ -105,6 +105,44 @@ bool SimulationWorkflow::requestSelectedTargetStatus(Core::TargetStatus requeste
                   .arg(target->id,
                        simulationStatusText(currentStatus),
                        simulationStatusText(requestedStatus)),
+              timestampUtc);
+    return true;
+}
+
+// 探测页 [拒绝]: 选中目标判定为误报 (仅 Detected 状态允许流转到 FalseAlarm)
+bool SimulationWorkflow::markSelectedTargetFalseAlarm()
+{
+    Core::TargetInfo *target = findTarget(m_selectedTargetId);
+    if (target == nullptr) {
+        appendLog(SimulationOperationType::ActionRejected,
+                  QString(),
+                  Core::TargetStatus::Unknown,
+                  Core::TargetStatus::Unknown,
+                  QStringLiteral("[AI] 操作被拒绝：未选择目标"),
+                  QDateTime::currentDateTimeUtc());
+        return false;
+    }
+
+    if (target->status != Core::TargetStatus::Detected) {
+        appendLog(SimulationOperationType::ActionRejected,
+                  target->id,
+                  target->status,
+                  Core::TargetStatus::FalseAlarm,
+                  QStringLiteral("[AI] 操作被拒绝：目标 %1 不能从%2变更为误报")
+                      .arg(target->id, simulationStatusText(target->status)),
+                  QDateTime::currentDateTimeUtc());
+        return false;
+    }
+
+    const QDateTime timestampUtc = QDateTime::currentDateTimeUtc();
+    const Core::TargetStatus beforeStatus = target->status;
+    target->status = Core::TargetStatus::FalseAlarm;
+    target->updateTime = timestampUtc;
+    appendLog(SimulationOperationType::StatusChanged,
+              target->id,
+              beforeStatus,
+              Core::TargetStatus::FalseAlarm,
+              QStringLiteral("[AI] 目标 %1 判定为误报").arg(target->id),
               timestampUtc);
     return true;
 }
