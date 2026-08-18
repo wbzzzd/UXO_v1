@@ -214,7 +214,7 @@ QString getMainWindowStyle()
             min-height: 30px;
         }
         QScrollBar::handle:vertical:hover {
-            background: %10;
+            background: %3;
         }
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
             height: 0px;
@@ -228,6 +228,9 @@ QString getMainWindowStyle()
             background: %10;
             border-radius: 5px;
             min-width: 30px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background: %3;
         }
 
         /* 列表 */
@@ -317,7 +320,6 @@ QString getMainWindowStyle()
         QDockWidget {
             background-color: %15;
             color: %3;
-            titlebar-close-icon: url(close.png);
         }
         QDockWidget::title {
             background-color: %2;
@@ -337,6 +339,155 @@ QString getMainWindowStyle()
             color: %3;
             font-size: %5px;
         }
+
+        /* ===== 属性化样式词汇表（Phase 1.2 setStyleSheet 计数缩减）=====
+           约定：
+           1) 容器规则（containerBg/edgeBorder/cardRadius）作用于 QWidget 家族，
+              使用方需 setAttribute(Qt::WA_StyledBackground, true) 确保背景绘制；
+           2) 运行期切换属性后必须 repolish（style()->unpolish(w); style()->polish(w);），
+              构造期设置的静态属性无需 repolish；
+           3) 同一 QLabel 可组合 labelRole（排版）与 textColor（语义色），
+              textColor 声明在后，语义色优先生效。 */
+
+        /* 容器背景（containerBg）：main=主窗体 panel=面板 toolbar=工具栏 */
+        QWidget[containerBg="main"] { background-color: %1; }
+        QWidget[containerBg="panel"] { background-color: %15; }
+        QWidget[containerBg="toolbar"] { background-color: %2; }
+        QWidget[containerBg="transparent"] { background: transparent; }
+        /* 容器单侧描边（edgeBorder）：面板分隔线 */
+        QWidget[edgeBorder="top"] { border-top: 1px solid %4; }
+        QWidget[edgeBorder="right"] { border-right: 1px solid %4; }
+        QWidget[edgeBorder="bottom"] { border-bottom: 1px solid %4; }
+        QWidget[edgeBorder="left"] { border-left: 1px solid %4; }
+        /* 卡片圆角容器 */
+        QWidget[cardRadius="true"] { border-radius: 4px; }
+
+        /* 标签角色（labelRole）：h1=模块标题(16px) h2=区块标题(14px) body2/caption=次级说明(12px) */
+        QLabel[labelRole="h1"] { color: %3; font-size: %19px; font-weight: bold; background: transparent; }
+        QLabel[labelRole="h2"] { color: %3; font-size: %5px; font-weight: bold; background: transparent; }
+        QLabel[labelRole="body2"] { color: %18; font-size: %20px; background: transparent; }
+        QLabel[labelRole="caption"] { color: %18; font-size: %20px; background: transparent; }
+        /* 导航栏 LOGO 专属（原 DEC-NAV-LOGO 内联样式迁移，含字距） */
+        QLabel[labelRole="logo"] { color: %6; font-size: 18px; font-weight: bold; letter-spacing: 2px; }
+
+        /* 标签语义前景色（textColor）：状态/威胁等级等 */
+        QLabel[textColor="secondary"] { color: %18; background: transparent; }
+        QLabel[textColor="green"] { color: %6; background: transparent; }
+        QLabel[textColor="white"] { color: %3; background: transparent; }
+        QLabel[textColor="online"] { color: %21; background: transparent; }
+        QLabel[textColor="busy"] { color: %22; background: transparent; }
+        QLabel[textColor="offline"] { color: %23; background: transparent; }
+        QLabel[textColor="high"] { color: %24; background: transparent; }
+        QLabel[textColor="medium"] { color: %25; background: transparent; }
+        QLabel[textColor="low"] { color: %26; background: transparent; }
+        QLabel[textColor="error"] { color: %11; background: transparent; }
+        /* disabled=禁用/未选择占位（恢复决策建议风险标签降级色语义） */
+        QLabel[textColor="disabled"] { color: %10; background: transparent; }
+
+        /* 标签背景（labelBg）：恢复基线裸样式表级联产生的不透明标签底。
+           基线容器裸样式表（无选择器）的 background/border 级联到子孙 QLabel 并被原生绘制；
+           属性化改造后级联消失，本规则按标签显式恢复底色。
+           必须置于 labelRole/textColor 之后：同特异度下后声明者胜，
+           以 background-color 长属性覆盖前述 background: transparent 简写。 */
+        QLabel[labelBg="main"] { background-color: %1; }
+        QLabel[labelBg="panel"] { background-color: %15; }
+        QLabel[labelBg="toolbar"] { background-color: %2; border-radius: 4px; }
+        /* chip=紧凑数值徽标底：Toolbar 底 + 2px/8px 内边距（原派生计数值盒迁移） */
+        QLabel[labelBg="chip"] { background-color: %2; padding: 2px 8px; }
+
+        /* 状态横幅（stateBanner）：整行状态底色+前景色，运行期切换属性后需 repolish；
+           声明于 labelBg 之后，同特异度下接管底色 */
+        QLabel[stateBanner="idle"] { background-color: %2; color: %18; }
+        QLabel[stateBanner="planning"] { background-color: %16; color: %3; }
+        QLabel[stateBanner="loading"] { background-color: %25; color: %1; }
+        QLabel[stateBanner="ok"] { background-color: %21; color: %3; }
+        QLabel[stateBanner="error"] { background-color: %24; color: %3; }
+        QLabel[stateBanner="empty"] { background-color: %25; color: %1; }
+        QLabel[stateBanner="nofeasible"] { background-color: %11; color: %3; }
+
+        /* 按钮变体（btnVariant） */
+        /* subtle=弱化按钮：工具栏底色+次级文字，hover 描边色 */
+        QPushButton[btnVariant="subtle"] {
+            background-color: %2;
+            color: %18;
+            border: none;
+            border-radius: 4px;
+            font-size: %20px;
+        }
+        QPushButton[btnVariant="subtle"]:hover { background-color: %4; }
+        /* compact=紧凑按钮：仅缩小字号并解除全局最小宽度（与其他属性组合使用） */
+        QPushButton[btnVariant="compact"] {
+            font-size: %20px;
+            min-width: 0px;
+        }
+        /* icon=透明图标按钮：次级文字色，hover 主文字色（原内联 #AAA/white 与 TextSecondary/TextPrimary 令牌值一致） */
+        QPushButton[btnVariant="icon"] {
+            background: transparent;
+            color: %18;
+            border: none;
+            font-size: %19px;
+        }
+        QPushButton[btnVariant="icon"]:hover { color: %3; }
+        /* tab=下划线选项卡：配合 selected 属性标记当前项（原状态子标签样式迁移） */
+        QPushButton[btnVariant="tab"] {
+            background-color: transparent;
+            color: %18;
+            border: none;
+            border-bottom: 2px solid transparent;
+            min-width: 0px;
+            padding: 8px 2px;
+            font-size: %20px;
+        }
+        QPushButton[btnVariant="tab"]:hover { background-color: %4; }
+        QPushButton[btnVariant="tab"][selected="true"] {
+            color: %3;
+            border-bottom: 2px solid %6;
+        }
+        /* flat=扁平工具栏按钮：透明底+主文字色+紧凑内边距，hover 描边色，禁用降为 %10；
+           min-width/圆角/pressed/禁用底色沿用基础 QPushButton 规则（原 MainWindow 地图工具栏 btnStyle 迁移） */
+        QPushButton[btnVariant="flat"] {
+            background-color: transparent;
+            color: %3;
+            border: none;
+            padding: 4px 12px;
+            font-size: %20px;
+        }
+        QPushButton[btnVariant="flat"]:hover { background-color: %4; }
+        QPushButton[btnVariant="flat"]:disabled { color: %10; }
+
+        /* 导航按钮（navBtn）：配合 selected 属性；
+           hover/选中底色复用 RowHover/SelectionBackground 令牌（原内联硬编码 #2A2A2A/#2A3F54 与令牌值一致） */
+        QPushButton[navBtn="true"] {
+            background-color: transparent;
+            color: %18;
+            border: none;
+            border-left: 3px solid transparent;
+            min-width: 0px;
+            padding: 12px 0px;
+            font-size: %20px;
+            text-align: center;
+        }
+        QPushButton[navBtn="true"]:hover {
+            background-color: %14;
+            color: %3;
+        }
+        QPushButton[navBtn="true"][selected="true"] {
+            background-color: %16;
+            color: %3;
+            border-left: 3px solid %6;
+            font-weight: bold;
+        }
+
+        /* 紧凑输入框（fieldVariant）：
+           原 ::placeholder 规则不被 Qt5 QSS 支持（无效声明），转换时未迁移 */
+        QLineEdit[fieldVariant="compact"] {
+            background-color: %1;
+            color: %3;
+            border: 1px solid %4;
+            border-radius: 4px;
+            padding: 4px 8px;
+        }
+        QLineEdit[fieldVariant="compact"]:focus { border: 1px solid %6; }
     )")
         .arg(Colors::Background)
         .arg(Colors::ToolbarBackground)
@@ -354,7 +505,17 @@ QString getMainWindowStyle()
         .arg(Colors::RowHover)
         .arg(Colors::PanelBackground)
         .arg(Colors::SelectionBackground)
-        .arg(Colors::SelectionBorder);
+        .arg(Colors::SelectionBorder)
+        // 属性化 QSS 词汇表新增令牌（%18-%26），均已确认存在于 GlobalStyle.h
+        .arg(Colors::TextSecondary)
+        .arg(Fonts::TitleSize)
+        .arg(Fonts::CaptionSize)
+        .arg(Colors::StatusOnline)
+        .arg(Colors::StatusBusy)
+        .arg(Colors::StatusOffline)
+        .arg(Colors::ThreatHigh)
+        .arg(Colors::ThreatMedium)
+        .arg(Colors::ThreatLow);
 }
 
 QString getButtonStyle(bool isPrimary)
@@ -535,6 +696,9 @@ QString getScrollBarStyle()
             background: %2;
             border-radius: 5px;
             min-width: 30px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background: %3;
         }
     )")
         .arg(Colors::ToolbarBackground)

@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QStyle>
 #include <QVBoxLayout>
 
 MosParamsPanel::MosParamsPanel(QWidget *parent)
@@ -112,13 +113,14 @@ void MosParamsPanel::setupUi()
     // 只读派生字段
     m_dmgCount = new QLabel(QStringLiteral("4"), this);
     m_dmgCount->setObjectName(QStringLiteral("DEC-CE-PARAM-DMGCOUNT"));
-    m_dmgCount->setStyleSheet(QStringLiteral("background:%1; padding:2px 8px;")
-                                  .arg(GlobalStyle::Colors::ToolbarBackground));
+    // 基线 Toolbar 底 + 2px/8px 内边距的只读数值盒 -> labelBg="chip"
+    m_dmgCount->setProperty("labelBg", QLatin1String("chip"));
     addField(QStringLiteral("损毁点总数"), m_dmgCount, QStringLiteral("DEC-CE-PARAM-DMGCOUNT"));
     m_repairedCount = new QLabel(QStringLiteral("1"), this);
     m_repairedCount->setObjectName(QStringLiteral("DEC-CE-PARAM-REPAIRED"));
-    m_repairedCount->setStyleSheet(QStringLiteral("background:%1; color:%2; padding:2px 8px;")
-                                       .arg(GlobalStyle::Colors::ToolbarBackground, GlobalStyle::Colors::StatusOnline));
+    // 基线 Toolbar 底 + 在线绿前景 + 2px/8px 内边距 -> labelBg="chip" + textColor="online"
+    m_repairedCount->setProperty("labelBg", QLatin1String("chip"));
+    m_repairedCount->setProperty("textColor", QLatin1String("online"));
     addField(QStringLiteral("模拟处理假设数"), m_repairedCount, QStringLiteral("DEC-CE-PARAM-REPAIRED"));
 
     root->addLayout(grid);
@@ -135,16 +137,23 @@ void MosParamsPanel::setupUi()
     m_planStateBanner->setObjectName(QStringLiteral("DEC-CE-PLAN-STATE"));
     m_planStateBanner->setWordWrap(true);
     m_planStateBanner->setFixedHeight(24);
+    // 基线首帧（setPlanState 尚未调用时）底色来自 DecisionView 左面板裸样式表级联的
+    // Panel 标签盒，此处显式恢复；setPlanState 后由声明在后的 stateBanner 接管底色。
+    m_planStateBanner->setProperty("labelBg", QLatin1String("panel"));
     root->addWidget(m_planStateBanner);
 
     // 底部状态行：单调性校验 + 重规划按钮
     auto *bottom = new QHBoxLayout();
     auto *monoLabel = new QLabel(QStringLiteral("面积单调递增校验: ✓ 通过"), this);
-    monoLabel->setStyleSheet(QStringLiteral("color:%1;").arg(GlobalStyle::Colors::StatusOnline));
+    // 基线仅声明在线绿前景色，底为左面板级联 Panel 标签盒 -> textColor="online" + labelBg="panel"
+    monoLabel->setProperty("textColor", QLatin1String("online"));
+    monoLabel->setProperty("labelBg", QLatin1String("panel"));
     bottom->addWidget(monoLabel);
     bottom->addStretch();
     m_replanBtn = new QPushButton(QStringLiteral("↻ 重新规划"), this);
     m_replanBtn->setObjectName(QStringLiteral("DEC-CE-PARAM-REPLAN"));
+    // 绿底主按钮但 padding 4px12px 不匹配任何按钮词汇（primary 沿用 6px16px、flat 为透明底），
+    // 判定保留令牌内联样式
     m_replanBtn->setStyleSheet(QStringLiteral("background:%1; color:%2; padding:4px 12px;")
                                    .arg(GlobalStyle::Colors::PrimaryGreen, GlobalStyle::Colors::TextPrimary));
     bottom->addWidget(m_replanBtn);
@@ -198,47 +207,44 @@ void MosParamsPanel::setDerivedCounts(int damageCount, int repairedCount)
 
 void MosParamsPanel::setPlanState(PlanState state, int tierCount)
 {
+    // 状态横幅统一映射为 stateBanner 属性词汇（声明于 labelBg 之后，接管底色与前景色），
+    // 运行期切换属性后 repolish 生效
     QString text;
-    QString style;
+    const char *banner = "idle";
     switch (state) {
     case PlanState::Idle:
         text = QStringLiteral("待规划");
-        style = QStringLiteral("background:%1; color:%2;")
-                    .arg(GlobalStyle::Colors::ToolbarBackground, GlobalStyle::Colors::TextSecondary);
+        banner = "idle";
         break;
     case PlanState::Planning:
         text = QStringLiteral("规划中：本地模拟算法运行中…");
-        style = QStringLiteral("background:%1; color:%2;")
-                    .arg(GlobalStyle::Colors::SelectionBackground, GlobalStyle::Colors::TextPrimary);
+        banner = "planning";
         break;
     case PlanState::Loading:
         text = QStringLiteral("加载中：生成候选方案…");
-        style = QStringLiteral("background:%1; color:%2;")
-                    .arg(GlobalStyle::Colors::ThreatMedium, GlobalStyle::Colors::Background);
+        banner = "loading";
         break;
     case PlanState::Result:
         text = QStringLiteral("结果：已生成 %1 档模拟候选方案（仅选中档位在跑道强调）").arg(tierCount);
-        style = QStringLiteral("background:%1; color:%2;")
-                    .arg(GlobalStyle::Colors::StatusOnline, GlobalStyle::Colors::TextPrimary);
+        banner = "ok";
         break;
     case PlanState::Error:
         text = QStringLiteral("错误：参数或场景无法生成有效方案，请调整后重规划");
-        style = QStringLiteral("background:%1; color:%2;")
-                    .arg(GlobalStyle::Colors::ThreatHigh, GlobalStyle::Colors::TextPrimary);
+        banner = "error";
         break;
     case PlanState::Empty:
         text = QStringLiteral("空：当前场景无候选方案，请先生成损毁分布或调整参数");
-        style = QStringLiteral("background:%1; color:%2;")
-                    .arg(GlobalStyle::Colors::ThreatMedium, GlobalStyle::Colors::Background);
+        banner = "empty";
         break;
     case PlanState::NoFeasible:
         text = QStringLiteral("无可行：当前选中档位无可行矩形，请切换档位或调整参数与障碍物分布");
-        style = QStringLiteral("background:%1; color:%2;")
-                    .arg(GlobalStyle::Colors::DangerRed, GlobalStyle::Colors::TextPrimary);
+        banner = "nofeasible";
         break;
     }
     m_planStateBanner->setText(text);
-    m_planStateBanner->setStyleSheet(style);
+    m_planStateBanner->setProperty("stateBanner", QLatin1String(banner));
+    m_planStateBanner->style()->unpolish(m_planStateBanner);
+    m_planStateBanner->style()->polish(m_planStateBanner);
 }
 
 bool MosParamsPanel::isValid() const
@@ -255,13 +261,14 @@ void MosParamsPanel::revalidate()
         m_validationBanner->setText(
             QStringLiteral("参数校验通过 · K=%1（模拟示例值，待领域确认）· 档位数=%2")
                 .arg(params.K, 0, 'f', 1).arg(params.tiers));
-        m_validationBanner->setStyleSheet(QStringLiteral("background:%1; color:%2;")
-                                              .arg(GlobalStyle::Colors::StatusOnline, GlobalStyle::Colors::TextPrimary));
+        m_validationBanner->setProperty("stateBanner", QLatin1String("ok"));
     } else {
         m_validationBanner->setText(QStringLiteral("参数校验失败：%1").arg(result.message));
-        m_validationBanner->setStyleSheet(QStringLiteral("background:%1; color:%2;")
-                                              .arg(GlobalStyle::Colors::ThreatHigh, GlobalStyle::Colors::TextPrimary));
+        m_validationBanner->setProperty("stateBanner", QLatin1String("error"));
     }
+    // 校验横幅状态属性切换后 repolish 生效（构造期调用无害）
+    m_validationBanner->style()->unpolish(m_validationBanner);
+    m_validationBanner->style()->polish(m_validationBanner);
     m_replanBtn->setEnabled(result.valid);
     emit paramsEdited(result.valid);
 }

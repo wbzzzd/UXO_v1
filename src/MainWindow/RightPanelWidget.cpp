@@ -25,7 +25,9 @@ RightPanelWidget::~RightPanelWidget()
 
 void RightPanelWidget::setupUi()
 {
-    setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
+    // 属性化全局 QSS：面板底色（替代内联 setStyleSheet）
+    setProperty("containerBg", "panel");
+    setAttribute(Qt::WA_StyledBackground, true);
     setMinimumWidth(360);
     setMaximumWidth(420);
 
@@ -45,25 +47,24 @@ void RightPanelWidget::setupUi()
 
     QWidget *mapHeader = new QWidget(mapSection);
     mapHeader->setFixedHeight(32);
-    mapHeader->setStyleSheet(QString("background-color: %1; border-bottom: 1px solid %2;")
-        .arg(GlobalStyle::Colors::ToolbarBackground)
-        .arg(GlobalStyle::Colors::Border));
+    // 属性化全局 QSS：工具栏底色 + 底部描边
+    mapHeader->setProperty("containerBg", "toolbar");
+    mapHeader->setProperty("edgeBorder", "bottom");
+    mapHeader->setAttribute(Qt::WA_StyledBackground, true);
     QHBoxLayout *mapHeaderLayout = new QHBoxLayout(mapHeader);
     mapHeaderLayout->setContentsMargins(8, 0, 8, 0);
 
     QLabel *mapTitle = new QLabel("三维态势地图", mapHeader);
-    mapTitle->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Fonts::BodySize));
+    // 区块标题样式由全局 QSS labelRole="h2" 提供（BodySize=14px 与原内联一致）
+    mapTitle->setProperty("labelRole", "h2");
     mapHeaderLayout->addWidget(mapTitle);
     mapHeaderLayout->addStretch();
 
     QPushButton *mapFullscreenBtn = new QPushButton("全", mapHeader);
     mapFullscreenBtn->setToolTip("全屏查看");
     mapFullscreenBtn->setFixedSize(24, 24);
-    mapFullscreenBtn->setStyleSheet(
-        "QPushButton { background: transparent; color: #AAA; border: none; font-size: 16px; }"
-        "QPushButton:hover { color: white; }");
+    // 透明图标按钮：全局 QSS btnVariant="icon"（16px 与原内联字号一致）
+    mapFullscreenBtn->setProperty("btnVariant", "icon");
     mapHeaderLayout->addWidget(mapFullscreenBtn);
 
     mapLayout->addWidget(mapHeader);

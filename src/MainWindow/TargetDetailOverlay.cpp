@@ -50,16 +50,17 @@ TargetDetailOverlay::~TargetDetailOverlay() = default;
 void TargetDetailOverlay::setupUi()
 {
     // 固定 340px 宽，不透明深色面板（PanelBackground），避免地图透显
+    // 属性转换：根容器背景交由 containerBg="panel"（=PanelBackground）词汇表规则；
+    // 剩余 border(1px solid Border) 与 border-radius(3px ≠ cardRadius 的 4px) 保留内联。
+    // WA_StyledBackground 紧跟 setProperty：plain QWidget 需显式开启才能绘制 QSS 背景，
+    // 否则地图会从浮层整体透显。
+    setProperty("containerBg", "panel");
+    setAttribute(Qt::WA_StyledBackground, true);
     setObjectName(QStringLiteral("targetDetailOverlay"));
     setFixedWidth(340);
     setStyleSheet(QString(
-        "TargetDetailOverlay { background-color: %1; "
-        "border: 1px solid %2; border-radius: 3px; }")
-        .arg(GlobalStyle::Colors::PanelBackground)
+        "TargetDetailOverlay { border: 1px solid %1; border-radius: 3px; }")
         .arg(GlobalStyle::Colors::Border));
-    // Qt5 默认不为 plain QWidget 绘制 QSS 背景：浮层根需显式开启 WA_StyledBackground，
-    // 否则 background-color 不绘制，地图会从浮层整体透显
-    setAttribute(Qt::WA_StyledBackground, true);
 
     auto *rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(12, 12, 12, 12);
@@ -90,8 +91,10 @@ void TargetDetailOverlay::setupUi()
     m_evidenceViewport = new QWidget(m_evidenceContainer);
     m_evidenceViewport->setObjectName(QStringLiteral("targetDetailEvidenceViewport"));
     m_evidenceViewport->setMinimumHeight(180);
+    // 视口暗底使用 ViewportDark token（视频/预览区域专用暗底）
     m_evidenceViewport->setStyleSheet(QString(
-        "background-color: #161616; border: 1px solid %1; border-radius: 3px;")
+        "background-color: %1; border: 1px solid %2; border-radius: 3px;")
+        .arg(GlobalStyle::Colors::ViewportDark)
         .arg(GlobalStyle::Colors::Border));
     auto *viewportLayout = new QVBoxLayout(m_evidenceViewport);
     viewportLayout->setContentsMargins(0, 0, 0, 0);
@@ -135,10 +138,10 @@ void TargetDetailOverlay::setupUi()
         rowLayout->setContentsMargins(0, 0, 0, 0);
         rowLayout->setSpacing(8);
         auto *label = new QLabel(labelText, row);
+        // 属性转换：证据行标签交由 labelRole="caption"（TextSecondary/CaptionSize 12px/transparent）；
+        // 原 border:none 为 QLabel 默认，完整移除内联样式
+        label->setProperty("labelRole", "caption");
         label->setFixedWidth(64);
-        label->setStyleSheet(QString("color: %1; font-size: %2px; border: none;")
-            .arg(GlobalStyle::Colors::TextSecondary)
-            .arg(GlobalStyle::Fonts::CaptionSize));
         rowLayout->addWidget(label);
         valueLabel = new QLabel(row);
         valueLabel->setObjectName(valueObjectName);
@@ -157,19 +160,20 @@ void TargetDetailOverlay::setupUi()
     // 头部：独立容器配 ToolbarBackground 不透明底，与 PanelBackground 面板形成明度阶差，
     // 避免地图从头部行透显
     auto *headerWidget = new QWidget(this);
-    headerWidget->setObjectName(QStringLiteral("targetDetailHeader"));
-    headerWidget->setStyleSheet(QString("background-color: %1; border: none;")
-        .arg(GlobalStyle::Colors::ToolbarBackground));
-    // 同浮层根：头部为 plain QWidget，需 WA_StyledBackground 才绘制 ToolbarBackground 底色
+    // 属性转换：头部底色交由 containerBg="toolbar"（=ToolbarBackground）词汇表规则；
+    // 原 border:none 为 plain QWidget 默认（全局无 QWidget border 规则），完整移除内联样式。
+    // WA_StyledBackground 使头部 plain QWidget 绘制 ToolbarBackground 底色，与浮层根形成明度阶差。
+    headerWidget->setProperty("containerBg", "toolbar");
     headerWidget->setAttribute(Qt::WA_StyledBackground, true);
+    headerWidget->setObjectName(QStringLiteral("targetDetailHeader"));
     auto *headerLayout = new QHBoxLayout(headerWidget);
     headerLayout->setSpacing(8);
     headerLayout->setContentsMargins(0, 0, 24, 0);  // 右侧给关闭按钮留位
     m_idLabel = new QLabel(headerWidget);
+    // 属性转换：ID 标题交由 labelRole="h1"（TextPrimary/TitleSize 16px/bold/transparent）词汇表规则；
+    // 原 border:none 为 QLabel 默认（全局 QLabel 规则无 border），完整移除内联样式
+    m_idLabel->setProperty("labelRole", "h1");
     m_idLabel->setObjectName(QStringLiteral("targetDetailIdLabel"));
-    m_idLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold; border: none;")
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Fonts::TitleSize));
     headerLayout->addWidget(m_idLabel);
 
     m_typeLabel = new QLabel(headerWidget);
@@ -197,10 +201,10 @@ void TargetDetailOverlay::setupUi()
         rowLayout->setSpacing(8);
 
         auto *label = new QLabel(labelText, row);
+        // 属性转换：详情行标签交由 labelRole="caption"（TextSecondary/CaptionSize 12px/transparent）；
+        // 原 border:none 为 QLabel 默认，完整移除内联样式
+        label->setProperty("labelRole", "caption");
         label->setFixedWidth(64);
-        label->setStyleSheet(QString("color: %1; font-size: %2px; border: none;")
-            .arg(GlobalStyle::Colors::TextSecondary)
-            .arg(GlobalStyle::Fonts::CaptionSize));
         rowLayout->addWidget(label);
 
         valueLabel = new QLabel(row);
@@ -263,20 +267,22 @@ void TargetDetailOverlay::setupUi()
 
     // 待检测提示
     m_pendingMsg = new QLabel(this);
+    // 属性转换：待检测提示交由 labelRole="caption"（TextSecondary/CaptionSize 12px/transparent）；
+    // 原 border:none 为 QLabel 默认，完整移除内联样式
+    m_pendingMsg->setProperty("labelRole", "caption");
     m_pendingMsg->setObjectName(QStringLiteral("targetDetailPendingMsg"));
-    m_pendingMsg->setStyleSheet(QString("color: %1; font-size: %2px; border: none;")
-        .arg(GlobalStyle::Colors::TextSecondary)
-        .arg(GlobalStyle::Fonts::CaptionSize));
     m_pendingMsg->setWordWrap(true);
     m_pendingMsg->hide();
     rootLayout->addWidget(m_pendingMsg);
 
     // 操作反馈
     m_feedback = new QLabel(this);
+    // 属性转换：操作反馈标签组合 labelRole="caption"（CaptionSize 12px/transparent 排版）
+    // + textColor="online"（=StatusOnline，语义色声明在后、优先生效）；
+    // 原 border:none 为 QLabel 默认，完整移除内联样式
+    m_feedback->setProperty("labelRole", "caption");
+    m_feedback->setProperty("textColor", "online");
     m_feedback->setObjectName(QStringLiteral("targetDetailFeedback"));
-    m_feedback->setStyleSheet(QString("color: %1; font-size: %2px; border: none;")
-        .arg(GlobalStyle::Colors::StatusOnline)
-        .arg(GlobalStyle::Fonts::CaptionSize));
     m_feedback->setMinimumHeight(16);
     rootLayout->addWidget(m_feedback);
 

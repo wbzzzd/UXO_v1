@@ -12,6 +12,7 @@
 
 #include <QString>
 #include <QColor>
+#include <QStringList>
 
 /**
  * @brief 全局样式命名空间
@@ -29,6 +30,7 @@ namespace Colors {
     const QString PanelBackground = "#252526";    ///< 左右侧面板背景
     const QString ToolbarBackground = "#2D2D2D";   ///< 工具栏背景
     const QString MenuBackground = "#2D2D2D";      ///< 菜单背景
+    const QString VideoBackground = "#000000";       ///< 视频流背景
 
     // 强调色
     const QString PrimaryGreen = "#4A7A4C";        ///< 军绿色 - 主要按钮、进度条、强调色
@@ -50,6 +52,12 @@ namespace Colors {
     const QString SelectionBackground = "#2A3F54";  ///< 列表/表格行选中背景
     const QString SelectionBorder = "#3A5F7A";      ///< 选中态边框
     const QString TierBlue = "#42A5F5";              ///< 档位高亮蓝（区别于威胁色阶）
+    const QString HoverBackground = "#363636";        ///< 控件 hover 背景色
+    const QString CardSelectedBorder = "#5B9BD5";     ///< 卡片选中态边框蓝
+    const QString BorderLight = "#5A5A5A";            ///< 浅色控件边框 - 小型按钮
+    const QString ButtonGray = "#4A4A4A";             ///< 灰色按钮背景 - 非主要操作按钮
+    const QString TextDim = "#666666";                ///< 暗淡文本 - 极小字号辅助信息
+    const QString ViewportDark = "#161616";           ///< 视口暗底 - 视频/预览区域
 
     // 边框色
     const QString Border = "#3C3C3C";            ///< 控件边框
@@ -82,6 +90,7 @@ namespace Colors {
  */
 namespace Fonts {
     const QString Family = "Microsoft YaHei, Source Han Sans SC, SimHei, sans-serif";  ///< 字体族 - 微软雅黑/思源黑体
+    const QStringList FamilyList = {"Microsoft YaHei", "Source Han Sans SC", "SimHei", "sans-serif"};  ///< 字体族回退链 - 供 QFont::setFamilies 使用
 
     const int TitleSize = 16;     ///< 标题字号 - 窗口标题、模块标题
     const int BodySize = 14;       ///< 正文字号 - 主要文本内容

@@ -47,8 +47,9 @@ DetectionControlPanel::~DetectionControlPanel()
 
 void DetectionControlPanel::setupUi()
 {
-    setStyleSheet(QStringLiteral("background-color: %1;")
-                      .arg(GlobalStyle::Colors::PanelBackground));
+    // 面板底色走全局 QSS containerBg="panel"（=PanelBackground#252526，构造期静态属性先于布局创建，需 WA_StyledBackground 绘制背景）
+    setProperty("containerBg", "panel");
+    setAttribute(Qt::WA_StyledBackground, true);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(kPanelMargin, kPanelMargin, kPanelMargin, kPanelMargin);
@@ -60,11 +61,8 @@ void DetectionControlPanel::setupUi()
     headerLayout->setContentsMargins(0, 0, 0, 0);
 
     m_titleLabel = new QLabel(QStringLiteral("模拟流程与操作日志"), header);
-    m_titleLabel->setStyleSheet(
-        QStringLiteral("color: %1; font-size: %2px; font-weight: %3;")
-            .arg(GlobalStyle::Colors::TextPrimary)
-            .arg(GlobalStyle::Fonts::BodySize)
-            .arg(GlobalStyle::Fonts::TitleWeight));
+    // 模块标题走全局 QSS labelRole="h2"（=TextPrimary+14px(BodySize)+bold+transparent，构造期静态属性先于 addWidget，无需 repolish）
+    m_titleLabel->setProperty("labelRole", "h2");
     headerLayout->addWidget(m_titleLabel);
     headerLayout->addStretch();
     mainLayout->addWidget(header);
@@ -75,24 +73,18 @@ void DetectionControlPanel::setupUi()
     statusLayout->setContentsMargins(0, 0, 0, 0);
     statusLayout->setSpacing(0);
 
-    const QString primaryLabelStyle =
-        QStringLiteral("color: %1; font-size: %2px;")
-            .arg(GlobalStyle::Colors::TextPrimary)
-            .arg(GlobalStyle::Fonts::CaptionSize);
-    const QString secondaryLabelStyle =
-        QStringLiteral("color: %1; font-size: %2px;")
-            .arg(GlobalStyle::Colors::TextSecondary)
-            .arg(GlobalStyle::Fonts::CaptionSize);
-
     m_targetLabel = new QLabel(statusRow);
     m_targetLabel->setObjectName(QStringLiteral("simulationTargetLabel"));
-    m_targetLabel->setStyleSheet(primaryLabelStyle);
+    // 主目标标签主色走全局 QSS textColor="white"（=TextPrimary，构造期静态属性先于 addWidget）；12px 字号无对应 labelRole（body2/caption 强制 TextSecondary 会变色），保留内联
+    m_targetLabel->setProperty("textColor", "white");
+    m_targetLabel->setStyleSheet(QStringLiteral("font-size: %1px;").arg(GlobalStyle::Fonts::CaptionSize));
     statusLayout->addWidget(m_targetLabel);
 
     m_statusLabel = new QLabel(statusRow);
     m_statusLabel->setObjectName(QStringLiteral("simulationStatusLabel"));
     m_statusLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    m_statusLabel->setStyleSheet(secondaryLabelStyle);
+    // 次级状态说明走全局 QSS labelRole="caption"（=TextSecondary#AAAAAA+12px+transparent，构造期静态属性先于 addWidget，无需 repolish）
+    m_statusLabel->setProperty("labelRole", "caption");
     statusLayout->addWidget(m_statusLabel);
     mainLayout->addWidget(statusRow);
 
@@ -102,6 +94,7 @@ void DetectionControlPanel::setupUi()
     actionLayout->setContentsMargins(0, 0, 0, 0);
     actionLayout->setSpacing(kPanelSpacing);
 
+    // 固定宽度实心主色按钮（零内边距+自定义禁用态）无对应 btnVariant 词表（subtle/flat 透明或异色底、compact 仅字号/min-width），保留内联；颜色均已用 Colors:: 令牌
     const QString buttonStyle = QStringLiteral(
         "QPushButton { background-color: %1; color: %2; border: none; "
         "border-radius: %3px; padding: 0px; font-size: %4px; "
@@ -154,6 +147,7 @@ void DetectionControlPanel::setupUi()
     m_operationLog->setObjectName(QStringLiteral("simulationOperationLog"));
     m_operationLog->setReadOnly(true);
     m_operationLog->setMinimumHeight(kLogMinimumHeight);
+    // QTextEdit 的次级文字色+10px 字号+4px 内边距无对应词表（fieldVariant 仅 QLineEdit、textColor 仅 QLabel），保留内联；颜色均已用 Colors:: 令牌
     m_operationLog->setStyleSheet(QStringLiteral(
         "QTextEdit { background-color: %1; color: %2; border: 1px solid %3; "
         "border-radius: %4px; font-size: %5px; padding: %6px; }")

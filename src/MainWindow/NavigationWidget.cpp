@@ -1,11 +1,11 @@
 #include "MainWindow/NavigationWidget.h"
-#include "Common/GlobalStyle.h"
 
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QLabel>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QStyle>
 
 NavigationWidget::NavigationWidget(QWidget *parent)
     : QWidget(parent)
@@ -30,9 +30,12 @@ NavigationWidget::~NavigationWidget()
 void NavigationWidget::setupUi()
 {
     setFixedWidth(80);
-    setStyleSheet(QString("background-color: %1; border-right: 1px solid %2;")
-        .arg(GlobalStyle::Colors::Background)
-        .arg(GlobalStyle::Colors::Border));
+    // 属性化全局 QSS：主窗体底色（替代内联 setStyleSheet）。
+    // 基线像素取证更正：基线裸样式表（背景+border-right）自身因缺 WA_StyledBackground 未绘制，
+    // 但其 border-right 级联到无自身样式表的 LOGO 标签被原生绘制（x79,y46-85 的 #3C3C3C 竖线）；
+    // 该线现由 LOGO 标签的 edgeBorder="right" 显式恢复（见下）。
+    setProperty("containerBg", "main");
+    setAttribute(Qt::WA_StyledBackground, true);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 16, 0, 16);
@@ -43,49 +46,16 @@ void NavigationWidget::setupUi()
     logoLabel->setObjectName(QStringLiteral("DEC-NAV-LOGO"));
     logoLabel->setFixedHeight(40);
     logoLabel->setAlignment(Qt::AlignCenter);
-    logoLabel->setStyleSheet(QString(
-        "color: %1; font-size: 18px; font-weight: bold; letter-spacing: 2px;")
-        .arg(GlobalStyle::Colors::PrimaryGreen));
+    // LOGO 样式由全局 QSS labelRole="logo" 提供（原内联样式迁移至 GlobalStyle）
+    logoLabel->setProperty("labelRole", "logo");
+    // 像素回归修复（批次3门禁）：恢复基线裸样式表级联到 LOGO 的右边线（x79,y46-85 #3C3C3C）；
+    // 按钮因基线即有自身样式表未受级联影响，无需处理
+    logoLabel->setProperty("edgeBorder", "right");
     layout->addWidget(logoLabel);
 
     layout->addSpacing(16);
 
-    // 固定宽度导航按钮需覆盖全局最小宽度，避免边框超出 80px 导航栏。
-    QString normalStyle = QString(
-        "QPushButton {"
-        "   background-color: transparent;"
-        "   color: %1;"
-        "   border: none;"
-        "   border-left: 3px solid transparent;"
-        "   min-width: 0px;"
-        "   padding: 12px 0px;"
-        "   font-size: 12px;"
-        "   text-align: center;"
-        "}"
-        "QPushButton:hover {"
-        "   background-color: %2;"
-        "   color: %3;"
-        "}")
-        .arg(GlobalStyle::Colors::TextSecondary)
-        .arg("#2A2A2A")
-        .arg(GlobalStyle::Colors::TextPrimary);
-
-    QString selectedStyle = QString(
-        "QPushButton {"
-        "   background-color: %1;"
-        "   color: %2;"
-        "   border: none;"
-        "   border-left: 3px solid %3;"
-        "   min-width: 0px;"
-        "   padding: 12px 0px;"
-        "   font-size: 12px;"
-        "   text-align: center;"
-        "   font-weight: bold;"
-        "}")
-        .arg("#2A3F54")
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::PrimaryGreen);
-
+    // 导航按钮样式由全局 QSS navBtn/selected 属性提供（原两套内联样式已迁移至 GlobalStyle）
     for (int i = 0; i < m_navItems.size(); ++i) {
         QPushButton *btn = new QPushButton(
             m_navItems[i].icon + "\n" + m_navItems[i].label, this);
@@ -93,7 +63,8 @@ void NavigationWidget::setupUi()
         btn->setObjectName(QStringLiteral("DEC-NAV-%1").arg(i + 1, 2, 10, QLatin1Char('0')));
         btn->setFixedHeight(56);
         btn->setProperty("navIndex", i);
-        btn->setStyleSheet(i == 0 ? selectedStyle : normalStyle);
+        btn->setProperty("navBtn", true);
+        // 构造期设置属性，首次 polish 前生效，无需 repolish
         btn->setProperty("selected", i == 0);
 
         connect(btn, &QPushButton::clicked, this, [this, i]() {
@@ -122,43 +93,10 @@ int NavigationWidget::currentIndex() const
 
 void NavigationWidget::updateSelection()
 {
-    QString normalStyle = QString(
-        "QPushButton {"
-        "   background-color: transparent;"
-        "   color: %1;"
-        "   border: none;"
-        "   border-left: 3px solid transparent;"
-        "   min-width: 0px;"
-        "   padding: 12px 0px;"
-        "   font-size: 12px;"
-        "   text-align: center;"
-        "}"
-        "QPushButton:hover {"
-        "   background-color: %2;"
-        "   color: %3;"
-        "}")
-        .arg(GlobalStyle::Colors::TextSecondary)
-        .arg("#2A2A2A")
-        .arg(GlobalStyle::Colors::TextPrimary);
-
-    QString selectedStyle = QString(
-        "QPushButton {"
-        "   background-color: %1;"
-        "   color: %2;"
-        "   border: none;"
-        "   border-left: 3px solid %3;"
-        "   min-width: 0px;"
-        "   padding: 12px 0px;"
-        "   font-size: 12px;"
-        "   text-align: center;"
-        "   font-weight: bold;"
-        "}")
-        .arg("#2A3F54")
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::PrimaryGreen);
-
     for (int i = 0; i < m_navButtons.size(); ++i) {
-        m_navButtons[i]->setStyleSheet(i == m_currentIndex ? selectedStyle : normalStyle);
         m_navButtons[i]->setProperty("selected", i == m_currentIndex);
+        // 运行期属性变化需 repolish，触发全局 QSS 按新属性重算样式
+        m_navButtons[i]->style()->unpolish(m_navButtons[i]);
+        m_navButtons[i]->style()->polish(m_navButtons[i]);
     }
 }

@@ -24,7 +24,9 @@ AlertPanel::~AlertPanel()
 
 void AlertPanel::setupUi()
 {
-    setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
+    // 面板背景转 containerBg="panel" 属性（词汇表完整覆盖，移除内联）
+    setProperty("containerBg", "panel");
+    setAttribute(Qt::WA_StyledBackground, true);
 
     m_mainLayout = new QVBoxLayout(this);
     m_mainLayout->setContentsMargins(8, 8, 8, 8);
@@ -36,9 +38,8 @@ void AlertPanel::setupUi()
     headerLayout->setContentsMargins(4, 0, 4, 0);
 
     m_titleLabel = new QLabel("告警信息", header);
-    m_titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Fonts::BodySize));
+    // 标题转 labelRole="h2"（color/14px/bold 与词汇表一致，移除内联）
+    m_titleLabel->setProperty("labelRole", "h2");
     headerLayout->addWidget(m_titleLabel);
 
     QLabel *countLabel = new QLabel("0", header);
@@ -92,45 +93,54 @@ void AlertPanel::refreshList()
         const Core::AlarmInfo& alarm = m_alerts[i];
 
         QWidget *alertItem = new QWidget(m_listContainer);
+        // 正常态背景转 containerBg="toolbar"；border-radius:3px（cardRadius 为 4px 不匹配）与 :hover 背景保留内联
+        alertItem->setProperty("containerBg", "toolbar");
+        alertItem->setAttribute(Qt::WA_StyledBackground, true);
         alertItem->setFixedHeight(36);
         alertItem->setStyleSheet(QString(
-            "QWidget { background-color: %1; border-radius: 3px; }"
-            "QWidget:hover { background-color: #363636; }")
-            .arg(GlobalStyle::Colors::ToolbarBackground));
+            "QWidget { border-radius: 3px; }"
+            "QWidget:hover { background-color: %1; }")
+            .arg(GlobalStyle::Colors::HoverBackground));
         alertItem->setCursor(Qt::PointingHandCursor);
 
         QHBoxLayout *itemLayout = new QHBoxLayout(alertItem);
         itemLayout->setContentsMargins(8, 4, 8, 4);
         itemLayout->setSpacing(6);
 
-        QString levelColor;
+        // 告警等级颜色映射到 textColor 语义角色（error/high/medium/secondary）
+        QString levelTextColor;
         switch (alarm.level) {
             case Core::AlarmLevel::Critical:
-                levelColor = GlobalStyle::Colors::DangerRed;
+                levelTextColor = "error";
                 break;
             case Core::AlarmLevel::Error:
-                levelColor = GlobalStyle::Colors::ThreatHigh;
+                levelTextColor = "high";
                 break;
             case Core::AlarmLevel::Warning:
-                levelColor = GlobalStyle::Colors::ThreatMedium;
+                levelTextColor = "medium";
                 break;
             default:
-                levelColor = GlobalStyle::Colors::TextSecondary;
+                levelTextColor = "secondary";
         }
 
         QLabel *iconLabel = new QLabel("●", alertItem);
+        // 颜色转 textColor 属性；font-size:10px 词汇表未覆盖，保留内联
+        iconLabel->setProperty("textColor", levelTextColor);
         iconLabel->setFixedWidth(16);
-        iconLabel->setStyleSheet(QString("color: %1; font-size: 10px;").arg(levelColor));
+        iconLabel->setStyleSheet("font-size: 10px;");
         itemLayout->addWidget(iconLabel);
 
         QString timeStr = alarm.createTime.toString("HH:mm");
         QLabel *timeLabel = new QLabel(timeStr, alertItem);
+        // TextDisabled 不在 textColor 词汇表，保留原内联
         timeLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(GlobalStyle::Colors::TextDisabled));
         timeLabel->setFixedWidth(40);
         itemLayout->addWidget(timeLabel);
 
         QLabel *msgLabel = new QLabel(alarm.message, alertItem);
-        msgLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(levelColor));
+        // 颜色转 textColor 属性；font-size:11px 词汇表未覆盖，保留内联
+        msgLabel->setProperty("textColor", levelTextColor);
+        msgLabel->setStyleSheet("font-size: 11px;");
         msgLabel->setWordWrap(false);
         itemLayout->addWidget(msgLabel, 1);
 

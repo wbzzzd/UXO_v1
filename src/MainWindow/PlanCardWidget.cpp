@@ -46,12 +46,18 @@ PlanCardWidget::PlanCardWidget(QWidget *parent)
     auto *nameRow = new QHBoxLayout();
     nameRow->setSpacing(6);
     m_nameLabel = new QLabel(this);
-    m_nameLabel->setStyleSheet("font-size:12px;font-weight:bold;color:#FFFFFF;");
+    // font-size/font-weight 为有意覆盖全局 QLabel 样式，color 用 token 替换硬编码 hex
+    m_nameLabel->setStyleSheet(
+        QStringLiteral("font-size:12px;font-weight:bold;color:%1;")
+            .arg(GlobalStyle::Colors::TextPrimary));
     nameRow->addWidget(m_nameLabel);
     m_badgeLabel = new QLabel(this);
+    // font-size/padding/border-radius/background 为有意覆盖，color/border 用 token 替换硬编码 hex
     m_badgeLabel->setStyleSheet(
-        "font-size:10px;padding:1px 6px;border-radius:3px;"
-        "background:rgba(136,136,136,0.2);color:#AAAAAA;border:1px solid #666;");
+        QStringLiteral("font-size:10px;padding:1px 6px;border-radius:3px;"
+                       "background:rgba(136,136,136,0.2);color:%1;border:1px solid %2;")
+            .arg(GlobalStyle::Colors::TextSecondary,
+                 GlobalStyle::Colors::TextDim));
     nameRow->addWidget(m_badgeLabel);
     nameRow->addStretch();
     rightLayout->addLayout(nameRow);
@@ -68,11 +74,17 @@ PlanCardWidget::PlanCardWidget(QWidget *parent)
     };
     for (int i = 0; i < 6; ++i) {
         auto *lbl = new QLabel(labels[i], this);
-        lbl->setStyleSheet("font-size:10px;color:#888888;");
+        // 网格标签：font-size 为有意覆盖，color 用 token 替换硬编码 hex
+        lbl->setStyleSheet(
+            QStringLiteral("font-size:10px;color:%1;")
+                .arg(GlobalStyle::Colors::TextDisabled));
         m_gridLabels[i] = lbl;
 
         auto *val = new QLabel(this);
-        val->setStyleSheet("font-size:11px;color:#FFFFFF;");
+        // 网格值：font-size 为有意覆盖，color 用 token 替换硬编码 hex
+        val->setStyleSheet(
+            QStringLiteral("font-size:11px;color:%1;")
+                .arg(GlobalStyle::Colors::TextPrimary));
         m_gridValues[i] = val;
 
         const int row = i / 3;
@@ -122,7 +134,10 @@ void PlanCardWidget::setData(int tierIndex, const QString &name, const QString &
         // 无有效矩形：所有值显示 "--"
         for (int i = 0; i < 6; ++i) {
             m_gridValues[i]->setText(QStringLiteral("--"));
-            m_gridValues[i]->setStyleSheet("font-size:11px;color:#666666;");
+            // 无效方案值：font-size 为有意覆盖，color 用 token 替换硬编码 hex
+            m_gridValues[i]->setStyleSheet(
+                QStringLiteral("font-size:11px;color:%1;")
+                    .arg(GlobalStyle::Colors::TextDim));
         }
     }
 
@@ -150,8 +165,10 @@ void PlanCardWidget::updateStyle()
     // 选中态：蓝色边框 + 蓝色半透明背景，匹配 HTML .plan-card.active
     // 无效态：降低不透明度
     if (m_selected) {
+        // PlanCardWidget 属 QWidget 子类，背景/边框需显式设置；border 用 token 替换硬编码 hex
         setStyleSheet(QStringLiteral("PlanCardWidget{background:rgba(91,155,213,0.1);"
-                                     "border:2px solid #5B9BD5;border-radius:4px;}"));
+                                     "border:2px solid %1;border-radius:4px;}")
+                         .arg(GlobalStyle::Colors::CardSelectedBorder));
     } else {
         setStyleSheet(QStringLiteral("PlanCardWidget{background:%1;border:1px solid %2;"
                                      "border-radius:4px;}")

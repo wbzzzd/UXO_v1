@@ -48,8 +48,9 @@ TargetDetailPanel::~TargetDetailPanel()
 
 void TargetDetailPanel::setupUi()
 {
-    // 设置面板样式
-    setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
+    // 面板背景转 containerBg="panel" 属性（词汇表完整覆盖，移除内联 setStyleSheet）
+    setProperty("containerBg", "panel");
+    setAttribute(Qt::WA_StyledBackground, true);
     setMinimumWidth(GlobalStyle::Sizes::RightPanelWidth);
     setMaximumWidth(GlobalStyle::Sizes::RightPanelWidth);
 
@@ -60,15 +61,16 @@ void TargetDetailPanel::setupUi()
 
     // 面板头部
     QWidget *headerWidget = new QWidget(this);
-    headerWidget->setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::ToolbarBackground));
+    // 头部背景转 containerBg="toolbar" 属性（词汇表完整覆盖，移除内联）
+    headerWidget->setProperty("containerBg", "toolbar");
+    headerWidget->setAttribute(Qt::WA_StyledBackground, true);
     headerWidget->setFixedHeight(40);
     QHBoxLayout *headerLayout = new QHBoxLayout(headerWidget);
     headerLayout->setContentsMargins(12, 0, 12, 0);
 
     QLabel *titleLabel = new QLabel("目标详情", headerWidget);
-    titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Fonts::TitleSize));
+    // 标题转 labelRole="h1"（color/16px/bold 与词汇表一致，移除内联）
+    titleLabel->setProperty("labelRole", "h1");
     headerLayout->addWidget(titleLabel);
     headerLayout->addStretch();
 
@@ -82,7 +84,9 @@ void TargetDetailPanel::setupUi()
 
     // 内容widget
     m_contentWidget = new QWidget(m_scrollArea);
-    m_contentWidget->setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
+    // 内容区背景转 containerBg="panel" 属性（词汇表完整覆盖，移除内联）
+    m_contentWidget->setProperty("containerBg", "panel");
+    m_contentWidget->setAttribute(Qt::WA_StyledBackground, true);
     m_contentLayout = new QVBoxLayout(m_contentWidget);
     m_contentLayout->setContentsMargins(12, 12, 12, 12);
     m_contentLayout->setSpacing(16);
@@ -104,8 +108,11 @@ void TargetDetailPanel::setupUi()
 QWidget* TargetDetailPanel::createImageCarousel()
 {
     QWidget *carouselWidget = new QWidget(m_contentWidget);
+    // border-radius:4px 转 cardRadius="true" 属性；#1A1A1A 无对应 token，保留内联背景色
+    carouselWidget->setProperty("cardRadius", "true");
+    carouselWidget->setAttribute(Qt::WA_StyledBackground, true);
     carouselWidget->setFixedHeight(200);
-    carouselWidget->setStyleSheet("background-color: #1A1A1A; border-radius: 4px;");
+    carouselWidget->setStyleSheet("background-color: #1A1A1A;");
 
     QVBoxLayout *layout = new QVBoxLayout(carouselWidget);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -126,7 +133,9 @@ QWidget* TargetDetailPanel::createImageCarousel()
 
     m_imageLabel = new QLabel(imageArea);
     m_imageLabel->setAlignment(Qt::AlignCenter);
-    m_imageLabel->setStyleSheet(QString("color: %1; font-size: 14px;").arg(GlobalStyle::Colors::TextSecondary));
+    // 颜色转 textColor="secondary"；font-size:14px 无对应 labelRole（body2/caption 为 12px），保留内联
+    m_imageLabel->setProperty("textColor", "secondary");
+    m_imageLabel->setStyleSheet("font-size: 14px;");
     m_imageLabel->setText("目标图像加载中...");
     imageLayout->addWidget(m_imageLabel, 1);
 
@@ -143,7 +152,8 @@ QWidget* TargetDetailPanel::createImageCarousel()
     // 图片指示器
     m_imageIndicator = new QLabel(carouselWidget);
     m_imageIndicator->setAlignment(Qt::AlignCenter);
-    m_imageIndicator->setStyleSheet(QString("color: %1; font-size: 12px;").arg(GlobalStyle::Colors::TextSecondary));
+    // 指示器文案转 labelRole="caption"（color/12px 与词汇表一致，移除内联）
+    m_imageIndicator->setProperty("labelRole", "caption");
     m_imageIndicator->setText("1 / 3");
     layout->addWidget(m_imageIndicator);
 
@@ -153,17 +163,20 @@ QWidget* TargetDetailPanel::createImageCarousel()
 QWidget* TargetDetailPanel::createInfoSection()
 {
     QWidget *infoWidget = new QWidget(m_contentWidget);
-    infoWidget->setStyleSheet(QString("background-color: %1; border-radius: 4px; padding: 12px;")
-        .arg(GlobalStyle::Colors::Background));
+    // 背景转 containerBg="main"、圆角转 cardRadius="true"；padding:12px 词汇表未覆盖，保留内联
+    infoWidget->setProperty("containerBg", "main");
+    infoWidget->setProperty("cardRadius", "true");
+    infoWidget->setAttribute(Qt::WA_StyledBackground, true);
+    infoWidget->setStyleSheet("padding: 12px;");
 
     QVBoxLayout *layout = new QVBoxLayout(infoWidget);
     layout->setSpacing(8);
 
     // 标题
     QLabel *sectionTitle = new QLabel("基本信息", infoWidget);
-    sectionTitle->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold; margin-bottom: 8px;")
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Fonts::BodySize));
+    // color/14px/bold 转 labelRole="h2"；margin-bottom:8px 词汇表未覆盖，保留内联
+    sectionTitle->setProperty("labelRole", "h2");
+    sectionTitle->setStyleSheet("margin-bottom: 8px;");
     layout->addWidget(sectionTitle);
 
     // 信息行
@@ -172,16 +185,15 @@ QWidget* TargetDetailPanel::createInfoSection()
         row->setSpacing(8);
 
         QLabel *labelWidget = new QLabel(label, infoWidget);
-        labelWidget->setStyleSheet(QString("color: %1; font-size: %2px;")
-            .arg(GlobalStyle::Colors::TextSecondary)
-            .arg(GlobalStyle::Fonts::CaptionSize));
+        // 字段标签转 labelRole="caption"（color/12px 与词汇表一致，移除内联）
+        labelWidget->setProperty("labelRole", "caption");
         labelWidget->setFixedWidth(60);
         row->addWidget(labelWidget);
 
         valueLabel = new QLabel("--", infoWidget);
-        valueLabel->setStyleSheet(QString("color: %1; font-size: %2px;")
-            .arg(GlobalStyle::Colors::TextPrimary)
-            .arg(GlobalStyle::Fonts::BodySize));
+        // 主色文本转 textColor="white"；font-size:14px 无对应 labelRole，保留内联
+        valueLabel->setProperty("textColor", "white");
+        valueLabel->setStyleSheet(QString("font-size: %1px;").arg(GlobalStyle::Fonts::BodySize));
         row->addWidget(valueLabel, 1);
 
         layout->addLayout(row);
@@ -200,17 +212,20 @@ QWidget* TargetDetailPanel::createInfoSection()
 QWidget* TargetDetailPanel::createAIRecommendation()
 {
     QWidget *aiWidget = new QWidget(m_contentWidget);
-    aiWidget->setStyleSheet(QString("background-color: %1; border-radius: 4px; padding: 12px;")
-        .arg(GlobalStyle::Colors::ToolbarBackground));
+    // 背景转 containerBg="toolbar"、圆角转 cardRadius="true"；padding:12px 保留内联
+    aiWidget->setProperty("containerBg", "toolbar");
+    aiWidget->setProperty("cardRadius", "true");
+    aiWidget->setAttribute(Qt::WA_StyledBackground, true);
+    aiWidget->setStyleSheet("padding: 12px;");
 
     QVBoxLayout *layout = new QVBoxLayout(aiWidget);
     layout->setSpacing(8);
 
     // 标题
     QLabel *title = new QLabel("AI推荐处置方式", aiWidget);
-    title->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-        .arg(GlobalStyle::Colors::PrimaryGreen)
-        .arg(GlobalStyle::Fonts::BodySize));
+    // PrimaryGreen 色 转 textColor="green"；font-size:14px/bold 词汇表未覆盖，保留内联
+    title->setProperty("textColor", "green");
+    title->setStyleSheet(QString("font-size: %1px; font-weight: bold;").arg(GlobalStyle::Fonts::BodySize));
     layout->addWidget(title);
 
     // 推荐内容
@@ -220,8 +235,9 @@ QWidget* TargetDetailPanel::createAIRecommendation()
         "预计处置时间：15分钟",
         aiWidget);
     m_aiRecommendationLabel->setWordWrap(true);
-    m_aiRecommendationLabel->setStyleSheet(QString("color: %1; font-size: %2px; line-height: 1.5;")
-        .arg(GlobalStyle::Colors::TextPrimary)
+    // 主色文本转 textColor="white"；font-size:12px/line-height:1.5 保留内联
+    m_aiRecommendationLabel->setProperty("textColor", "white");
+    m_aiRecommendationLabel->setStyleSheet(QString("font-size: %1px; line-height: 1.5;")
         .arg(GlobalStyle::Fonts::CaptionSize));
     layout->addWidget(m_aiRecommendationLabel);
 

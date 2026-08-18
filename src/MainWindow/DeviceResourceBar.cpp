@@ -28,13 +28,15 @@ DeviceResourceBar::~DeviceResourceBar() = default;
 
 void DeviceResourceBar::setupUi()
 {
-    // 固定 36px 高，深色背景，下边框分隔，对齐原型 .device-bar
+    // 像素回归修复（批次3门禁）：原内联 DeviceResourceBar{background:ToolbarBackground;border-bottom}
+    // 因缺 WA_StyledBackground 在基线中从未绘制，基线顶条实显 centralWidget 级联 #1E1E1E；
+    // 若按原型词表用 toolbar+edgeBorder 会激活基线不存在的 #2D2D2D 底色+下边线（约49k px 回归）。
+    // 为保基线像素等价改用 containerBg="main"（#1E1E1E）且不加 edgeBorder；
+    // 后续如需按原型 .device-bar 呈现 #2D2D2D，须作为显式视觉变更单独评审过门禁。
+    setProperty("containerBg", "main");
+    setAttribute(Qt::WA_StyledBackground, true);
     setFixedHeight(36);
     setObjectName(QStringLiteral("deviceResourceBar"));
-    setStyleSheet(QString(
-        "DeviceResourceBar { background-color: %1; border-bottom: 1px solid %2; }")
-        .arg(GlobalStyle::Colors::ToolbarBackground)
-        .arg(GlobalStyle::Colors::Border));
 
     auto *layout = new QHBoxLayout(this);
     layout->setContentsMargins(8, 0, 8, 0);
@@ -42,9 +44,8 @@ void DeviceResourceBar::setupUi()
 
     // 左侧标题"设备资源"
     m_label = new QLabel(tr("设备资源"), this);
-    m_label->setStyleSheet(QString("color: %1; font-size: %2px;")
-        .arg(GlobalStyle::Colors::TextSecondary)
-        .arg(GlobalStyle::Fonts::CaptionSize));
+    // (a) 次级文本色+12px 字号走全局 QSS labelRole="caption"（=%18 TextSecondary=#AAAAAA + %20px CaptionSize=12），构造期静态属性先于 addWidget
+    m_label->setProperty("labelRole", "caption");
     layout->addWidget(m_label);
 
     // 卡片容器：水平排列，左侧对齐，超出可滚动（QHBoxLayout 不滚动，超出由父布局裁剪）
@@ -120,18 +121,21 @@ QWidget *DeviceResourceBar::createCard(const Core::DeviceInfo &device)
     // 选中态用动态属性标记，便于测试断言且不破坏 ID 解析
     card->setProperty("selected", selected);
 
-    // 卡片样式：对齐原型 .device-card
+    // (c) 卡片样式使用 per-instance objectName QSS（hover/选中态），border-radius=3px≠cardRadius 4px，无词表可表达；颜色已用 Colors:: token
     // - 默认: 深色面板背景 + 边框
     // - 选中: 军绿色边框 + 选中背景
+    // hover 与选中背景使用 RowHover / RowSelected token（原 hex 为近似值）
     const QString baseStyle = QString(
         "QFrame#%1 { background-color: %2; border: 1px solid %3; border-radius: 3px; }"
-        "QFrame#%1:hover { background-color: #2A2D2E; }")
+        "QFrame#%1:hover { background-color: %4; }")
         .arg(card->objectName())
         .arg(GlobalStyle::Colors::PanelBackground)
-        .arg(GlobalStyle::Colors::Border);
+        .arg(GlobalStyle::Colors::Border)
+        .arg(GlobalStyle::Colors::RowHover);
     const QString selectedStyle = QString(
-        "QFrame#%1 { background-color: #2F3D2F; border: 1px solid %2; border-radius: 3px; }")
+        "QFrame#%1 { background-color: %2; border: 1px solid %3; border-radius: 3px; }")
         .arg(card->objectName())
+        .arg(GlobalStyle::Colors::RowSelected)
         .arg(GlobalStyle::Colors::PrimaryGreen);
     card->setStyleSheet(selected ? selectedStyle : baseStyle);
 
@@ -142,29 +146,46 @@ QWidget *DeviceResourceBar::createCard(const Core::DeviceInfo &device)
     // 状态点（颜色随 DeviceStatus）
     auto *dot = new QLabel(card);
     const int dotSize = 8;
+    // (a) 状态点圆角走全局 QSS cardRadius="true"（border-radius:4px），新建标签先于 setFixedSize/addWidget
+    dot->setProperty("cardRadius", "true");
+    dot->setAttribute(Qt::WA_StyledBackground, true);
     dot->setFixedSize(dotSize, dotSize);
-    dot->setStyleSheet(QString("background-color: %1; border-radius: 4px; border: none;")
+    // (b) 状态点背景色随 DeviceStatus 动态计算，保留 setStyleSheet；border:none 覆盖可能的全局 QLabel 边框
+    dot->setStyleSheet(QString("background-color: %1; border: none;")
         .arg(statusDotColor(device.status)));
     cardLayout->addWidget(dot);
 
     // 设备 ID（加粗）
     auto *idLabel = new QLabel(device.id, card);
-    idLabel->setStyleSheet(QString("color: %1; font-weight: bold; font-size: %2px; border: none;")
-        .arg(GlobalStyle::Colors::TextPrimary)
+    // (a) 设备 ID 主文本色走全局 QSS textColor="white"（=%3 TextPrimary=#FFFFFF），新建标签先于 addWidget
+    idLabel->setProperty("textColor", "white");
+    // 像素回归修复（批次3门禁）：基线 centralWidget 裸样式表 #1E1E1E 级联到卡内标签（卡片底 #252526 上可见），
+    // 属性化后级联消失，labelBg 按标签恢复不透明底
+    idLabel->setProperty("labelBg", "main");
+    // (a) 加粗+12px 字号+无边框无对应 labelRole 词表，保留内联
+    idLabel->setStyleSheet(QString("font-weight: bold; font-size: %1px; border: none;")
         .arg(GlobalStyle::Fonts::CaptionSize));
     cardLayout->addWidget(idLabel);
 
     // 电量百分比
     auto *battLabel = new QLabel(QString::number(static_cast<int>(device.batteryLevel)) + QStringLiteral("%"), card);
-    battLabel->setStyleSheet(QString("color: %1; font-size: %2px; border: none;")
-        .arg(GlobalStyle::Colors::StatusOnline)
+    // (a) 电量在线绿色文本走全局 QSS textColor="online"（=%21 StatusOnline=#4CAF50），新建标签先于 addWidget
+    battLabel->setProperty("textColor", "online");
+    // 像素回归修复（批次3门禁）：恢复基线裸样式表级联的 #1E1E1E 不透明标签底（见 idLabel 注释）
+    battLabel->setProperty("labelBg", "main");
+    // (a) 12px 字号+无边框无对应 labelRole 词表，保留内联
+    battLabel->setStyleSheet(QString("font-size: %1px; border: none;")
         .arg(GlobalStyle::Fonts::CaptionSize));
     cardLayout->addWidget(battLabel);
 
     // 任务状态文案
     auto *taskLabel = new QLabel(taskStatusText(device.status), card);
-    taskLabel->setStyleSheet(QString("color: %1; font-size: %2px; border: none;")
-        .arg(GlobalStyle::Colors::TextSecondary)
+    // (a) 任务状态次级文本色走全局 QSS textColor="secondary"（=%18 TextSecondary=#AAAAAA），新建标签先于 addWidget
+    taskLabel->setProperty("textColor", "secondary");
+    // 像素回归修复（批次3门禁）：恢复基线裸样式表级联的 #1E1E1E 不透明标签底（见 idLabel 注释）
+    taskLabel->setProperty("labelBg", "main");
+    // (a) 12px 字号+无边框无对应 labelRole 词表，保留内联
+    taskLabel->setStyleSheet(QString("font-size: %1px; border: none;")
         .arg(GlobalStyle::Fonts::CaptionSize));
     cardLayout->addWidget(taskLabel);
 
