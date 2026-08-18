@@ -124,6 +124,7 @@ void DecisionView::setupUi()
         zoomRow->addWidget(lbl);
     };
     addLegendItem(GlobalStyle::Colors::ThreatHigh, QStringLiteral("弹坑"));
+    // #FFEB3B（未爆弹图例黄）在 Colors:: token 中无等值项（ThreatHigh=#FF5252 非同色），保留字面量
     addLegendItem(QStringLiteral("#FFEB3B"), QStringLiteral("未爆弹"));
     addLegendItem(GlobalStyle::Colors::StatusOnline, QStringLiteral("已处理"));
     addLegendItem(GlobalStyle::Colors::ThreatMedium, QStringLiteral("候选档位"));

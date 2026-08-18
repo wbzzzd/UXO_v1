@@ -162,9 +162,10 @@ QWidget *DeviceResourceBar::createCard(const Core::DeviceInfo &device)
     // 像素回归修复（批次3门禁）：基线 centralWidget 裸样式表 #1E1E1E 级联到卡内标签（卡片底 #252526 上可见），
     // 属性化后级联消失，labelBg 按标签恢复不透明底
     idLabel->setProperty("labelBg", "main");
-    // (a) 加粗+12px 字号+无边框无对应 labelRole 词表，保留内联
-    idLabel->setStyleSheet(QString("font-weight: bold; font-size: %1px; border: none;")
-        .arg(GlobalStyle::Fonts::CaptionSize));
+    // 属性转换（批次5）：12px+bold 逐值等价走 fontSize/fontWeight 词汇；border:none 为无操作声明
+    // （基线 QLabel 规则无边框，各祖先样式表也无 QLabel 边框级联），删除后像素不变
+    idLabel->setProperty("fontSize", "12");
+    idLabel->setProperty("fontWeight", "bold");
     cardLayout->addWidget(idLabel);
 
     // 电量百分比
@@ -173,9 +174,8 @@ QWidget *DeviceResourceBar::createCard(const Core::DeviceInfo &device)
     battLabel->setProperty("textColor", "online");
     // 像素回归修复（批次3门禁）：恢复基线裸样式表级联的 #1E1E1E 不透明标签底（见 idLabel 注释）
     battLabel->setProperty("labelBg", "main");
-    // (a) 12px 字号+无边框无对应 labelRole 词表，保留内联
-    battLabel->setStyleSheet(QString("font-size: %1px; border: none;")
-        .arg(GlobalStyle::Fonts::CaptionSize));
+    // 属性转换（批次5）：12px 逐值等价走 fontSize 词汇；border:none 为无操作声明（见 idLabel 注释）
+    battLabel->setProperty("fontSize", "12");
     cardLayout->addWidget(battLabel);
 
     // 任务状态文案
@@ -184,9 +184,8 @@ QWidget *DeviceResourceBar::createCard(const Core::DeviceInfo &device)
     taskLabel->setProperty("textColor", "secondary");
     // 像素回归修复（批次3门禁）：恢复基线裸样式表级联的 #1E1E1E 不透明标签底（见 idLabel 注释）
     taskLabel->setProperty("labelBg", "main");
-    // (a) 12px 字号+无边框无对应 labelRole 词表，保留内联
-    taskLabel->setStyleSheet(QString("font-size: %1px; border: none;")
-        .arg(GlobalStyle::Fonts::CaptionSize));
+    // 属性转换（批次5）：12px 逐值等价走 fontSize 词汇；border:none 为无操作声明（见 idLabel 注释）
+    taskLabel->setProperty("fontSize", "12");
     cardLayout->addWidget(taskLabel);
 
     // 点击卡片选中设备并发信号

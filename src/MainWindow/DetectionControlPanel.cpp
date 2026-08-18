@@ -75,9 +75,9 @@ void DetectionControlPanel::setupUi()
 
     m_targetLabel = new QLabel(statusRow);
     m_targetLabel->setObjectName(QStringLiteral("simulationTargetLabel"));
-    // 主目标标签主色走全局 QSS textColor="white"（=TextPrimary，构造期静态属性先于 addWidget）；12px 字号无对应 labelRole（body2/caption 强制 TextSecondary 会变色），保留内联
+    // 主目标标签主色走全局 QSS textColor="white"（=TextPrimary，构造期静态属性先于 addWidget）；12px 字号走 fontSize 词汇（批次5）
     m_targetLabel->setProperty("textColor", "white");
-    m_targetLabel->setStyleSheet(QStringLiteral("font-size: %1px;").arg(GlobalStyle::Fonts::CaptionSize));
+    m_targetLabel->setProperty("fontSize", "12");
     statusLayout->addWidget(m_targetLabel);
 
     m_statusLabel = new QLabel(statusRow);

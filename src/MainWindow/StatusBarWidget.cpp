@@ -60,8 +60,8 @@ void StatusBarWidget::setupUi()
     //（y1056 顶边框分段线 + 不透明底）；属性化后级联消失，按标签显式恢复
     m_deviceStatusLabel->setProperty("labelBg", QStringLiteral("main"));
     m_deviceStatusLabel->setProperty("edgeBorder", QStringLiteral("top"));
-    // (c) 12px 字号无对应 labelRole 词表（caption 强制 TextSecondary 会变色），保留内联 setStyleSheet
-    m_deviceStatusLabel->setStyleSheet("font-size: 12px;");
+    // 12px 字号走 fontSize 覆盖属性（批次5 词汇，避免 caption 角色强制的 TextSecondary 变色）
+    m_deviceStatusLabel->setProperty("fontSize", QStringLiteral("12"));
     m_deviceStatusLabel->setCursor(Qt::PointingHandCursor);
     mainLayout->addWidget(m_deviceStatusLabel);
 
@@ -73,8 +73,8 @@ void StatusBarWidget::setupUi()
     // 像素回归修复（批次3门禁）：恢复基线裸样式表级联到本标签的不透明底色与顶边框（y1056 分段线）
     m_batteryLabel->setProperty("labelBg", QStringLiteral("main"));
     m_batteryLabel->setProperty("edgeBorder", QStringLiteral("top"));
-    // (a) 12px 字号无对应 labelRole 词表（caption 强制 TextSecondary 会变色），保留内联
-    m_batteryLabel->setStyleSheet("font-size: 12px;");
+    // 12px 字号走 fontSize 覆盖属性（批次5 词汇），构造期静态属性先于 addWidget
+    m_batteryLabel->setProperty("fontSize", QStringLiteral("12"));
     mainLayout->addWidget(m_batteryLabel);
 
     mainLayout->addWidget(createSeparator());
@@ -86,8 +86,9 @@ void StatusBarWidget::setupUi()
     // 像素回归修复（批次3门禁）：恢复基线裸样式表级联到本标签的不透明底色与顶边框（y1056 分段线）
     m_simulationLabel->setProperty("labelBg", QStringLiteral("main"));
     m_simulationLabel->setProperty("edgeBorder", QStringLiteral("top"));
-    // (a) 12px 字号+加粗无对应 labelRole 词表，保留内联
-    m_simulationLabel->setStyleSheet("font-size: 12px; font-weight: bold;");
+    // 12px 字号+加粗走 fontSize/fontWeight 覆盖属性（批次5 词汇）
+    m_simulationLabel->setProperty("fontSize", QStringLiteral("12"));
+    m_simulationLabel->setProperty("fontWeight", QStringLiteral("bold"));
     m_simulationLabel->setVisible(false);
     mainLayout->addWidget(m_simulationLabel);
 
@@ -164,13 +165,10 @@ void StatusBarWidget::addAlarm(const QString& message)
     // (a) 告警橙色文本走全局 QSS textColor="busy"（=%22 StatusBusy=#FFB74D=ThreatMedium），新建标签先于 setFixedHeight/addWidget
     alarmLabel->setProperty("textColor", QStringLiteral("busy"));
     alarmLabel->setFixedHeight(kAlarmHeight);
-    // (a) 背景色+字号+内边距+圆角无对应词表（containerBg 与 textColor 同用时 background:transparent 会覆盖背景色），保留内联
-    alarmLabel->setStyleSheet(QStringLiteral(R"(
-        font-size: 12px;
-        background-color: %1;
-        padding: 2px 8px;
-        border-radius: 4px;
-    )").arg(GlobalStyle::Colors::ToolbarBackground));
+    // 告警标签=chip 徽标底（%2 底+2px/8px 内边距）+cardRadius 圆角+fontSize 12px（批次5 词汇，与原内联四属性逐值等价）
+    alarmLabel->setProperty("labelBg", QStringLiteral("chip"));
+    alarmLabel->setProperty("cardRadius", QStringLiteral("true"));
+    alarmLabel->setProperty("fontSize", QStringLiteral("12"));
     m_alarmLayout->addWidget(alarmLabel);
 }
 

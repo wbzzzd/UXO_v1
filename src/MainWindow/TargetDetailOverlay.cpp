@@ -11,6 +11,7 @@
 #include <QPixmap>
 #include <QtMath>
 #include <QResizeEvent>
+#include <QStyle>
 
 TargetDetailOverlay::TargetDetailOverlay(QWidget *parent)
     : QWidget(parent)
@@ -103,16 +104,18 @@ void TargetDetailOverlay::setupUi()
     m_evidenceImageLabel = new QLabel(m_evidenceViewport);
     m_evidenceImageLabel->setObjectName(QStringLiteral("targetDetailEvidenceImage"));
     m_evidenceImageLabel->setAlignment(Qt::AlignCenter);
-    m_evidenceImageLabel->setStyleSheet(QStringLiteral("border: none; background: transparent;"));
+    // 属性转换（批次5）：原 border:none 为 QLabel 无操作、background:transparent 与基线 QLabel 规则
+    // 重复，整个内联样式冗余，直接移除（像素不变）
     m_evidenceImageLabel->hide();
     viewportLayout->addWidget(m_evidenceImageLabel);
 
     m_evidencePlaceholder = new QLabel(m_evidenceViewport);
     m_evidencePlaceholder->setObjectName(QStringLiteral("targetDetailEvidencePlaceholder"));
     m_evidencePlaceholder->setAlignment(Qt::AlignCenter);
-    m_evidencePlaceholder->setStyleSheet(QString("color: %1; font-size: %2px; border: none; background: transparent;")
-        .arg(GlobalStyle::Colors::TextDisabled)
-        .arg(GlobalStyle::Fonts::CaptionSize));
+    // 属性转换（批次5）：禁用色+12px 逐值等价走 textColor/fontSize 词汇；border:none 与
+    // background:transparent 为无操作/与基线重复，移除后像素不变（先于 addWidget）
+    m_evidencePlaceholder->setProperty("textColor", "disabled");
+    m_evidencePlaceholder->setProperty("fontSize", "12");
     m_evidencePlaceholder->setText(QStringLiteral("暂无证据快照[模拟]"));
     viewportLayout->addWidget(m_evidencePlaceholder);
 
@@ -145,9 +148,10 @@ void TargetDetailOverlay::setupUi()
         rowLayout->addWidget(label);
         valueLabel = new QLabel(row);
         valueLabel->setObjectName(valueObjectName);
-        valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; border: none;")
-            .arg(GlobalStyle::Colors::TextPrimary)
-            .arg(GlobalStyle::Fonts::CaptionSize));
+        // 属性转换（批次5）：主文本色+12px 逐值等价走 textColor/fontSize 词汇；
+        // border:none 为 QLabel 无操作，移除后像素不变（先于 addWidget）
+        valueLabel->setProperty("textColor", "white");
+        valueLabel->setProperty("fontSize", "12");
         rowLayout->addWidget(valueLabel, 1);
         return row;
     };
@@ -209,9 +213,10 @@ void TargetDetailOverlay::setupUi()
 
         valueLabel = new QLabel(row);
         valueLabel->setObjectName(valueObjectName);
-        valueLabel->setStyleSheet(QString("color: %1; font-size: %2px; border: none;")
-            .arg(GlobalStyle::Colors::TextPrimary)
-            .arg(GlobalStyle::Fonts::CaptionSize));
+        // 属性转换（批次5）：主文本色+12px 逐值等价走 textColor/fontSize 词汇；
+        // border:none 为 QLabel 无操作，移除后像素不变（先于 addWidget）
+        valueLabel->setProperty("textColor", "white");
+        valueLabel->setProperty("fontSize", "12");
         rowLayout->addWidget(valueLabel, 1);
         return row;
     };
@@ -333,13 +338,18 @@ void TargetDetailOverlay::refreshDetail()
         return;
     }
 
-    // 威胁等级
+    // 威胁等级：运行期动态语义色，threatClass(high/medium/其他) 与 textColor 词汇键
+    // (high=ThreatHigh / medium=ThreatMedium / disabled=TextDisabled) 逐值对应；
+    // 字号 12px 由创建期 fontSize 词汇提供，bold 走 fontWeight 词汇，属性切换后 repolish 生效
+    const QString threatColorKey = threatClass(m_target.threatLevel) == QStringLiteral("high")
+        ? QStringLiteral("high")
+        : threatClass(m_target.threatLevel) == QStringLiteral("medium") ? QStringLiteral("medium")
+        : QStringLiteral("disabled");
     m_threatValue->setText(threatText(m_target.threatLevel));
-    m_threatValue->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold; border: none;")
-        .arg(threatClass(m_target.threatLevel) == QStringLiteral("high") ? GlobalStyle::Colors::ThreatHigh
-             : threatClass(m_target.threatLevel) == QStringLiteral("medium") ? GlobalStyle::Colors::ThreatMedium
-             : GlobalStyle::Colors::TextDisabled)
-        .arg(GlobalStyle::Fonts::CaptionSize));
+    m_threatValue->setProperty("textColor", threatColorKey);
+    m_threatValue->setProperty("fontWeight", "bold");
+    m_threatValue->style()->unpolish(m_threatValue);
+    m_threatValue->style()->polish(m_threatValue);
 
     // 置信度
     m_confValue->setText(QString::number(static_cast<int>(m_target.confidence * 100)) + QStringLiteral("%"));

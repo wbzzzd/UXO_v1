@@ -384,6 +384,19 @@ QString getMainWindowStyle()
         /* disabled=禁用/未选择占位（恢复决策建议风险标签降级色语义） */
         QLabel[textColor="disabled"] { color: %10; background: transparent; }
 
+        /* 字号/字重/字族覆盖（fontSize/fontWeight/fontFamily）：单属性微调，无背景副作用；
+           声明于 labelRole 之后（同特异度后声明者胜，可覆盖角色字号），与 textColor 可自由组合。
+           档位 9/10/11/13 为存量内联字号收敛登记（12/14 与 Caption/Body token 等值）。 */
+        QLabel[fontSize="9"] { font-size: 9px; }
+        QLabel[fontSize="10"] { font-size: 10px; }
+        QLabel[fontSize="11"] { font-size: 11px; }
+        QLabel[fontSize="12"] { font-size: 12px; }
+        QLabel[fontSize="13"] { font-size: 13px; }
+        QLabel[fontSize="14"] { font-size: 14px; }
+        QLabel[fontWeight="bold"] { font-weight: bold; }
+        /* 等宽字族（mono）：坐标/编号/数值列，写法与基线内联样式逐字一致 */
+        QLabel[fontFamily="mono"] { font-family: 'Consolas', 'Courier New', monospace; }
+
         /* 标签背景（labelBg）：恢复基线裸样式表级联产生的不透明标签底。
            基线容器裸样式表（无选择器）的 background/border 级联到子孙 QLabel 并被原生绘制；
            属性化改造后级联消失，本规则按标签显式恢复底色。

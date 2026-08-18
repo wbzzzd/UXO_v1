@@ -36,8 +36,8 @@ void BatchOperationBar::setupUi()
     m_countLabel = new QLabel("已选择: 0", this);
     // 文本主色走全局 QSS textColor="white"（=%3 TextPrimary=#FFFFFF），构造期静态属性先于 addWidget
     m_countLabel->setProperty("textColor", "white");
-    // 12px 字号无对应 labelRole 词表（caption/body2 强制 TextSecondary 会变色），保留内联
-    m_countLabel->setStyleSheet("font-size: 12px;");
+    // 12px 字号走 fontSize 词汇（批次5，先于 addWidget）
+    m_countLabel->setProperty("fontSize", "12");
     layout->addWidget(m_countLabel);
 
     layout->addStretch();

@@ -84,6 +84,8 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 
 字体族优先微软雅黑，回退思源黑体、黑体，最后 sans-serif。HTML 原型必须使用相同顺序，避免环境差异导致渲染漂移。
 
+字号覆盖档位（2026-08 批次5 收敛登记）：Qt 侧 `GlobalStyle` 属性词汇提供 `fontSize` 覆盖档位 9/10/11/12/13/14px（`QLabel[fontSize="N"]`）、`fontWeight="bold"` 与等宽字族 `fontFamily="mono"`（`'Consolas','Courier New',monospace`）。其中 12/14 与 `--font-size-caption`/`--font-size-body` 等值；9/10/11/13 为存量内联字号的收敛登记（沿用基线已有值，非新增视觉值），用于坐标、徽标、紧凑数值列等小字场景，不取代本节全局字体 token，HTML 原型仍只用 12/14/16。
+
 ## 3. 尺寸 token
 
 ### 3.1 窗口与区域

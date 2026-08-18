@@ -138,8 +138,9 @@ void VideoStreamPanel::createTitleBar()
     // 像素回归修复（批次3门禁）：基线本面板裸样式表 #1E1E1E 级联到标题标签（标题栏 #2D2D2D 上可见），
     // 属性化后级联消失，labelBg 按标签恢复不透明底
     m_titleLabel->setProperty("labelBg", "main");
-    // (a) 11px 字号+无边框无对应 labelRole 词表（最小 caption=12px），保留内联
-    m_titleLabel->setStyleSheet("font-size: 11px; border: none;");
+    // 属性转换（批次5）：11px 字号走 fontSize 词汇；border:none 为无操作声明
+    // （基线 QLabel 规则无边框，标题栏样式表亦无 QLabel 边框级联），删除后像素不变
+    m_titleLabel->setProperty("fontSize", "11");
     layout->addWidget(m_titleLabel);
 
     layout->addStretch();

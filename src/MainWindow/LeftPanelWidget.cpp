@@ -309,12 +309,13 @@ void LeftPanelWidget::updateStatusTabs()
 
 void LeftPanelWidget::appendTargetRow(int row, const Core::TargetInfo &target)
 {
+    // 威胁等级色取全局令牌（与字面量逐值等价，像素不变）
     QColor threatColor;
     switch (target.threatLevel) {
-        case Core::ThreatLevel::High: threatColor = QColor("#FF5252"); break;
-        case Core::ThreatLevel::Medium: threatColor = QColor("#FFB74D"); break;
-        case Core::ThreatLevel::Low: threatColor = QColor("#FFF176"); break;
-        default: threatColor = QColor("#888888");
+        case Core::ThreatLevel::High: threatColor = QColor(GlobalStyle::Colors::ThreatHigh); break;
+        case Core::ThreatLevel::Medium: threatColor = QColor(GlobalStyle::Colors::ThreatMedium); break;
+        case Core::ThreatLevel::Low: threatColor = QColor(GlobalStyle::Colors::ThreatLow); break;
+        default: threatColor = QColor(GlobalStyle::Colors::TextDisabled);
     }
 
     // 清除默认 ItemIsUserCheckable，保持其余默认标志不变

@@ -175,7 +175,7 @@ void MosRunwayWidget::paintEvent(QPaintEvent *)
     const int h = height();
     const auto lay = computeLayout(m_snapshot, w, h);
 
-    // 背景深绿底（不参与 zoom/pan 变换）
+    // 背景深绿底（不参与 zoom/pan 变换；#1a2a1a 无等值令牌，保留字面量并在此附说明）
     p.fillRect(rect(), QColor("#1a2a1a"));
     // 应用内容仿射变换：围绕视口中心按 m_zoom 缩放，再平移 m_panOffset
     p.setTransform(contentTransform());
@@ -187,10 +187,10 @@ void MosRunwayWidget::paintEvent(QPaintEvent *)
     const QRectF coreRect(lay.originX, lay.coreCenterPx - corePxHalf,
                           contentW, 2.0 * corePxHalf);
     p.fillRect(coreRect, QColor(255, 255, 255, 5));
-    p.setPen(QPen(QColor("#555555"), 1, Qt::DashLine));
+    p.setPen(QPen(QColor("#555555"), 1, Qt::DashLine));  // #555555 无等值令牌，保留字面量
     p.setBrush(Qt::NoBrush);
     p.drawRect(coreRect);
-    p.setPen(QColor("#888888"));
+    p.setPen(QColor(GlobalStyle::Colors::TextDisabled));  // #888888 逐值等价 TextDisabled
     QFont coreFont = font();
     coreFont.setPointSizeF((8.0 * m_viewportScale) / m_zoom);
     p.setFont(coreFont);
@@ -203,17 +203,17 @@ void MosRunwayWidget::paintEvent(QPaintEvent *)
     const double runwayBot = yCoreToPx(-lay.runwayHalfY, lay);
     const QRectF runwayRect(lay.originX, runwayTop, contentW, runwayBot - runwayTop);
     p.fillRect(runwayRect, QColor(GlobalStyle::Colors::Runway));
-    p.setPen(QPen(QColor("#555555"), 1));
+    p.setPen(QPen(QColor("#555555"), 1));  // #555555 无等值令牌，保留字面量
     p.drawRect(runwayRect);
 
-    // 跑道中线虚线
+    // 跑道中线虚线（#777777 无等值令牌，保留字面量）
     p.setPen(QPen(QColor("#777777"), 1, Qt::DashLine));
     const double cy = (runwayTop + runwayBot) / 2.0;
     p.drawLine(QPointF(lay.originX, cy), QPointF(lay.originX + contentW, cy));
 
     // 7 条刻度线 + 距离标注
     // 字号按视口缩放，并按 1/zoom 反向补偿：使 1x/2x 字号恒定，仅内容几何缩放
-    p.setPen(QPen(QColor("#666666"), 1));
+    p.setPen(QPen(QColor(GlobalStyle::Colors::TextDim), 1));  // #666666 逐值等价 TextDim
     QFont smallFont = font();
     smallFont.setPointSizeF((8.0 * m_viewportScale) / m_zoom);
     p.setFont(smallFont);
