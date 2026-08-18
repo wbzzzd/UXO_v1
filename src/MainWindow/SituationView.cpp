@@ -26,6 +26,7 @@
 #include <QColor>
 
 #include "Core/Data/Types.h"
+#include "Common/GlobalStyle.h"
 
 /**
  * @brief 目标标记实体类
@@ -112,7 +113,8 @@ void SituationView::setup3DView()
 
     // 创建窗口容器
     QWidget *container = QWidget::createWindowContainer(m_3dWindow, this);
-    container->setStyleSheet("background-color: #1E1E1E;");
+    // QWidget 容器不在全局 QSS 覆盖范围，需显式设置暗色背景
+    container->setStyleSheet(QStringLiteral("background-color: %1;").arg(GlobalStyle::Colors::Background));
     layout->addWidget(container);
 
     // 使用工厂创建机场3D场景
@@ -142,17 +144,19 @@ void SituationView::setupToolBar()
         
         // 重新添加3D窗口
         QWidget *container = QWidget::createWindowContainer(m_3dWindow, this);
-        container->setStyleSheet("background-color: #1E1E1E;");
+        // QWidget 容器不在全局 QSS 覆盖范围，需显式设置暗色背景
+        container->setStyleSheet(QStringLiteral("background-color: %1;").arg(GlobalStyle::Colors::Background));
         mainLayout->addWidget(container, 1);
     }
     
     // 创建工具栏（右侧竖直方向）
     QWidget *toolBarContainer = new QWidget(this);
     toolBarContainer->setFixedWidth(60);
-    toolBarContainer->setStyleSheet(
+    // 半透明 rgba(alpha=200) 与 Runway(#3D3D3D) 左边框无对应词表（containerBg 无 alpha、edgeBorder=Border#3C3C3C≠Runway），保留内联
+    toolBarContainer->setStyleSheet(QStringLiteral(
         "background-color: rgba(30, 30, 30, 200);"
-        "border-left: 1px solid #3D3D3D;"
-    );
+        "border-left: 1px solid %1;"
+    ).arg(GlobalStyle::Colors::Runway));
     
     QVBoxLayout *toolBarLayout = new QVBoxLayout(toolBarContainer);
     toolBarLayout->setContentsMargins(5, 4, 5, 4);
@@ -161,7 +165,9 @@ void SituationView::setupToolBar()
     
     // 标题
     QLabel *titleLabel = new QLabel("视角", toolBarContainer);
-    titleLabel->setStyleSheet("color: #AAAAAA; font-size: 10px;");
+    // 辅助文本色走全局 QSS textColor="secondary"（=TextSecondary，构造期静态属性先于 addWidget）；10px 字号无对应 labelRole（body2/caption=12px），保留内联
+    titleLabel->setProperty("textColor", "secondary");
+    titleLabel->setStyleSheet(QStringLiteral("font-size: 10px;"));
     titleLabel->setAlignment(Qt::AlignCenter);
     toolBarLayout->addWidget(titleLabel);
     
@@ -169,12 +175,12 @@ void SituationView::setupToolBar()
     QPushButton *btnTop = new QPushButton("俯", toolBarContainer);
     btnTop->setFixedSize(40, 28);
     btnTop->setToolTip("俯视图");
-    // 局部清除全局按钮的最小宽度和内边距，确保四个视角按钮保持在 60px 工具栏内。
-    btnTop->setStyleSheet(
-        "QPushButton { background-color: #0078D7; color: white; border: none; border-radius: 4px; font-size: 12px; min-width: 0px; max-width: 40px; padding: 0px; }"
+    // 蓝色梯度 #0078D7/#1984D8/#005A9E 未在 token 表、无对应 btnVariant（实心蓝底+pressed 梯度），保留内联；white 文字已替换为 Colors::TextPrimary 令牌
+    btnTop->setStyleSheet(QStringLiteral(
+        "QPushButton { background-color: #0078D7; color: %1; border: none; border-radius: 4px; font-size: 12px; min-width: 0px; max-width: 40px; padding: 0px; }"
         "QPushButton:hover { background-color: #1984D8; }"
         "QPushButton:pressed { background-color: #005A9E; }"
-    );
+    ).arg(GlobalStyle::Colors::TextPrimary));
     connect(btnTop, &QPushButton::clicked, [this]() { setCameraView("top"); updateZoomLabel(); });
     toolBarLayout->addWidget(btnTop);
     
@@ -182,10 +188,11 @@ void SituationView::setupToolBar()
     QPushButton *btnSide = new QPushButton("侧", toolBarContainer);
     btnSide->setFixedSize(40, 28);
     btnSide->setToolTip("侧视图");
-    btnSide->setStyleSheet(
-        "QPushButton { background-color: #4A4A4A; color: #DDDDDD; border: 1px solid #5A5A5A; border-radius: 4px; font-size: 12px; min-width: 0px; max-width: 40px; padding: 0px; }"
-        "QPushButton:hover { background-color: #5A5A5A; }"
-    );
+    // 描边灰按钮无对应 btnVariant（subtle/flat 透明或异色底），需自定义 min-width/padding 适配 60px 工具栏，保留内联；颜色已用 Colors:: 令牌
+    btnSide->setStyleSheet(QStringLiteral(
+        "QPushButton { background-color: %1; color: %2; border: 1px solid %3; border-radius: 4px; font-size: 12px; min-width: 0px; max-width: 40px; padding: 0px; }"
+        "QPushButton:hover { background-color: %3; }"
+    ).arg(GlobalStyle::Colors::ButtonGray, GlobalStyle::Colors::TextPrimary, GlobalStyle::Colors::BorderLight));
     connect(btnSide, &QPushButton::clicked, [this]() { setCameraView("side"); updateZoomLabel(); });
     toolBarLayout->addWidget(btnSide);
     
@@ -193,10 +200,11 @@ void SituationView::setupToolBar()
     QPushButton *btn3D = new QPushButton("3D", toolBarContainer);
     btn3D->setFixedSize(40, 28);
     btn3D->setToolTip("3D视角");
-    btn3D->setStyleSheet(
-        "QPushButton { background-color: #4A4A4A; color: #DDDDDD; border: 1px solid #5A5A5A; border-radius: 4px; font-size: 12px; min-width: 0px; max-width: 40px; padding: 0px; }"
-        "QPushButton:hover { background-color: #5A5A5A; }"
-    );
+    // 描边灰按钮无对应 btnVariant（subtle/flat 透明或异色底），需自定义 min-width/padding 适配 60px 工具栏，保留内联；颜色已用 Colors:: 令牌
+    btn3D->setStyleSheet(QStringLiteral(
+        "QPushButton { background-color: %1; color: %2; border: 1px solid %3; border-radius: 4px; font-size: 12px; min-width: 0px; max-width: 40px; padding: 0px; }"
+        "QPushButton:hover { background-color: %3; }"
+    ).arg(GlobalStyle::Colors::ButtonGray, GlobalStyle::Colors::TextPrimary, GlobalStyle::Colors::BorderLight));
     connect(btn3D, &QPushButton::clicked, [this]() { setCameraView("3d"); updateZoomLabel(); });
     toolBarLayout->addWidget(btn3D);
     
@@ -206,10 +214,11 @@ void SituationView::setupToolBar()
     QPushButton *btnReset = new QPushButton("复位", toolBarContainer);
     btnReset->setFixedSize(40, 28);
     btnReset->setToolTip("复位视角");
-    btnReset->setStyleSheet(
-        "QPushButton { background-color: #D9534F; color: white; border: none; border-radius: 4px; font-size: 11px; min-width: 0px; max-width: 40px; padding: 0px; }"
+    // 红色梯度 #D9534F/#E74C3C 未在 token 表、无对应 btnVariant（实心红底），保留内联；white 文字已替换为 Colors::TextPrimary 令牌
+    btnReset->setStyleSheet(QStringLiteral(
+        "QPushButton { background-color: #D9534F; color: %1; border: none; border-radius: 4px; font-size: 11px; min-width: 0px; max-width: 40px; padding: 0px; }"
         "QPushButton:hover { background-color: #E74C3C; }"
-    );
+    ).arg(GlobalStyle::Colors::TextPrimary));
     connect(btnReset, &QPushButton::clicked, this, &SituationView::resetCameraView);
     toolBarLayout->addWidget(btnReset);
     
@@ -217,14 +226,16 @@ void SituationView::setupToolBar()
     
     // 缩放级别标签
     m_zoomLabel = new QLabel("100%", toolBarContainer);
-    m_zoomLabel->setStyleSheet("color: #888888; font-size: 10px;");
+    // TextDisabled(#888888) 无语义相符的 textColor 词表（offline 耦合 StatusOffline 且语义不符）、10px 无 labelRole，保留内联
+    m_zoomLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 10px;").arg(GlobalStyle::Colors::TextDisabled));
     m_zoomLabel->setAlignment(Qt::AlignCenter);
     m_zoomLabel->setFixedHeight(20);
     toolBarLayout->addWidget(m_zoomLabel);
     
     // 位置信息标签
     m_positionLabel = new QLabel("位置", toolBarContainer);
-    m_positionLabel->setStyleSheet("color: #666666; font-size: 9px;");
+    // TextDim(#666666) 无对应 textColor 词表、9px 无 labelRole，保留内联
+    m_positionLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 9px;").arg(GlobalStyle::Colors::TextDim));
     m_positionLabel->setAlignment(Qt::AlignCenter);
     m_positionLabel->setWordWrap(true);
     m_positionLabel->setFixedHeight(40);

@@ -13,9 +13,9 @@
 
 ## NEXT 候选范围
 
-**目标**：把当前单目标状态演示扩展为完整本地模拟指挥环。NEXT 是已确认产品边界但尚未批准的需求草案，以下 ID 与语义保留。REQ-008（探测阶段动态演示，时间线驱动方案）已被 REQ-009 取代，状态为 `Superseded`。REQ-009（无人机探测态势演示）为 `Approved`，可按对应功能设计实施。其余需求全部状态为 `Draft`，不得直接指导实现。
+**目标**：把当前单目标状态演示扩展为完整本地模拟指挥环。NEXT 是已确认产品边界但尚未批准的需求草案，以下 ID 与语义保留。REQ-008（探测阶段动态演示，时间线驱动方案）已被 REQ-009 取代，状态为 `Superseded`。REQ-009（无人机探测态势演示）与 REQ-010（UI 视觉治理）为 `Approved`，可按对应功能设计实施。其余需求全部状态为 `Draft`，不得直接指导实现。
 
-NEXT 切片包含 REQ-001~REQ-006（均为 `Draft`）。REQ-007 为 NEXT 切片之外的独立候选（P0 `Implemented`，P1/P2 `Draft`），不并入 NEXT 切片。
+NEXT 切片包含 REQ-001~REQ-006（均为 `Draft`）。REQ-007 为 NEXT 切片之外的独立候选（P0 `Implemented`，P1/P2 `Draft`），不并入 NEXT 切片。REQ-010 为 NEXT 切片之外的独立候选（UI 视觉治理，`Approved`），不并入 NEXT 切片。
 
 ## 需求索引
 
@@ -30,6 +30,7 @@ NEXT 切片包含 REQ-001~REQ-006（均为 `Draft`）。REQ-007 为 NEXT 切片�
 | REQ-007 | 最小应急起降带（MOS）规划 | `Implemented`（仅 P0；P1/P2 `Draft`） | [REQ-007.md](REQ-007.md) |
 | REQ-008 | ~~探测阶段动态演示~~（时间线驱动） | `Superseded` | [REQ-008.md](REQ-008.md) |
 | REQ-009 | 无人机探测态势演示 | `Approved` | [REQ-009.md](REQ-009.md) |
+| REQ-010 | UI 视觉治理 | `Approved` | [REQ-010.md](REQ-010.md) |
 
 ## 范围与批准门禁
 

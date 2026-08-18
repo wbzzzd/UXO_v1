@@ -44,8 +44,9 @@ VideoStreamPanel::~VideoStreamPanel()
 
 void VideoStreamPanel::setupUi()
 {
-    setStyleSheet(QString("background-color: %1;")
-                  .arg(GlobalStyle::Colors::Background));
+    // 视频流面板背景走全局 QSS containerBg="main"（=%1 Background=#1E1E1E），构造期静态属性，无需 repolish
+    setProperty("containerBg", "main");
+    setAttribute(Qt::WA_StyledBackground, true);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -59,14 +60,20 @@ void VideoStreamPanel::setupUi()
     // overlay 作为 QVideoWidget 的子 widget, 避免非原生 overlay 与原生
     // QVideoWidget 之间的 backing store 合成冲突 (黑屏闪烁根因)
     m_videoArea = new QWidget(this);
-    m_videoArea->setStyleSheet("background-color: #000000;");
+    // (c) VideoBackground(#000000) 不在 containerBg 词表（main/panel/toolbar/transparent），保留内联 setStyleSheet
+    m_videoArea->setStyleSheet(
+        QStringLiteral("background-color: %1;")
+        .arg(GlobalStyle::Colors::VideoBackground));
 
     QVBoxLayout *videoLayout = new QVBoxLayout(m_videoArea);
     videoLayout->setContentsMargins(0, 0, 0, 0);
     videoLayout->setSpacing(0);
 
     m_videoWidget = new QVideoWidget(m_videoArea);
-    m_videoWidget->setStyleSheet("background-color: #000000;");
+    // (c) VideoBackground(#000000) 不在 containerBg 词表，QVideoWidget 也不匹配 QWidget 属性选择器，保留内联 setStyleSheet
+    m_videoWidget->setStyleSheet(
+        QStringLiteral("background-color: %1;")
+        .arg(GlobalStyle::Colors::VideoBackground));
     videoLayout->addWidget(m_videoWidget);
 
     // HUD 叠加层 (透明, 作为 QVideoWidget 子 widget, 同一原生渲染面)
@@ -103,10 +110,10 @@ void VideoStreamPanel::createTitleBar()
 {
     m_titleBar = new QWidget(this);
     m_titleBar->setObjectName(QStringLiteral("pipTitleBar"));
+    // (a) 标题栏背景走全局 QSS containerBg="toolbar"（=%2 ToolbarBackground=#2D2D2D），构造期静态属性先于 setFixedHeight
+    m_titleBar->setProperty("containerBg", "toolbar");
+    m_titleBar->setAttribute(Qt::WA_StyledBackground, true);
     m_titleBar->setFixedHeight(kTitleBarHeight);
-    m_titleBar->setStyleSheet(
-        QStringLiteral("QWidget#pipTitleBar { background-color: %1; }")
-        .arg(GlobalStyle::Colors::ToolbarBackground));
 
     QHBoxLayout *layout = new QHBoxLayout(m_titleBar);
     layout->setContentsMargins(8, 0, 4, 0);
@@ -114,33 +121,39 @@ void VideoStreamPanel::createTitleBar()
 
     // 绿色在线状态点
     m_statusDot = new QLabel(m_titleBar);
+    // (a) 状态点圆角走全局 QSS cardRadius="true"（border-radius:4px），构造期静态属性先于 setFixedSize/addWidget
+    m_statusDot->setProperty("cardRadius", "true");
+    m_statusDot->setAttribute(Qt::WA_StyledBackground, true);
     m_statusDot->setFixedSize(8, 8);
+    // (a) StatusOnline(#4CAF50) 不在 containerBg 词表，背景色保留内联
     m_statusDot->setStyleSheet(
-        QStringLiteral("background-color: %1; border-radius: 4px;")
+        QStringLiteral("background-color: %1;")
         .arg(GlobalStyle::Colors::StatusOnline));
     layout->addWidget(m_statusDot);
 
     // 设备名称
     m_titleLabel = new QLabel(QStringLiteral("UAV-1 侦察无人机"), m_titleBar);
-    m_titleLabel->setStyleSheet(
-        QStringLiteral("color: %1; font-size: 11px; border: none;")
-        .arg(GlobalStyle::Colors::TextPrimary));
+    // (a) 标题主文本色走全局 QSS textColor="white"（=%3 TextPrimary=#FFFFFF），构造期静态属性先于 addWidget
+    m_titleLabel->setProperty("textColor", "white");
+    // 像素回归修复（批次3门禁）：基线本面板裸样式表 #1E1E1E 级联到标题标签（标题栏 #2D2D2D 上可见），
+    // 属性化后级联消失，labelBg 按标签恢复不透明底
+    m_titleLabel->setProperty("labelBg", "main");
+    // (a) 11px 字号+无边框无对应 labelRole 词表（最小 caption=12px），保留内联
+    m_titleLabel->setStyleSheet("font-size: 11px; border: none;");
     layout->addWidget(m_titleLabel);
 
     layout->addStretch();
 
-    const QString btnStyle = QString(
-        "QPushButton { background-color: transparent; color: %1; border: none; "
-        "padding: 2px 6px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %2; }")
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::Border);
+    // (a) 透明底+主文字色+hover描边色走全局 QSS btnVariant="flat"（bg=transparent, color=%3 TextPrimary, border=none, font-size=%20px=12, hover bg=%4 Border）
+    // flat 默认 padding=4px 12px，实际需 2px 6px，保留内联覆盖
 
     // 主次切换按钮
     m_swapBtn = new QPushButton(QStringLiteral("⇄"), m_titleBar);
     m_swapBtn->setObjectName(QStringLiteral("pipSwapButton"));
     m_swapBtn->setToolTip(QStringLiteral("主次切换"));
-    m_swapBtn->setStyleSheet(btnStyle);
+    // (a) btnVariant="flat" 覆盖透明底+主色+hover；padding 与 flat 默认 4px 12px 不同，保留内联
+    m_swapBtn->setProperty("btnVariant", "flat");
+    m_swapBtn->setStyleSheet("padding: 2px 6px;");
     m_swapBtn->setFixedSize(24, 20);
     layout->addWidget(m_swapBtn);
 
@@ -148,7 +161,9 @@ void VideoStreamPanel::createTitleBar()
     m_minimizeBtn = new QPushButton(QStringLiteral("-"), m_titleBar);
     m_minimizeBtn->setObjectName(QStringLiteral("pipMinimizeButton"));
     m_minimizeBtn->setToolTip(QStringLiteral("最小化"));
-    m_minimizeBtn->setStyleSheet(btnStyle);
+    // (a) btnVariant="flat" 同 swapBtn
+    m_minimizeBtn->setProperty("btnVariant", "flat");
+    m_minimizeBtn->setStyleSheet("padding: 2px 6px;");
     m_minimizeBtn->setFixedSize(24, 20);
     layout->addWidget(m_minimizeBtn);
 
@@ -156,11 +171,11 @@ void VideoStreamPanel::createTitleBar()
     m_closeBtn = new QPushButton(QStringLiteral("✕"), m_titleBar);
     m_closeBtn->setObjectName(QStringLiteral("pipCloseButton"));
     m_closeBtn->setToolTip(QStringLiteral("关闭"));
+    // (a) btnVariant="flat" 覆盖透明底+主色+字号；padding 与 hover(DangerRed) 与 flat 默认不同，保留内联覆盖
+    m_closeBtn->setProperty("btnVariant", "flat");
     m_closeBtn->setStyleSheet(QString(
-        "QPushButton { background-color: transparent; color: %1; border: none; "
-        "padding: 2px 6px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %2; color: %3; }")
-        .arg(GlobalStyle::Colors::TextPrimary)
+        "QPushButton { padding: 2px 6px; }"
+        "QPushButton:hover { background-color: %1; color: %2; }")
         .arg(GlobalStyle::Colors::DangerRed)
         .arg(GlobalStyle::Colors::TextPrimary));
     m_closeBtn->setFixedSize(24, 20);

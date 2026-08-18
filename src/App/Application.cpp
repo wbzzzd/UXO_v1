@@ -3,6 +3,9 @@
 
 #include "App/Application.h"
 #include "MainWindow/MainWindow.h"
+#include <QStyleFactory>
+#include <QFont>
+#include "Common/GlobalStyle.h"
 
 Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
@@ -13,6 +16,15 @@ Application::Application(int &argc, char **argv)
     setApplicationName("UXOMissionControl");
     setApplicationVersion("1.0.0");
     setOrganizationName("UXO");
+
+    // 设置 Fusion 风格，统一跨平台外观，消除原生主题差异
+    setStyle(QStyleFactory::create("Fusion"));
+
+    // 设置全局字体：setFamilies 支持字体回退链，setPixelSize 确保像素级字号一致
+    QFont globalFont;
+    globalFont.setFamilies(GlobalStyle::Fonts::FamilyList);
+    globalFont.setPixelSize(GlobalStyle::Fonts::BodySize);
+    setFont(globalFont);
 }
 
 Application::~Application()

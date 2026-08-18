@@ -70,7 +70,9 @@ LeftPanelWidget::~LeftPanelWidget()
 void LeftPanelWidget::setupUi()
 {
     // 折叠/展开宽度均固定，避免布局挤压主地图区
-    setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
+    // 面板底色由属性化全局 QSS 提供（containerBg="panel"）
+    setProperty("containerBg", "panel");
+    setAttribute(Qt::WA_StyledBackground, true);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -85,26 +87,24 @@ void LeftPanelWidget::setupUi()
 
     // 顶部标题栏 + 折叠按钮
     QWidget *header = new QWidget(m_contentWidget);
-    header->setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
+    // 属性化全局 QSS：面板底色
+    header->setProperty("containerBg", "panel");
+    header->setAttribute(Qt::WA_StyledBackground, true);
     QHBoxLayout *headerLayout = new QHBoxLayout(header);
     headerLayout->setContentsMargins(0, 0, 0, 0);
     headerLayout->setSpacing(8);
 
     QLabel *title = new QLabel(QStringLiteral("目标列表"), header);
-    title->setStyleSheet(QString("color: %1; font-size: 14px; font-weight: bold; background: transparent;")
-        .arg(GlobalStyle::Colors::TextPrimary));
+    // 区块标题样式由全局 QSS labelRole="h2" 提供（14px 与原内联字号一致）
+    title->setProperty("labelRole", "h2");
     headerLayout->addWidget(title);
     headerLayout->addStretch();
 
     m_collapseBtn = new QPushButton(QStringLiteral("◀"), header);
     m_collapseBtn->setFixedSize(24, 24);
     m_collapseBtn->setToolTip(QStringLiteral("收起面板"));
-    m_collapseBtn->setStyleSheet(QString(
-        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %3; }")
-        .arg(GlobalStyle::Colors::ToolbarBackground)
-        .arg(GlobalStyle::Colors::TextSecondary)
-        .arg(GlobalStyle::Colors::Border));
+    // 弱化按钮：全局 QSS btnVariant="subtle"
+    m_collapseBtn->setProperty("btnVariant", "subtle");
     connect(m_collapseBtn, &QPushButton::clicked, this, [this]() { setCollapsed(true); });
     headerLayout->addWidget(m_collapseBtn);
 
@@ -113,47 +113,36 @@ void LeftPanelWidget::setupUi()
     // 搜索框
     m_searchEdit = new QLineEdit(m_contentWidget);
     m_searchEdit->setPlaceholderText(QStringLiteral("搜索目标..."));
-    m_searchEdit->setStyleSheet(QString(
-        "QLineEdit { background-color: %1; color: %2; border: 1px solid %3; border-radius: 4px; padding: 4px 8px; }"
-        "QLineEdit:focus { border: 1px solid %4; }"
-        "QLineEdit::placeholder { color: %5; }")
-        .arg(GlobalStyle::Colors::Background)
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::Border)
-        .arg(GlobalStyle::Colors::PrimaryGreen)
-        .arg(GlobalStyle::Colors::TextDisabled));
+    // 紧凑输入框：全局 QSS fieldVariant="compact"
+    //（原 ::placeholder 规则不被 Qt5 QSS 支持，属无效声明，未迁移）
+    m_searchEdit->setProperty("fieldVariant", "compact");
     m_searchEdit->setFixedHeight(28);
     connect(m_searchEdit, &QLineEdit::textChanged, this, &LeftPanelWidget::onSearchTextChanged);
     contentLayout->addWidget(m_searchEdit);
 
     // 状态子标签（按目标计数：待检测/处置中/已完成）
     QWidget *statusTabs = new QWidget(m_contentWidget);
-    statusTabs->setStyleSheet(QString("background-color: %1; border-radius: 4px;")
-        .arg(GlobalStyle::Colors::ToolbarBackground));
+    // 属性化全局 QSS：工具栏底色 + 卡片圆角
+    statusTabs->setProperty("containerBg", "toolbar");
+    statusTabs->setProperty("cardRadius", "true");
+    statusTabs->setAttribute(Qt::WA_StyledBackground, true);
     QHBoxLayout *statusLayout = new QHBoxLayout(statusTabs);
     statusLayout->setContentsMargins(4, 4, 4, 4);
     statusLayout->setSpacing(0);
 
-    QString statusTabStyle = QString(
-        "QPushButton { background-color: transparent; color: %1; border: none; border-bottom: 2px solid transparent; min-width: 0px; padding: 8px 2px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %2; }"
-        "QPushButton[selected=\"true\"] { color: %3; border-bottom: 2px solid %4; }")
-        .arg(GlobalStyle::Colors::TextSecondary)
-        .arg(GlobalStyle::Colors::Border)
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::PrimaryGreen);
-
+    // 下划线选项卡：全局 QSS btnVariant="tab"，选中态由 selected 属性驱动；
+    // updateStatusTabs() 仅更新文本、不切换属性，因此无需 repolish
     m_statusTabPending = new QPushButton(QStringLiteral("待检测 0"), statusTabs);
+    m_statusTabPending->setProperty("btnVariant", "tab");
     m_statusTabPending->setProperty("selected", true);
-    m_statusTabPending->setStyleSheet(statusTabStyle);
     statusLayout->addWidget(m_statusTabPending, 1);
 
     m_statusTabExecuting = new QPushButton(QStringLiteral("处置中 0"), statusTabs);
-    m_statusTabExecuting->setStyleSheet(statusTabStyle);
+    m_statusTabExecuting->setProperty("btnVariant", "tab");
     statusLayout->addWidget(m_statusTabExecuting, 1);
 
     m_statusTabCompleted = new QPushButton(QStringLiteral("已完成 0"), statusTabs);
-    m_statusTabCompleted->setStyleSheet(statusTabStyle);
+    m_statusTabCompleted->setProperty("btnVariant", "tab");
     statusLayout->addWidget(m_statusTabCompleted, 1);
 
     contentLayout->addWidget(statusTabs);
@@ -167,12 +156,9 @@ void LeftPanelWidget::setupUi()
     // 刷新按钮（底部）
     QPushButton *refreshBtn = new QPushButton(QStringLiteral("刷新"), m_contentWidget);
     refreshBtn->setFixedHeight(28);
-    refreshBtn->setStyleSheet(QString(
-        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %3; }")
-        .arg(GlobalStyle::Colors::PrimaryGreen)
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::PrimaryGreenHover));
+    // 主操作紧凑按钮：全局 QSS primary + btnVariant="compact"（字号 12、解除最小宽度）
+    refreshBtn->setProperty("primary", true);
+    refreshBtn->setProperty("btnVariant", "compact");
     connect(refreshBtn, &QPushButton::clicked, this, &LeftPanelWidget::onRefreshTargets);
     contentLayout->addWidget(refreshBtn);
 
@@ -181,7 +167,9 @@ void LeftPanelWidget::setupUi()
     // === 折叠态窄条容器 ===
     m_collapsedLabel = new QWidget(this);
     m_collapsedLabel->setFixedWidth(kCollapsedWidth);
-    m_collapsedLabel->setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
+    // 属性化全局 QSS：面板底色
+    m_collapsedLabel->setProperty("containerBg", "panel");
+    m_collapsedLabel->setAttribute(Qt::WA_StyledBackground, true);
     QVBoxLayout *collapsedLayout = new QVBoxLayout(m_collapsedLabel);
     collapsedLayout->setContentsMargins(0, 8, 0, 8);
     collapsedLayout->setSpacing(8);
@@ -190,20 +178,16 @@ void LeftPanelWidget::setupUi()
     QPushButton *expandBtn = new QPushButton(QStringLiteral("▶"), m_collapsedLabel);
     expandBtn->setFixedSize(24, 24);
     expandBtn->setToolTip(QStringLiteral("展开目标列表"));
-    expandBtn->setStyleSheet(QString(
-        "QPushButton { background-color: %1; color: %2; border: none; border-radius: 4px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %3; }")
-        .arg(GlobalStyle::Colors::ToolbarBackground)
-        .arg(GlobalStyle::Colors::TextSecondary)
-        .arg(GlobalStyle::Colors::Border));
+    // 弱化按钮：全局 QSS btnVariant="subtle"
+    expandBtn->setProperty("btnVariant", "subtle");
     connect(expandBtn, &QPushButton::clicked, this, [this]() { setCollapsed(false); });
     collapsedLayout->addWidget(expandBtn, 0, Qt::AlignHCenter);
 
     // 纵向文字 "目标列表"：逐字换行实现，避免旋转绘制的复杂度
     QLabel *vertLabel = new QLabel(QStringLiteral("目\n标\n列\n表"), m_collapsedLabel);
     vertLabel->setAlignment(Qt::AlignCenter);
-    vertLabel->setStyleSheet(QString("color: %1; font-size: 12px; background: transparent;")
-        .arg(GlobalStyle::Colors::TextSecondary));
+    // 次级纵向文字：全局 QSS labelRole="body2"
+    vertLabel->setProperty("labelRole", "body2");
     collapsedLayout->addWidget(vertLabel, 1, Qt::AlignHCenter);
 
     mainLayout->addWidget(m_collapsedLabel);
@@ -220,7 +204,10 @@ void LeftPanelWidget::setupTargetList()
                                               QStringLiteral("置信度"), QStringLiteral("位置"),
                                               QStringLiteral("模拟状态")});
     QHeaderView *targetHeader = m_targetTable->horizontalHeader();
-    targetHeader->setStyleSheet("QHeaderView::section { background-color: #2D2D2D; color: #FFFFFF; padding: 4px; }");
+    // 表头背景/文字色与全局 QSS 一致，仅 padding 4px 不同于全局 8px，故保留调用并用 token 替换 hex
+    targetHeader->setStyleSheet(QString("QHeaderView::section { background-color: %1; color: %2; padding: 4px; }")
+        .arg(GlobalStyle::Colors::ToolbarBackground)
+        .arg(GlobalStyle::Colors::TextPrimary));
     targetHeader->setSectionResizeMode(kTargetTypeColumn, QHeaderView::Fixed);
     targetHeader->setSectionResizeMode(kTargetConfidenceColumn, QHeaderView::Fixed);
     targetHeader->setSectionResizeMode(kTargetPositionColumn, QHeaderView::Fixed);
@@ -266,7 +253,7 @@ void LeftPanelWidget::setupTargetList()
         "  width: 8px;"
         "}"
         "QScrollBar::handle:vertical {"
-        "  background: #555555;"
+        "  background: %6;"             // BorderLight（近似 #555555）
         "  border-radius: 4px;"
         "}"
         )
@@ -274,7 +261,8 @@ void LeftPanelWidget::setupTargetList()
         .arg(GlobalStyle::Colors::TextPrimary)         // %2
         .arg(GlobalStyle::Colors::Border)              // %3
         .arg(GlobalStyle::Colors::RowSelected)         // %4
-        .arg(GlobalStyle::Colors::ToolbarBackground)); // %5
+        .arg(GlobalStyle::Colors::ToolbarBackground)   // %5
+        .arg(GlobalStyle::Colors::BorderLight));       // %6
 
     connect(m_targetTable, &QTableWidget::itemClicked, this, [this](QTableWidgetItem *item) {
         if (item && item->row() >= 0 && item->row() < m_targets.size()) {

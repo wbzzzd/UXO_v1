@@ -72,11 +72,12 @@ void DeviceStatusPanel::refreshList()
 
         card.card = new QWidget(m_listContainer);
         card.card->setFixedHeight(40);
+        // QWidget 容器不在全局 QSS 覆盖范围内，需显式设置暗色背景与 hover 态。
         card.card->setStyleSheet(QString(
             "QWidget { background-color: %1; border-radius: 4px; }"
             "QWidget:hover { background-color: %2; }")
             .arg(GlobalStyle::Colors::ToolbarBackground)
-            .arg("#363636"));
+            .arg(GlobalStyle::Colors::HoverBackground));
         card.card->setCursor(Qt::PointingHandCursor);
 
         QHBoxLayout *cardLayout = new QHBoxLayout(card.card);

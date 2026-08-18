@@ -124,8 +124,9 @@ void MosGeneratorDialog::setupUi()
     bottom->addWidget(cancelBtn);
     m_applyBtn = new QPushButton(QStringLiteral("应用生成"), this);
     m_applyBtn->setObjectName(QStringLiteral("DEC-GEN-APPLY"));
-    m_applyBtn->setStyleSheet(QStringLiteral("background:%1; color:white; padding:4px 12px;")
-                                  .arg(GlobalStyle::Colors::PrimaryGreen));
+    // 统一使用 token 替代 CSS 命名色 white，与 RightPanelWidget 等文件保持一致
+    m_applyBtn->setStyleSheet(QStringLiteral("background:%1; color:%2; padding:4px 12px;")
+                                  .arg(GlobalStyle::Colors::PrimaryGreen, GlobalStyle::Colors::TextPrimary));
     bottom->addWidget(m_applyBtn);
     root->addLayout(bottom);
 

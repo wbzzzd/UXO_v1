@@ -80,9 +80,14 @@ void DecisionView::setupUi()
     leftLayout->addWidget(leftTitle);
     m_targetList = new QListWidget(m_leftPanel);
     m_targetList->setObjectName(QStringLiteral("DEC-LP-TARGET-LIST"));
-    // 自定义卡片 widget 处理选中态视觉，QListWidget 自身选中背景设为透明
-    m_targetList->setStyleSheet("QListWidget{background:#1E1E1E;border:none;}"
-                                "QListWidget::item:selected{background:transparent;border:none;}");
+    // 自定义卡片 widget 处理选中态视觉，QListWidget 自身选中背景设为透明；
+    // 背景/边框显式声明 Background 令牌：父级 m_leftPanel 裸样式表的 Panel 级联
+    // 在 Qt 合并顺序中晚于应用级全局 QListWidget 规则，省略本规则会使列表底色
+    // 由 #1E1E1E 变为 #252526（批次3 曾因此回归，像素门禁 A/B 已证实）
+    m_targetList->setStyleSheet(QStringLiteral(
+        "QListWidget{background-color:%1;border:none;}"
+        "QListWidget::item:selected{background:transparent;border:none;}")
+                                    .arg(GlobalStyle::Colors::Background));
     leftLayout->addWidget(m_targetList);
     m_splitter->addWidget(m_leftPanel);
 
@@ -113,7 +118,9 @@ void DecisionView::setupUi()
                                           "min-height:8px;max-height:8px;").arg(color));
         zoomRow->addWidget(dot);
         auto *lbl = new QLabel(text, m_centerPanel);
-        lbl->setStyleSheet("color:#AAAAAA;font-size:11px;");
+        // 图例文字色覆盖为辅助文本色，hex 替换为 token
+        lbl->setStyleSheet(QStringLiteral("color:%1;font-size:11px;")
+                               .arg(GlobalStyle::Colors::TextSecondary));
         zoomRow->addWidget(lbl);
     };
     addLegendItem(GlobalStyle::Colors::ThreatHigh, QStringLiteral("弹坑"));
@@ -121,8 +128,10 @@ void DecisionView::setupUi()
     addLegendItem(GlobalStyle::Colors::StatusOnline, QStringLiteral("已处理"));
     addLegendItem(GlobalStyle::Colors::ThreatMedium, QStringLiteral("候选档位"));
     auto *scaleBar = new QLabel(QStringLiteral("0 ──┤── 500m"), m_centerPanel);
-    scaleBar->setStyleSheet("color:#888888;font-size:11px;"
-                            "font-family:'Consolas','Courier New',monospace;");
+    // 比例尺文字色/字号/等宽字体覆盖保留，hex 替换为 token
+    scaleBar->setStyleSheet(QStringLiteral("color:%1;font-size:11px;"
+                                            "font-family:'Consolas','Courier New',monospace;")
+                                .arg(GlobalStyle::Colors::TextDisabled));
     zoomRow->addWidget(scaleBar);
     zoomRow->addStretch();
     m_zoomOut = new QPushButton(QStringLiteral("-"), m_centerPanel);
@@ -246,7 +255,9 @@ void DecisionView::setupUi()
     sb->addWidget(m_sbSim);
     m_sbAlarm = new QLabel(QStringLiteral("[本地模拟，不执行真实处置] 无告警"), this);
     m_sbAlarm->setObjectName(QStringLiteral("DEC-SB-ALARM"));
-    m_sbAlarm->setStyleSheet("color:#4CAF50;font-weight:bold;");
+    // 告警文字色覆盖为在线状态绿，hex 替换为 token
+    m_sbAlarm->setStyleSheet(QStringLiteral("color:%1;font-weight:bold;")
+                                 .arg(GlobalStyle::Colors::StatusOnline));
     sb->addWidget(m_sbAlarm, 1);
     m_sbTarget = new QLabel(QStringLiteral("当前分析目标：未选择"), this);
     m_sbTarget->setObjectName(QStringLiteral("DEC-SB-TARGET"));

@@ -155,7 +155,9 @@ void MainWindow::createMenuBar()
 void MainWindow::createMainLayout()
 {
     QWidget *centralWidget = new QWidget(this);
-    centralWidget->setStyleSheet("background-color: #1E1E1E;");
+    // 中央容器底色改走全局 QSS containerBg 属性：
+    // 原无选择器样式表会级联到全部子孙控件，强制覆盖子孙的背景/悬停样式
+    centralWidget->setProperty("containerBg", "main");
 
     QHBoxLayout *mainLayout = new QHBoxLayout(centralWidget);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -192,13 +194,19 @@ void MainWindow::createMainLayout()
 
     // 3b. 地图工具栏 (32px)
     m_mapToolbar = new QWidget(centerArea);
+    // 工具栏底色：全局 QSS containerBg="toolbar"（构造期静态属性；
+    // 与 statusTabs 同模式：property 先于 attribute、且在 addWidget 之前设置）
+    m_mapToolbar->setProperty("containerBg", "toolbar");
+    m_mapToolbar->setAttribute(Qt::WA_StyledBackground, true);
     m_mapToolbar->setFixedHeight(kMapToolbarHeight);
     centerLayout->addWidget(m_mapToolbar);
 
     // 3c. 地图主舞台容器
     m_mapContainer = new QWidget(centerArea);
     m_mapContainer->setObjectName(QStringLiteral("mapContainer"));
-    m_mapContainer->setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::Background));
+    // 地图舞台底色：全局 QSS containerBg="main"（构造期静态属性，无需 repolish）
+    m_mapContainer->setAttribute(Qt::WA_StyledBackground, true);
+    m_mapContainer->setProperty("containerBg", QStringLiteral("main"));
     m_mapContainer->installEventFilter(this);
 
     m_tacticalMap = new TacticalMapWidget(m_mapContainer);
@@ -228,36 +236,25 @@ void MainWindow::createMainLayout()
 
 void MainWindow::createMapToolbar()
 {
-    m_mapToolbar->setStyleSheet(
-        QStringLiteral("background-color: %1;").arg(GlobalStyle::Colors::ToolbarBackground));
-
     QHBoxLayout *layout = new QHBoxLayout(m_mapToolbar);
     layout->setContentsMargins(8, 0, 8, 0);
     layout->setSpacing(4);
 
-    const QString btnStyle = QString(
-        "QPushButton { background-color: transparent; color: %1; border: none; "
-        "padding: 4px 12px; font-size: 12px; }"
-        "QPushButton:hover { background-color: %2; }"
-        "QPushButton:disabled { color: %3; }")
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Colors::Border)
-        .arg(GlobalStyle::Colors::TextDisabled);
-
     // 探测控制按钮: [重置] [开始] [结束]
+    // 扁平工具栏按钮：全局 QSS btnVariant="flat"（替代原共享 btnStyle 内联，下方 7 个按钮同款）
     m_resetBtn = new QPushButton(QStringLiteral("重置"), m_mapToolbar);
     m_resetBtn->setObjectName(QStringLiteral("mapToolbarReset"));
-    m_resetBtn->setStyleSheet(btnStyle);
+    m_resetBtn->setProperty("btnVariant", QStringLiteral("flat"));
     layout->addWidget(m_resetBtn);
 
     m_startBtn = new QPushButton(QStringLiteral("开始"), m_mapToolbar);
     m_startBtn->setObjectName(QStringLiteral("mapToolbarStart"));
-    m_startBtn->setStyleSheet(btnStyle);
+    m_startBtn->setProperty("btnVariant", QStringLiteral("flat"));
     layout->addWidget(m_startBtn);
 
     m_stopBtn = new QPushButton(QStringLiteral("结束"), m_mapToolbar);
     m_stopBtn->setObjectName(QStringLiteral("mapToolbarStop"));
-    m_stopBtn->setStyleSheet(btnStyle);
+    m_stopBtn->setProperty("btnVariant", QStringLiteral("flat"));
     layout->addWidget(m_stopBtn);
 
     layout->addSpacing(8);
@@ -265,34 +262,34 @@ void MainWindow::createMapToolbar()
     m_resetViewBtn = new QPushButton(QStringLiteral("视角复位"), m_mapToolbar);
     m_resetViewBtn->setObjectName(QStringLiteral("mapToolbarResetView"));
     m_resetViewBtn->setEnabled(false);
-    m_resetViewBtn->setStyleSheet(btnStyle);
+    m_resetViewBtn->setProperty("btnVariant", QStringLiteral("flat"));
     layout->addWidget(m_resetViewBtn);
 
     auto *layerBtn = new QPushButton(QStringLiteral("图层"), m_mapToolbar);
     layerBtn->setObjectName(QStringLiteral("mapToolbarLayer"));
     layerBtn->setEnabled(false);
-    layerBtn->setStyleSheet(btnStyle);
+    layerBtn->setProperty("btnVariant", QStringLiteral("flat"));
     layout->addWidget(layerBtn);
 
     auto *measureBtn = new QPushButton(QStringLiteral("测量"), m_mapToolbar);
     measureBtn->setObjectName(QStringLiteral("mapToolbarMeasure"));
     measureBtn->setEnabled(false);
-    measureBtn->setStyleSheet(btnStyle);
+    measureBtn->setProperty("btnVariant", QStringLiteral("flat"));
     layout->addWidget(measureBtn);
 
     auto *pickCoordBtn = new QPushButton(QStringLiteral("坐标拾取"), m_mapToolbar);
     pickCoordBtn->setObjectName(QStringLiteral("mapToolbarPickCoord"));
     pickCoordBtn->setEnabled(false);
-    pickCoordBtn->setStyleSheet(btnStyle);
+    pickCoordBtn->setProperty("btnVariant", QStringLiteral("flat"));
     layout->addWidget(pickCoordBtn);
 
     layout->addStretch();
 
     auto *simTag = new QLabel(QStringLiteral("[模拟]"), m_mapToolbar);
     simTag->setObjectName(QStringLiteral("mapToolbarSimTag"));
-    simTag->setStyleSheet(
-        QStringLiteral("color: %1; font-size: 12px; border: none;")
-        .arg(GlobalStyle::Colors::ThreatMedium));
+    // 模拟角标：caption 排版 + 中威胁语义色（labelRole/textColor 组合，见词汇表约定 3）
+    simTag->setProperty("labelRole", QStringLiteral("caption"));
+    simTag->setProperty("textColor", QStringLiteral("medium"));
     layout->addWidget(simTag);
 
     // 探测控制按钮信号
