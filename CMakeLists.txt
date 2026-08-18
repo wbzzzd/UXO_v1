@@ -125,6 +125,26 @@ if(DEFINED ENV{DISPLAY} AND NOT "$ENV{DISPLAY}" STREQUAL "")
     set_tests_properties(video_render_capture PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=xcb")
 endif()
 
+# 调试复现（问题③，临时）：结束 -> 选中左侧目标 -> PiP 视频区闪烁/黑色方块量化取证。
+# PNG 证据落盘 /tmp/opencode/flicker_repro/；退出码 1 = 检出闪烁。
+add_executable(UXOMissionControlStopSelectFlickerRepro
+    tests/stop_select_flicker_repro.cpp
+)
+target_include_directories(UXOMissionControlStopSelectFlickerRepro PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlStopSelectFlickerRepro
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    Qt5::Test
+    MainWindow
+    Core
+    Common
+)
+if(DEFINED ENV{DISPLAY} AND NOT "$ENV{DISPLAY}" STREQUAL "")
+    add_test(NAME stop_select_flicker_repro COMMAND UXOMissionControlStopSelectFlickerRepro)
+    set_tests_properties(stop_select_flicker_repro PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=xcb")
+endif()
+
 # 巡检员：随机点击 + 自洽性检查，独立进程循环运行。
 # 默认关闭，不影响主程序和现有测试构建。需显式开启：
 #   cmake -DBUILD_AUTO_INSPECT=ON ...

@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
                 && captureTimeLabel->text() != QLatin1String("-")
                 && videoTimeLabel && !videoTimeLabel->text().isEmpty()
                 && videoTimeLabel->text() != QLatin1String("-")
-                && provenanceLabel && provenanceLabel->text().contains(QStringLiteral("模拟"));
+                && provenanceLabel && provenanceLabel->text().contains(QStringLiteral("AI"));
 
         const bool sidebarSelected = targetTable->currentRow() == 0;
 
@@ -129,20 +129,26 @@ int main(int argc, char *argv[])
 
         stopButton->click();
 
-        QTimer::singleShot(250, appPtr, [=]() {
+        QTimer::singleShot(500, appPtr, [=]() {
             const bool stoppedAtStart = videoPanel->position() == 0;
+            // 检测引擎为异步: 在途推理结果可能在快照后送达并新增目标; 保留契约 = 数量不减
+            const int mapTargetsAfterEnd = map->targetCount();
             const bool retainedTargets = targetTable->rowCount() > 0
-                    && map->targetCount() == mapTargetsBeforeEnd;
+                    && mapTargetsAfterEnd >= mapTargetsBeforeEnd;
             const bool detailRetained = detailOverlay->isVisible();
-            const bool frameCleared = !videoPanel->hasFrame();
+            // 结束 = 暂停在第 0 帧（预卷首帧到原生视频表面，修复黑块闪烁契约）：帧保留而非清空
+            const bool frameRetained = videoPanel->hasFrame();
             // 结束后证据图像 pixmap 必须保留（onStopDetection 不清除证据）
             const bool evidenceImageRetained = evidenceImageLabel->pixmap() != nullptr
                     && !evidenceImageLabel->pixmap()->isNull();
 
             qInfo() << "[VideoCaptureTest] stoppedAtStart=" << stoppedAtStart
                     << "retainedTargets=" << retainedTargets
+                    << "mapTargetsBeforeEnd=" << mapTargetsBeforeEnd
+                    << "mapTargetsAfterEnd=" << mapTargetsAfterEnd
+                    << "targetRows=" << targetTable->rowCount()
                     << "detailRetained=" << detailRetained
-                    << "frameCleared=" << frameCleared
+                    << "frameRetained=" << frameRetained
                     << "evidenceImageRetained=" << evidenceImageRetained;
 
             resetButton->click();
@@ -174,7 +180,7 @@ int main(int argc, char *argv[])
                         && stoppedAtStart
                         && retainedTargets
                         && detailRetained
-                        && frameCleared
+                        && frameRetained
                         && evidenceImageRetained
                         && targetsCleared
                         && detailHidden

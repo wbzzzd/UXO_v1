@@ -15,6 +15,7 @@ class QPushButton;
 class QVideoWidget;
 class QVideoProbe;
 class QVideoFrame;
+class QTimer;
 class VideoOverlayWidget;
 
 class VideoStreamPanel : public QWidget
@@ -31,7 +32,6 @@ public:
     // 播放控制接口
     void play();
     void pause();
-    void stop();
     void seek(qint64 ms);
 
     // 当前播放位置 (ms), 未播放时返回 0
@@ -59,6 +59,8 @@ signals:
     void stateChanged(QMediaPlayer::State state);
     // 视频播放结束（到达末尾）
     void videoEnded();
+    // 定时抽帧: 每 3 秒发出当前帧与播放位置 (ms), 供 ONNX 探测分析
+    void frameExtracted(const QImage& frame, qint64 timestampMs);
     // PiP 标题栏按钮信号
     void swapRequested();
     void minimizeRequested();
@@ -72,6 +74,7 @@ private slots:
     void onDurationChanged(qint64 ms);
     void onStateChanged(QMediaPlayer::State state);
     void onMediaStatusChanged(QMediaPlayer::MediaStatus status);
+    void onExtractionTimer();
 
 private:
     void setupUi();
@@ -93,7 +96,7 @@ protected:
     QVideoWidget *m_videoWidget;
     QVideoProbe *m_probe;
     QImage m_lastFrame;
-    bool m_stopped = false;
+    QTimer *m_extractionTimer = nullptr;
     VideoOverlayWidget *m_overlay;
     QWidget *m_videoArea;
 };

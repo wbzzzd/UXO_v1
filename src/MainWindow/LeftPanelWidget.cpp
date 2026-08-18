@@ -33,15 +33,17 @@ QString simulationTargetStatusText(Core::TargetStatus status)
 {
     switch (status) {
     case Core::TargetStatus::Detected:
-        return QStringLiteral("[模拟] 已发现");
+        return QStringLiteral("已发现");
     case Core::TargetStatus::Confirmed:
-        return QStringLiteral("[模拟] 已确认");
+        return QStringLiteral("已确认");
     case Core::TargetStatus::Disposing:
-        return QStringLiteral("[模拟] 处置中");
+        return QStringLiteral("处置中");
     case Core::TargetStatus::Disposed:
-        return QStringLiteral("[模拟] 已完成");
+        return QStringLiteral("已完成");
+    case Core::TargetStatus::FalseAlarm:
+        return QStringLiteral("误报");
     default:
-        return QStringLiteral("[模拟] 状态未知");
+        return QStringLiteral("状态未知");
     }
 }
 
@@ -202,7 +204,7 @@ void LeftPanelWidget::setupTargetList()
     m_targetTable->setColumnCount(4);
     m_targetTable->setHorizontalHeaderLabels({QStringLiteral("类型"),
                                               QStringLiteral("置信度"), QStringLiteral("位置"),
-                                              QStringLiteral("模拟状态")});
+                                              QStringLiteral("状态")});
     QHeaderView *targetHeader = m_targetTable->horizontalHeader();
     // 表头背景/文字色与全局 QSS 一致，仅 padding 4px 不同于全局 8px，故保留调用并用 token 替换 hex
     targetHeader->setStyleSheet(QString("QHeaderView::section { background-color: %1; color: %2; padding: 4px; }")
@@ -216,7 +218,7 @@ void LeftPanelWidget::setupTargetList()
     m_targetTable->setColumnWidth(kTargetConfidenceColumn, kTargetConfidenceColumnWidth);
     m_targetTable->setColumnWidth(kTargetPositionColumn, kTargetPositionColumnWidth);
     m_targetTable->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    // 关闭自动折行，确保"模拟反跑道雷"和"X:108 Y:0"等作为完整单元格显示，不产生孤字。
+    // 关闭自动折行，确保"反跑道雷"和"X:108 Y:0"等作为完整单元格显示，不产生孤字。
     m_targetTable->setWordWrap(false);
     m_targetTable->verticalHeader()->setVisible(false);
     m_targetTable->setSelectionBehavior(QAbstractItemView::SelectRows);
