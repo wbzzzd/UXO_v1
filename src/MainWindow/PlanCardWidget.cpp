@@ -13,12 +13,12 @@
 #include <QPixmap>
 #include <QVBoxLayout>
 
-// 颜色类名到具体颜色的映射
-// green=#4CAF50(安全/低), orange=#FFB74D(中), red=#FF5252(高)
+// 颜色类名到具体颜色的映射（全部取全局令牌，逐值等价替换字面量）
+// green=StatusOnline #4CAF50(安全/低), orange=#FFB74D(中), red=#FF5252(高)
 static QString colorForClass(const QString &cls)
 {
     if (cls == QStringLiteral("green"))
-        return QStringLiteral("#4CAF50");
+        return GlobalStyle::Colors::StatusOnline;
     if (cls == QStringLiteral("orange"))
         return GlobalStyle::Colors::ThreatMedium;
     if (cls == QStringLiteral("red"))
@@ -36,6 +36,12 @@ PlanCardWidget::PlanCardWidget(QWidget *parent)
     // 左侧：迷你跑道缩略图 48×24
     m_thumbnail = new QLabel(this);
     m_thumbnail->setFixedSize(48, 24);
+    // 无效卡（无可行方案）整体 disabled，Qt 对 disabled QLabel 的 pixmap 做淡化渲染
+    // （pixmap 颜色与标签自身背景混合）。基线中该背景由 DEC-RP-PLANS 祖先裸样式
+    // background-color:#252526 级联提供；批次6 移除裸样式后回落 app 级 transparent，
+    // 淡化混合底色改变产生 48x24 像素差。显式补 labelBg=panel（#252526）恢复基线
+    // 混合底色；有效卡 pixmap 不透明全覆盖，背景不可见，不受影响。
+    m_thumbnail->setProperty("labelBg", "panel");
     mainLayout->addWidget(m_thumbnail);
 
     // 右侧：名称/徽章 + 3×2 网格
@@ -46,10 +52,10 @@ PlanCardWidget::PlanCardWidget(QWidget *parent)
     auto *nameRow = new QHBoxLayout();
     nameRow->setSpacing(6);
     m_nameLabel = new QLabel(this);
-    // font-size/font-weight 为有意覆盖全局 QLabel 样式，color 用 token 替换硬编码 hex
-    m_nameLabel->setStyleSheet(
-        QStringLiteral("font-size:12px;font-weight:bold;color:%1;")
-            .arg(GlobalStyle::Colors::TextPrimary));
+    // 属性转换（批次5）：12px/bold/主文本色逐值等价走 fontSize/fontWeight/textColor 词汇（先于 addWidget）
+    m_nameLabel->setProperty("fontSize", "12");
+    m_nameLabel->setProperty("fontWeight", "bold");
+    m_nameLabel->setProperty("textColor", "white");
     nameRow->addWidget(m_nameLabel);
     m_badgeLabel = new QLabel(this);
     // font-size/padding/border-radius/background 为有意覆盖，color/border 用 token 替换硬编码 hex
@@ -74,17 +80,15 @@ PlanCardWidget::PlanCardWidget(QWidget *parent)
     };
     for (int i = 0; i < 6; ++i) {
         auto *lbl = new QLabel(labels[i], this);
-        // 网格标签：font-size 为有意覆盖，color 用 token 替换硬编码 hex
-        lbl->setStyleSheet(
-            QStringLiteral("font-size:10px;color:%1;")
-                .arg(GlobalStyle::Colors::TextDisabled));
+        // 属性转换（批次5）：10px+禁用色逐值等价走 fontSize/textColor 词汇（先于 addWidget）
+        lbl->setProperty("fontSize", "10");
+        lbl->setProperty("textColor", "disabled");
         m_gridLabels[i] = lbl;
 
         auto *val = new QLabel(this);
-        // 网格值：font-size 为有意覆盖，color 用 token 替换硬编码 hex
-        val->setStyleSheet(
-            QStringLiteral("font-size:11px;color:%1;")
-                .arg(GlobalStyle::Colors::TextPrimary));
+        // 属性转换（批次5）：11px+主文本色逐值等价走 fontSize/textColor 词汇（先于 addWidget）
+        val->setProperty("fontSize", "11");
+        val->setProperty("textColor", "white");
         m_gridValues[i] = val;
 
         const int row = i / 3;
@@ -197,8 +201,8 @@ void PlanCardWidget::updateThumbnail()
         // MOS 矩形：按百分比计算位置和宽度
         const int mosX = 2 + static_cast<int>(m_thumbLeftPct / 100.0 * 44);
         const int mosW = qMax(2, static_cast<int>(m_thumbWidthPct / 100.0 * 44));
-        // 选中时用蓝色，未选中时用橙色
-        const QColor mosColor = m_selected ? QColor("#5B9BD5") : QColor(GlobalStyle::Colors::ThreatMedium);
+        // 选中时用蓝色（CardSelectedBorder 令牌，#5B9BD5 逐值等价），未选中时用橙色
+        const QColor mosColor = m_selected ? QColor(GlobalStyle::Colors::CardSelectedBorder) : QColor(GlobalStyle::Colors::ThreatMedium);
         const QColor mosFill = m_selected ? QColor(91, 155, 213, 60) : QColor(255, 183, 77, 50);
         painter.setPen(QPen(mosColor, 1));
         painter.setBrush(mosFill);

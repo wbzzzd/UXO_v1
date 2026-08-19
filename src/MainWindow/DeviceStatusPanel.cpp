@@ -21,7 +21,9 @@ DeviceStatusPanel::~DeviceStatusPanel()
 
 void DeviceStatusPanel::setupUi()
 {
-    setStyleSheet(QString("background-color: %1;").arg(GlobalStyle::Colors::PanelBackground));
+    // 面板底色走 containerBg 属性（%15 PanelBackground，逐值等价原内联）
+    setProperty("containerBg", QStringLiteral("panel"));
+    setAttribute(Qt::WA_StyledBackground, true);
 
     m_mainLayout = new QVBoxLayout(this);
     m_mainLayout->setContentsMargins(8, 8, 8, 8);
@@ -34,9 +36,8 @@ void DeviceStatusPanel::setupUi()
 
     // 设备区仅展示本地模拟数据，不提供设备控制入口。
     m_titleLabel = new QLabel("模拟设备状态（只读）", header);
-    m_titleLabel->setStyleSheet(QString("color: %1; font-size: %2px; font-weight: bold;")
-        .arg(GlobalStyle::Colors::TextPrimary)
-        .arg(GlobalStyle::Fonts::TitleSize));
+    // 标题走 labelRole="h1"（%3 TextPrimary + %19 TitleSize=16px + bold，逐值等价原内联）
+    m_titleLabel->setProperty("labelRole", QStringLiteral("h1"));
     headerLayout->addWidget(m_titleLabel);
     headerLayout->addStretch();
 
@@ -115,7 +116,9 @@ void DeviceStatusPanel::refreshList()
         cardLayout->addWidget(card.statusDot);
 
         card.nameLabel = new QLabel(device.name, card.card);
-        card.nameLabel->setStyleSheet(QString("color: %1; font-size: 12px;").arg(GlobalStyle::Colors::TextPrimary));
+        // 静态白字+12px 走 textColor/fontSize 属性；状态点/状态文/电量为运行时枚举与电量分级色，保留内联
+        card.nameLabel->setProperty("textColor", QStringLiteral("white"));
+        card.nameLabel->setProperty("fontSize", QStringLiteral("12"));
         card.nameLabel->setFixedWidth(80);
         cardLayout->addWidget(card.nameLabel);
 

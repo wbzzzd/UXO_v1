@@ -55,11 +55,12 @@ public:
         // 根据威胁等级设置颜色
         Qt3DExtras::QPhongMaterial *material = new Qt3DExtras::QPhongMaterial(this);
         QColor color;
+        // 威胁等级色取全局令牌（值与原字面量逐值一致，像素无损）
         switch (target.threatLevel) {
-            case Core::ThreatLevel::High: color = QColor("#FF5252"); break;     // 红色 - 高危
-            case Core::ThreatLevel::Medium: color = QColor("#FFB74D"); break;   // 橙色 - 中危
-            case Core::ThreatLevel::Low: color = QColor("#FFF176"); break;       // 黄色 - 低危
-            default: color = QColor("#888888");
+            case Core::ThreatLevel::High: color = QColor(GlobalStyle::Colors::ThreatHigh); break;     // 红色 - 高危
+            case Core::ThreatLevel::Medium: color = QColor(GlobalStyle::Colors::ThreatMedium); break;   // 橙色 - 中危
+            case Core::ThreatLevel::Low: color = QColor(GlobalStyle::Colors::ThreatLow); break;       // 黄色 - 低危
+            default: color = QColor(GlobalStyle::Colors::TextDisabled);
         }
         material->setDiffuse(color);
         material->setAmbient(color.darker());
@@ -109,7 +110,7 @@ void SituationView::setup3DView()
     
     // 设置天空背景色
     Qt3DExtras::QForwardRenderer *frameGraph = m_3dWindow->defaultFrameGraph();
-    frameGraph->setClearColor(QColor("#87CEEB"));  // 浅蓝色天空
+    frameGraph->setClearColor(QColor("#87CEEB"));  // 浅蓝色天空（3D 场景清屏色，无 QSS 词汇对应，保留字面量并附说明）
 
     // 创建窗口容器
     QWidget *container = QWidget::createWindowContainer(m_3dWindow, this);
@@ -167,7 +168,8 @@ void SituationView::setupToolBar()
     QLabel *titleLabel = new QLabel("视角", toolBarContainer);
     // 辅助文本色走全局 QSS textColor="secondary"（=TextSecondary，构造期静态属性先于 addWidget）；10px 字号无对应 labelRole（body2/caption=12px），保留内联
     titleLabel->setProperty("textColor", "secondary");
-    titleLabel->setStyleSheet(QStringLiteral("font-size: 10px;"));
+    // 属性转换（批次5）：10px 字号走 fontSize 词汇（先于 addWidget）
+    titleLabel->setProperty("fontSize", "10");
     titleLabel->setAlignment(Qt::AlignCenter);
     toolBarLayout->addWidget(titleLabel);
     
@@ -227,7 +229,9 @@ void SituationView::setupToolBar()
     // 缩放级别标签
     m_zoomLabel = new QLabel("100%", toolBarContainer);
     // TextDisabled(#888888) 无语义相符的 textColor 词表（offline 耦合 StatusOffline 且语义不符）、10px 无 labelRole，保留内联
-    m_zoomLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 10px;").arg(GlobalStyle::Colors::TextDisabled));
+    // 属性转换（批次5）：禁用色+10px 逐值等价走 textColor/fontSize 词汇（先于 addWidget）
+    m_zoomLabel->setProperty("textColor", "disabled");
+    m_zoomLabel->setProperty("fontSize", "10");
     m_zoomLabel->setAlignment(Qt::AlignCenter);
     m_zoomLabel->setFixedHeight(20);
     toolBarLayout->addWidget(m_zoomLabel);
@@ -348,10 +352,11 @@ void SituationView::highlightTarget(const QString &targetId, bool highlight)
             if (!materials.isEmpty()) {
                 auto material = materials[0];
                 if (highlight) {
-                    material->setSpecular(QColor("#FFFFFF"));
+                    // Qt 命名色替代 hex 字面量（值与 #FFFFFF/#000000 一致，像素无损）
+                    material->setSpecular(QColor(Qt::white));
                     material->setShininess(128.0f);
                 } else {
-                    material->setSpecular(QColor("#000000"));
+                    material->setSpecular(QColor(Qt::black));
                     material->setShininess(32.0f);
                 }
             }

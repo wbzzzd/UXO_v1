@@ -84,6 +84,8 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 
 字体族优先微软雅黑，回退思源黑体、黑体，最后 sans-serif。HTML 原型必须使用相同顺序，避免环境差异导致渲染漂移。
 
+字号覆盖档位（2026-08 批次5 收敛登记）：Qt 侧 `GlobalStyle` 属性词汇提供 `fontSize` 覆盖档位 9/10/11/12/13/14px（`QLabel[fontSize="N"]`）、`fontWeight="bold"` 与等宽字族 `fontFamily="mono"`（`'Consolas','Courier New',monospace`）。其中 12/14 与 `--font-size-caption`/`--font-size-body` 等值；9/10/11/13 为存量内联字号的收敛登记（沿用基线已有值，非新增视觉值），用于坐标、徽标、紧凑数值列等小字场景，不取代本节全局字体 token，HTML 原型仍只用 12/14/16。
+
 ## 3. 尺寸 token
 
 ### 3.1 窗口与区域
@@ -265,6 +267,10 @@ CURRENT `DecisionSuggestionPanel` 用 `QProgressBar` 显示模拟置信度。
 ### 5.11 三维视图容器
 
 `SituationView` 是 Qt3DWindow，无 QSS 控件样式。本试点在 HTML 原型中以占位画布表达，背景使用 `--color-ground`，标记用威胁色。容器标题栏高 32px（`RightPanelWidget` 中 section header `setFixedHeight(32)`），背景 `--color-panel`，标题字号 `--font-size-body` 加粗。
+
+### 5.12 决策页属性词汇（Qt 侧收敛登记）
+
+2026-08 批次6 将决策页 `DecisionView` 的内联 QSS 收敛为 `GlobalStyle` 属性词汇，均为存量基线值的等价迁移（非新增视觉值）：`sectionTitle="panel"/"inset"` 区块标题、`chipStyle="warnBadge"/"simTag"` 紧凑徽标（ThreatMedium 描边）、`statusDot="high"/"medium"/"online"/"uxo"/"device"` 状态圆点（uxo 黄 `#FFEB3B` 为存量字面量收敛登记，token 表无等值项）、`slotStyle="title"/"item"` 禁用占位插槽、`btnVariant="zoom"` 缩放按钮、`btnVariant="toolBg"` 工具栏按钮保底底色（ToolbarBackground）、`btnVariant="zoomReset"` 缩放行复位钮（外观同 zoom 但不声明 min-width，宽度回落基础 QPushButton 规则）与 `btnVariant="mainBg"` 主区底色按钮保底（仅声明 Background，用于参数栏复位钮），以及 `QSplitter[containerBg="main"]::handle` 把手底色规则（Background）。HTML 原型不新增使用这些值，状态徽章语义仍以 5.9 与 6.3 为准。
 
 ## 6. 状态规则
 

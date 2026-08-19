@@ -42,6 +42,10 @@ void MosParamsPanel::setupUi()
     titleRow->addStretch();
     m_resetBtn = new QPushButton(QStringLiteral("恢复默认值"), this);
     m_resetBtn->setObjectName(QStringLiteral("DEC-CE-PARAM-RESET"));
+    // 批次6：基线按钮底色 #1E1E1E 由中心面板裸样式表 * 级联提供；面板转 containerBg 后级联
+    // 消失，回落基础规则会变绿（PrimaryGreen），btnVariant="mainBg" 显式恢复主区底色，
+    // 其余外观（边框/内边距/最小宽）沿用基础 QPushButton 规则，几何不变
+    m_resetBtn->setProperty("btnVariant", "mainBg");
     titleRow->addWidget(m_resetBtn);
     root->addLayout(titleRow);
 
@@ -145,9 +149,10 @@ void MosParamsPanel::setupUi()
     // 底部状态行：单调性校验 + 重规划按钮
     auto *bottom = new QHBoxLayout();
     auto *monoLabel = new QLabel(QStringLiteral("面积单调递增校验: ✓ 通过"), this);
-    // 基线仅声明在线绿前景色，底为左面板级联 Panel 标签盒 -> textColor="online" + labelBg="panel"
+    // 基线仅声明在线绿前景色，底为中心面板裸级联的主区底色 #1E1E1E -> textColor="online" +
+    // labelBg="main"（批次6 修正：原 panel 令牌在中心面板去级联后渲染 #252526，与基线偏差 3811px）
     monoLabel->setProperty("textColor", QLatin1String("online"));
-    monoLabel->setProperty("labelBg", QLatin1String("panel"));
+    monoLabel->setProperty("labelBg", QLatin1String("main"));
     bottom->addWidget(monoLabel);
     bottom->addStretch();
     m_replanBtn = new QPushButton(QStringLiteral("↻ 重新规划"), this);

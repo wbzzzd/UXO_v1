@@ -86,9 +86,10 @@ void DecisionSuggestionPanel::setupUi()
     riskRow->addWidget(riskTitle);
 
     m_riskLabel = new QLabel("● 中", contentWidget);
-    // 12px 加粗不在角色词汇内，保留仅字体声明的内联样式（不影响属性化底色/前景色）；
+    // 12px 加粗走 fontSize/fontWeight 词汇（批次5，先于 addWidget）；
     // 语义色走 textColor 属性（构造期 medium，运行期随风险等级切换并 repolish）。
-    m_riskLabel->setStyleSheet("font-size: 12px; font-weight: bold;");
+    m_riskLabel->setProperty("fontSize", "12");
+    m_riskLabel->setProperty("fontWeight", "bold");
     m_riskLabel->setProperty("textColor", QLatin1String("medium"));
     m_riskLabel->setProperty("labelBg", QLatin1String("toolbar"));
     riskRow->addWidget(m_riskLabel);

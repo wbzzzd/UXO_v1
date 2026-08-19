@@ -112,6 +112,7 @@ QWidget* TargetDetailPanel::createImageCarousel()
     carouselWidget->setProperty("cardRadius", "true");
     carouselWidget->setAttribute(Qt::WA_StyledBackground, true);
     carouselWidget->setFixedHeight(200);
+    // #1A1A1A 不在 Colors:: token 与 containerBg 词表内（PanelBackground 非等值），背景色保留内联
     carouselWidget->setStyleSheet("background-color: #1A1A1A;");
 
     QVBoxLayout *layout = new QVBoxLayout(carouselWidget);
@@ -133,9 +134,9 @@ QWidget* TargetDetailPanel::createImageCarousel()
 
     m_imageLabel = new QLabel(imageArea);
     m_imageLabel->setAlignment(Qt::AlignCenter);
-    // 颜色转 textColor="secondary"；font-size:14px 无对应 labelRole（body2/caption 为 12px），保留内联
+    // 颜色转 textColor="secondary"；14px 字号走 fontSize 词汇（批次5，先于 addWidget）
     m_imageLabel->setProperty("textColor", "secondary");
-    m_imageLabel->setStyleSheet("font-size: 14px;");
+    m_imageLabel->setProperty("fontSize", "14");
     m_imageLabel->setText("目标图像加载中...");
     imageLayout->addWidget(m_imageLabel, 1);
 
@@ -191,9 +192,9 @@ QWidget* TargetDetailPanel::createInfoSection()
         row->addWidget(labelWidget);
 
         valueLabel = new QLabel("--", infoWidget);
-        // 主色文本转 textColor="white"；font-size:14px 无对应 labelRole，保留内联
+        // 主色文本转 textColor="white"；14px 字号走 fontSize 词汇（批次5，先于 addWidget）
         valueLabel->setProperty("textColor", "white");
-        valueLabel->setStyleSheet(QString("font-size: %1px;").arg(GlobalStyle::Fonts::BodySize));
+        valueLabel->setProperty("fontSize", "14");
         row->addWidget(valueLabel, 1);
 
         layout->addLayout(row);
@@ -223,9 +224,10 @@ QWidget* TargetDetailPanel::createAIRecommendation()
 
     // 标题
     QLabel *title = new QLabel("AI推荐处置方式", aiWidget);
-    // PrimaryGreen 色 转 textColor="green"；font-size:14px/bold 词汇表未覆盖，保留内联
+    // PrimaryGreen 色 转 textColor="green"；14px/bold 走 fontSize/fontWeight 词汇（批次5，先于 addWidget）
     title->setProperty("textColor", "green");
-    title->setStyleSheet(QString("font-size: %1px; font-weight: bold;").arg(GlobalStyle::Fonts::BodySize));
+    title->setProperty("fontSize", "14");
+    title->setProperty("fontWeight", "bold");
     layout->addWidget(title);
 
     // 推荐内容

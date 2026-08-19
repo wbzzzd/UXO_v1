@@ -124,23 +124,24 @@ void AlertPanel::refreshList()
         }
 
         QLabel *iconLabel = new QLabel("●", alertItem);
-        // 颜色转 textColor 属性；font-size:10px 词汇表未覆盖，保留内联
+        // 颜色转 textColor 属性；10px 字号走 fontSize 词汇（批次5，先于 addWidget）
         iconLabel->setProperty("textColor", levelTextColor);
         iconLabel->setFixedWidth(16);
-        iconLabel->setStyleSheet("font-size: 10px;");
+        iconLabel->setProperty("fontSize", "10");
         itemLayout->addWidget(iconLabel);
 
         QString timeStr = alarm.createTime.toString("HH:mm");
         QLabel *timeLabel = new QLabel(timeStr, alertItem);
-        // TextDisabled 不在 textColor 词汇表，保留原内联
-        timeLabel->setStyleSheet(QString("color: %1; font-size: 11px;").arg(GlobalStyle::Colors::TextDisabled));
+        // 属性转换（批次5）：禁用色+11px 逐值等价走 textColor/fontSize 词汇（先于 addWidget）
+        timeLabel->setProperty("textColor", "disabled");
+        timeLabel->setProperty("fontSize", "11");
         timeLabel->setFixedWidth(40);
         itemLayout->addWidget(timeLabel);
 
         QLabel *msgLabel = new QLabel(alarm.message, alertItem);
-        // 颜色转 textColor 属性；font-size:11px 词汇表未覆盖，保留内联
+        // 颜色转 textColor 属性；11px 字号走 fontSize 词汇（批次5，先于 addWidget）
         msgLabel->setProperty("textColor", levelTextColor);
-        msgLabel->setStyleSheet("font-size: 11px;");
+        msgLabel->setProperty("fontSize", "11");
         msgLabel->setWordWrap(false);
         itemLayout->addWidget(msgLabel, 1);
 

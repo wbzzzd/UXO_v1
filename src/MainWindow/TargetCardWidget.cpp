@@ -27,16 +27,21 @@ TargetCardWidget::TargetCardWidget(QWidget *parent)
     row1->setSpacing(8);
     m_idLabel = new QLabel(this);
     // 属性转换：颜色/字号交由 labelRole="caption"（TextSecondary/12px/transparent）；
-    // font-family:monospace 为 ID 专属，无对应词汇，保留内联
+    // 等宽字体走 fontFamily="mono" 词汇（批次5，先于 addWidget）
     m_idLabel->setProperty("labelRole", "caption");
-    m_idLabel->setStyleSheet(
-        QStringLiteral("font-family:'Consolas','Courier New',monospace;"));
+    m_idLabel->setProperty("fontFamily", "mono");
+    // 批次6：基线卡片标签底色 #252526 由左面板裸样式表 * 级联提供；面板转 containerBg="panel"
+    // 后级联消失，labelBg="panel" 以 PanelBackground 令牌显式恢复同值底色（labelBg 块声明在
+    // labelRole/textColor 之后，同特异度后声明胜，可安全叠加已有前景/字体属性）
+    m_idLabel->setProperty("labelBg", "panel");
     row1->addWidget(m_idLabel);
     m_typeLabel = new QLabel(this);
-    // QLabel 字号/字重覆盖（13px bold）保留，hex 替换为 token
-    m_typeLabel->setStyleSheet(
-        QStringLiteral("font-weight:bold;font-size:13px;color:%1;")
-            .arg(GlobalStyle::Colors::TextPrimary));
+    // 属性转换（批次5）：13px/bold/主文本色逐值等价走 fontSize/fontWeight/textColor 词汇
+    m_typeLabel->setProperty("fontSize", "13");
+    m_typeLabel->setProperty("fontWeight", "bold");
+    m_typeLabel->setProperty("textColor", "white");
+    // 批次6：同 m_idLabel，恢复左面板裸级联消失后的标签底色
+    m_typeLabel->setProperty("labelBg", "panel");
     row1->addWidget(m_typeLabel, 1);
     m_threatBadge = new QLabel(this);
     m_threatBadge->setStyleSheet(
@@ -48,28 +53,31 @@ TargetCardWidget::TargetCardWidget(QWidget *parent)
     auto *row2 = new QHBoxLayout();
     row2->setSpacing(8);
     m_statusLabel = new QLabel(this);
-    // QLabel 字号覆盖（11px）保留，hex 替换为 token
-    m_statusLabel->setStyleSheet(
-        QStringLiteral("font-size:11px;color:%1;")
-            .arg(GlobalStyle::Colors::TextSecondary));
+    // 属性转换（批次5）：11px+次级文本色逐值等价走 fontSize/textColor 词汇
+    m_statusLabel->setProperty("fontSize", "11");
+    m_statusLabel->setProperty("textColor", "secondary");
+    // 批次6：同 m_idLabel，恢复左面板裸级联消失后的标签底色
+    m_statusLabel->setProperty("labelBg", "panel");
     row2->addWidget(m_statusLabel);
     row2->addStretch();
     m_coordLabel = new QLabel(this);
-    // QLabel 字号覆盖（11px）保留，hex 替换为 token
-    m_coordLabel->setStyleSheet(
-        QStringLiteral("font-family:'Consolas','Courier New',monospace;"
-                       "font-size:11px;color:%1;")
-            .arg(GlobalStyle::Colors::TextSecondary));
+    // 属性转换（批次5）：等宽+11px+次级文本色逐值等价走 fontFamily/fontSize/textColor 词汇
+    m_coordLabel->setProperty("fontFamily", "mono");
+    m_coordLabel->setProperty("fontSize", "11");
+    m_coordLabel->setProperty("textColor", "secondary");
+    // 批次6：同 m_idLabel，恢复左面板裸级联消失后的标签底色
+    m_coordLabel->setProperty("labelBg", "panel");
     row2->addWidget(m_coordLabel);
     layout->addLayout(row2);
 
     // Row 3: 尺寸(monospace)
     m_sizeLabel = new QLabel(this);
-    // QLabel 字号覆盖（11px）保留，hex 替换为 token
-    m_sizeLabel->setStyleSheet(
-        QStringLiteral("font-family:'Consolas','Courier New',monospace;"
-                       "font-size:11px;color:%1;")
-            .arg(GlobalStyle::Colors::TextSecondary));
+    // 属性转换（批次5）：等宽+11px+次级文本色逐值等价走 fontFamily/fontSize/textColor 词汇
+    m_sizeLabel->setProperty("fontFamily", "mono");
+    m_sizeLabel->setProperty("fontSize", "11");
+    m_sizeLabel->setProperty("textColor", "secondary");
+    // 批次6：同 m_idLabel，恢复左面板裸级联消失后的标签底色
+    m_sizeLabel->setProperty("labelBg", "panel");
     layout->addWidget(m_sizeLabel);
 
     updateStyle();
