@@ -470,22 +470,23 @@ QString getMainWindowStyle()
         QPushButton[btnVariant="flat"]:disabled { color: %10; }
 
         /* 导航按钮（navBtn）：配合 selected 属性；
-           hover/选中底色复用 RowHover/SelectionBackground 令牌（原内联硬编码 #2A2A2A/#2A3F54 与令牌值一致） */
-        QPushButton[navBtn="true"] {
+           hover/选中底色复用 RowHover/SelectionBackground 令牌（原内联硬编码 #2A2A2A/#2A3F54 与令牌值一致）
+           批次9：QPushButton -> QToolButton（TextUnderIcon 图标+文字双行布局），图标由 UiIcons 提供状态色 */
+        QToolButton[navBtn="true"] {
             background-color: transparent;
             color: %18;
             border: none;
             border-left: 3px solid transparent;
             min-width: 0px;
-            padding: 12px 0px;
+            padding: 8px 0px;
             font-size: %20px;
             text-align: center;
         }
-        QPushButton[navBtn="true"]:hover {
+        QToolButton[navBtn="true"]:hover {
             background-color: %14;
             color: %3;
         }
-        QPushButton[navBtn="true"][selected="true"] {
+        QToolButton[navBtn="true"][selected="true"] {
             background-color: %16;
             color: %3;
             border-left: 3px solid %6;

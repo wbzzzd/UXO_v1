@@ -6,7 +6,7 @@
 #include <QString>
 
 class QVBoxLayout;
-class QPushButton;
+class QToolButton;
 
 class NavigationWidget : public QWidget
 {
@@ -25,14 +25,15 @@ signals:
 private:
     void setupUi();
     void updateSelection();
+    // 按当前选中状态重建导航按钮的 FA 图标（颜色与 navBtn QSS 文本色对齐）
+    void applyNavIcon(int index);
 
     int m_currentIndex;
-    QList<QPushButton*> m_navButtons;
+    QList<QToolButton*> m_navButtons;
 
     struct NavItem {
         QString id;
         QString label;
-        QString icon;
     };
 
     QList<NavItem> m_navItems;

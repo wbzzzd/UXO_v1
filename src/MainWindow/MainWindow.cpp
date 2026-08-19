@@ -16,6 +16,10 @@
 #include "Core/Simulation/DetectionSimulator.h"
 #include "Core/MOS/MosFixtureGenerator.h"
 #include "Common/GlobalStyle.h"
+#include "MainWindow/UiIcons.h"
+
+// FA 图标枚举码点（vendored third_party/QtAwesome）
+#include "QtAwesome.h"
 
 #include <QMenuBar>
 #include <QMenu>
@@ -89,6 +93,9 @@ MainWindow::MainWindow(QWidget *parent)
     , m_pipVisible(true)
     , m_videoIsMain(false)
 {
+    // 字体图标库初始化（幂等）：必须先于 setupUi 中的图标创建；失败时控件降级为纯文本
+    UiIcons::init();
+
     setupUi();
     loadMockData();
 }
@@ -242,19 +249,32 @@ void MainWindow::createMapToolbar()
 
     // 探测控制按钮: [重置] [开始] [结束]
     // 扁平工具栏按钮：全局 QSS btnVariant="flat"（替代原共享 btnStyle 内联，下方 7 个按钮同款）
+    // 图标状态色对齐 flat QSS 文字色：常规=TextPrimary(%3)、禁用=TextDisabled(%10)
+    const auto flatIcon = [](int glyph) {
+        return UiIcons::icon(glyph,
+                             GlobalStyle::Colors::TextPrimary,
+                             QColor(),
+                             GlobalStyle::Colors::TextDisabled);
+    };
     m_resetBtn = new QPushButton(QStringLiteral("重置"), m_mapToolbar);
     m_resetBtn->setObjectName(QStringLiteral("mapToolbarReset"));
     m_resetBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    m_resetBtn->setIconSize(QSize(12, 12));
+    m_resetBtn->setIcon(flatIcon(fa::fa_rotate_right));
     layout->addWidget(m_resetBtn);
 
     m_startBtn = new QPushButton(QStringLiteral("开始"), m_mapToolbar);
     m_startBtn->setObjectName(QStringLiteral("mapToolbarStart"));
     m_startBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    m_startBtn->setIconSize(QSize(12, 12));
+    m_startBtn->setIcon(flatIcon(fa::fa_play));
     layout->addWidget(m_startBtn);
 
     m_stopBtn = new QPushButton(QStringLiteral("结束"), m_mapToolbar);
     m_stopBtn->setObjectName(QStringLiteral("mapToolbarStop"));
     m_stopBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    m_stopBtn->setIconSize(QSize(12, 12));
+    m_stopBtn->setIcon(flatIcon(fa::fa_stop));
     layout->addWidget(m_stopBtn);
 
     layout->addSpacing(8);
@@ -263,24 +283,32 @@ void MainWindow::createMapToolbar()
     m_resetViewBtn->setObjectName(QStringLiteral("mapToolbarResetView"));
     m_resetViewBtn->setEnabled(false);
     m_resetViewBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    m_resetViewBtn->setIconSize(QSize(12, 12));
+    m_resetViewBtn->setIcon(flatIcon(fa::fa_expand));
     layout->addWidget(m_resetViewBtn);
 
     auto *layerBtn = new QPushButton(QStringLiteral("图层"), m_mapToolbar);
     layerBtn->setObjectName(QStringLiteral("mapToolbarLayer"));
     layerBtn->setEnabled(false);
     layerBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    layerBtn->setIconSize(QSize(12, 12));
+    layerBtn->setIcon(flatIcon(fa::fa_layer_group));
     layout->addWidget(layerBtn);
 
     auto *measureBtn = new QPushButton(QStringLiteral("测量"), m_mapToolbar);
     measureBtn->setObjectName(QStringLiteral("mapToolbarMeasure"));
     measureBtn->setEnabled(false);
     measureBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    measureBtn->setIconSize(QSize(12, 12));
+    measureBtn->setIcon(flatIcon(fa::fa_ruler));
     layout->addWidget(measureBtn);
 
     auto *pickCoordBtn = new QPushButton(QStringLiteral("坐标拾取"), m_mapToolbar);
     pickCoordBtn->setObjectName(QStringLiteral("mapToolbarPickCoord"));
     pickCoordBtn->setEnabled(false);
     pickCoordBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    pickCoordBtn->setIconSize(QSize(12, 12));
+    pickCoordBtn->setIcon(flatIcon(fa::fa_location_crosshairs));
     layout->addWidget(pickCoordBtn);
 
     layout->addStretch();

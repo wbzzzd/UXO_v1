@@ -27,8 +27,19 @@ find_package(Qt5 REQUIRED COMPONENTS
 find_package(ZeroMQ QUIET)
 find_package(PostgreSQL QUIET)
 
+# 链接环境修正：本项目用系统 GCC11（/usr/bin/c++）作为编译驱动，而 Qt5 取自本机
+# conda 环境 uxo-dev；环境中 ICU 78 依赖 __cxa_call_terminate@CXXABI_1.3.15，
+# 该符号仅存在于较新 libstdc++（环境 6.0.34 有、系统 6.0.30 无）。把环境 lib 目录
+# 前置到链接搜索路径，使驱动隐式追加的 -lstdc++ 解析到环境版本；路径不存在时为空操作。
+if(EXISTS "/home/lin/.local/share/mamba/envs/uxo-dev/lib/libstdc++.so")
+    link_directories("/home/lin/.local/share/mamba/envs/uxo-dev/lib")
+endif()
+
 set(HEADERS_DIR ${CMAKE_SOURCE_DIR}/include)
 set(SOURCES_DIR ${CMAKE_SOURCE_DIR}/src)
+
+# 第三方库：QtAwesome 字体图标（批次9 图标体系，来源与裁剪说明见其目录内 CMakeLists）
+add_subdirectory(third_party/QtAwesome)
 
 add_subdirectory(src/Common)
 add_subdirectory(src/Core)

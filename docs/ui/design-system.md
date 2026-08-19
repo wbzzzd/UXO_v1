@@ -108,6 +108,8 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 | `--size-button-min-width` | `80px` | `Sizes::ButtonMinWidth` | 按钮最小宽 |
 | `--size-button-height` | `32px` | `Sizes::ButtonHeight` | 按钮高 |
 | `--size-icon-button` | `24px` | `Sizes::IconButtonSize` | 图标按钮尺寸 |
+| `--size-icon-nav` | `16px` | `NavigationWidget.cpp` `setIconSize(QSize(16,16))` | 导航 FA 字体图标尺寸（阶段2 批次9，见第 8 节） |
+| `--size-icon-action` | `12px` | `MainWindow.cpp`/`StatusBarWidget.cpp` `setIconSize(QSize(12,12))` | 地图工具栏/紧急停止 FA 字体图标尺寸（阶段2 批次9，见第 8 节） |
 | `--size-toolbar-button-height` | `32px` | `Sizes::ToolbarButtonHeight` | 工具栏按钮高 |
 | `--size-target-item-height` | `56px` | `Sizes::TargetItemHeight` | 左面板目标行高 |
 | `--size-task-item-height` | `80px` | `Sizes::TaskItemHeight` | 左面板任务行高 |
@@ -338,3 +340,40 @@ CURRENT 态势页在 1280×720 下右面板旧 `DecisionSuggestionPanel` 仍存�
 - **单档位渲染**：P0 仅渲染当前模拟选择档位（`m_selectedTier`）的 MOS 矩形，不渲染未选中档位；全档位叠加对比视图为 P1 Draft（见 `docs/features/mos-planning.md` MOS-008）。选中档位中属于该档位 `repairedIds` 的障碍物以 `Qt::DashLine` 虚线轮廓 + 斜十字标记绘制，模拟"已处理"假设，不暗示真实修复或安全结论。
 - **各向同性米坐标系**：`MosRunwayWidget` 使用单一各向同性像素/米比例 `pxPerM = min(pxPerMX, pxPerMY)`（X/Y 共享），不使用 HTML 原型的独立叠层分离。障碍物影响圆像素半径 `obstacleRadiusPx = influenceRadius × pxPerM`（米坐标 × 各向同性比例，无钳制/系数），paint 与 hitTest 共用同一半径。
 - **参数初始值**：`MosParamsPanel` 的跑道长度 L 初始值为 300（范围 100..6000），最小起降长度 minLength 初始值为 100（范围 1..6000），均为本地测试阶段可调初始值，非永久领域/机型/安全默认值。HTML 原型表格中的 3000/460 为 TARGET 展示值（MOS-006 `L_min=460` 示例），与 Qt 当前初始值不同。
+
+## 8. 图标体系（阶段2 批次9，CURRENT Qt 登记）
+
+CURRENT Qt 客户端图标采用 Font Awesome 6 Free 实心字形：第三方库 vendored 于 `third_party/QtAwesome/`（静态库 `libQtAwesome.a`，顶层 `CMakeLists.txt` `add_subdirectory` 接入），经 `UiIcons` 助手（`include/MainWindow/UiIcons.h`）统一封装。业务控件只依赖 `UiIcons` 与 `GlobalStyle` 颜色令牌，不感知第三方库实例生命周期（单例挂 `qApp` 随应用销毁）。
+
+- `UiIcons::init()`：幂等初始化，须在 `QApplication` 构建后调用（`MainWindow` 构造期执行）；字体加载失败时返回 false，`icon()` 返回空 `QIcon`，控件降级为纯文本，不阻塞启动。
+- `UiIcons::navGlyph(index)`：导航 6 项码点（0..5，越界返回 0）。
+- `UiIcons::icon(character, color, active, disabled)`：以 `fa::fa_solid` 风格生成图标；`color`/`active`/`disabled` 对应常规/悬停/禁用状态色，无效 `QColor` 表示不生成该状态。
+
+HTML 原型本轮未接入 FA 字体，维持既有文本字形方案（如导航 ◎ 近似、✓/× 等符号）；如后续需要原型对齐，须先在本节评审映射后再实现。
+
+### 8.1 图标映射（14 枚）
+
+| 区域 | 控件 | 字形 | CURRENT 出处 |
+|------|------|------|------|
+| 导航 | 态势 | `fa_map_location_dot` | `UiIcons.cpp` `kNavGlyphs[0]` |
+| 导航 | 探测 | `fa_satellite_dish` | `kNavGlyphs[1]` |
+| 导航 | 决策 | `fa_scale_balanced` | `kNavGlyphs[2]` |
+| 导航 | 设备 | `fa_microchip` | `kNavGlyphs[3]` |
+| 导航 | 统计 | `fa_chart_column` | `kNavGlyphs[4]` |
+| 导航 | 配置 | `fa_gear` | `kNavGlyphs[5]` |
+| 地图工具栏 | 重置 | `fa_rotate_right` | `MainWindow.cpp` `createMapToolbar` |
+| 地图工具栏 | 开始 | `fa_play` | 同上 |
+| 地图工具栏 | 结束 | `fa_stop` | 同上 |
+| 地图工具栏 | 视角复位 | `fa_expand` | 同上 |
+| 地图工具栏 | 图层 | `fa_layer_group` | 同上 |
+| 地图工具栏 | 测量 | `fa_ruler` | 同上 |
+| 地图工具栏 | 坐标拾取 | `fa_location_crosshairs` | 同上 |
+| 状态栏 | 紧急停止（模拟占位，恒禁用） | `fa_hand` | `StatusBarWidget.cpp` |
+
+### 8.2 尺寸与状态色约定
+
+- **尺寸**：导航图标 `--size-icon-nav`（16px，`QToolButton` 高 56px、`Qt::ToolButtonTextUnderIcon` 图上文字下双行布局）；地图工具栏与紧急停止图标 `--size-icon-action`（12px）。
+- **状态色**：`QIcon` 的状态色无法由 QSS 驱动，图标色跟随所在控件文本色令牌，状态切换时由代码重建图标（导航在 `NavigationWidget::applyNavIcon`，随选中态 repolish 一并重建）：
+  - 导航：未选中 `--color-text-secondary`，选中与悬停（color-active）`--color-text-primary`，与 navBtn QSS 文本色对齐（计划 2.2 草案曾拟"选中态主色"，实现取 QSS 文本色对齐以与按钮文字一致）。
+  - 地图工具栏 flat 按钮与紧急停止占位钮：常规 `--color-text-primary`、禁用 `--color-text-disabled`（不设 color-active），与 flat/占位 QSS 文字色对齐；紧急停止恒为禁用态，实际渲染禁用色（计划 2.2 草案"危险操作红色"不适用于禁用占位钮，红色仅存在于其启用态样式表）。
+- **语义约束**：图标不得作为唯一信息载体，挂载点均保留文字标签（导航双行、工具栏图标与文字并排）；紧急停止为模拟占位（禁用、不可点击），`fa_hand` 仅作视觉标记，不改变安全边界（见 `docs/ui/README.md` 第 5 节）。

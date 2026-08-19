@@ -77,7 +77,7 @@ CURRENT 主区域为 `QHBoxLayout`：导航 | 左面板 | 中心区 | 右面板�
 
 CURRENT 通过 `QStackedWidget` 路由：index0=态势 live、index2=决策 live（`DecisionView`），index1/3/4/5 未实现独立页面，回退到态势占位。`onNavigationChanged` 不再仅 `qDebug`，而是切换 `QStackedWidget` 当前页。本试点原型保持与 CURRENT 一致的路由行为。
 
-每个导航项为一个 `QPushButton`，固定高 56px，无外边距，左侧 3px 透明边框。图标与文字双行显示，字号 `--font-size-caption`，居中对齐。
+每个导航项为一个按钮，固定高 56px，无外边距，左侧 3px 透明边框。图标与文字双行显示，字号 `--font-size-caption`，居中对齐。TARGET 原型以文本字形 ◎ 近似图标；CURRENT Qt 自阶段2 批次9 起为 `QToolButton`（`Qt::ToolButtonTextUnderIcon`，objectName `DEC-NAV-01`..`06`）配 Font Awesome 实心图标，图标映射与状态色见 `design-system.md` 第 8 节。
 
 | ID | 标签 | 图标 | CURRENT index | 用途 | 默认态 | hover | 选中态 |
 |----|------|------|------|------|--------|-------|--------|
@@ -96,7 +96,7 @@ CURRENT 通过 `QStackedWidget` 路由：index0=态势 live、index2=决策 live
 | 点击结果 | 切换该项为选中态，左侧 3px 主色边框出现，背景变为 `--color-selection`；CURRENT 通过 `QStackedWidget` 路由：`SIT-NAV-01` -> index0（态势 live）、`SIT-NAV-03` -> index2（决策 live `DecisionView`）、其余 -> 回退态势占位。 |
 | 键盘 | Tab 聚焦到按钮；Enter/Space 触发点击。 |
 | 原型行为 | 同 CURRENT：选中 + 路由。`SIT-NAV-02`/`04`/`05`/`06` 选中后中心区回退到态势占位，并在信息面板头标注"该页面为占位，未实现"。 |
-| CURRENT 映射 | `NavigationWidget.cpp` `setupUi`、`setCurrentIndex`、`updateSelection`；`MainWindow.cpp` `onNavigationChanged`（切换 `QStackedWidget` 当前页） |
+| CURRENT 映射 | `NavigationWidget.cpp` `setupUi`、`setCurrentIndex`、`updateSelection`、`applyNavIcon`（批次9 图标状态色重建）；`MainWindow.cpp` `onNavigationChanged`（切换 `QStackedWidget` 当前页） |
 | 安全 | 无设备控制、无副作用 |
 
 ## 4. 菜单栏
@@ -194,7 +194,7 @@ CURRENT 标签样式为 `color: #B8B8B8; padding: 4px; font-size: 13px;`，对�
 
 ### 6.3 紧急停止按钮 `SIT-SB-EMERGENCY`
 
-固定 80x20px，字号 11px（小于 `--font-size-caption`，CURRENT 字面量），加粗。
+固定 80x20px，字号 11px（小于 `--font-size-caption`，CURRENT 字面量），加粗。阶段2 批次9 起附 `fa_hand` 图标（12px；按钮为禁用占位态，图标渲染 `--color-text-disabled`，映射见 `design-system.md` 第 8 节）。
 
 | 状态 | 背景 | 文本 | 边框 |
 |------|------|------|------|
