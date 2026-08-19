@@ -13,7 +13,7 @@
 
 > 本文是决策页面（decision page）的完整设计契约。决策页为 MOS（最小应急起降带）规划工作区：左侧损毁目标列表 + 中心跑道俯视图与算法参数 + 右侧候选起降方案与当前模拟选择摘要，底部 P1 扩展位以禁用占位形式保留。每个交互控件拥有稳定 `DEC-*` ID 与全字段规格。HTML 原型实现必须以本文为唯一依据。所有视觉值取自 `design-system.md`。
 
-CURRENT 来源：决策页 P0 Qt 实现已完成并通过验证。`DecisionView` 经 `MainWindow` 的 `QStackedWidget` index2 路由为 live 页面（导航"决策"= `DEC-NAV-03` 进入；导航"态势"= `DEC-NAV-01` 返回态势 live 页面 index0；index1/3/4/5 为态势占位）。`DecisionView::setupUi` 已填充以下 live 组件：
+CURRENT 来源：决策页 P0 Qt 实现已完成并通过验证。`DecisionView` 经 `MainWindow` 的 `QStackedWidget` index2 路由为 live 页面（导航"决策"= `DEC-NAV-03` 进入；导航"态势"= `DEC-NAV-01` 返回态势 live 页面 index0；index1 为探测 live 页面；设备/统计/配置未实现独立页面，导航保持态势工作区）。`DecisionView::setupUi` 已填充以下 live 组件：
 
 - `src/MainWindow/DecisionView.cpp`：页面容器与布局，实例化子组件并接入 `MosPlanningController`。
 - `src/MainWindow/MosRunwayWidget.cpp`：QPainter 2D 跑道俯视图，自绘跑道/弹坑/合成避让几何/MOS 矩形；缩放公式 `clamp(min(w/1920, h/1080), 1, 2)`，不依赖 DPR。
@@ -57,11 +57,11 @@ MOS-015 生成器依据：`docs/features/mos-planning.md` 中 MOS-015 条目（P
 |----|------|------|------|
 | `DEC-NAV-LOGO` | UXO | 仅展示 | 不可交互 |
 | `DEC-NAV-01` | 态势 | - | 点击路由回态势 live 页面（`QStackedWidget` index0） |
-| `DEC-NAV-02` | 探测 | - | 点击切换高亮，回退到态势占位（index1 未实现独立页面） |
+| `DEC-NAV-02` | 探测 | - | 点击切换到探测 live 页面（`QStackedWidget` index1） |
 | `DEC-NAV-03` | 决策 | 选中 | 当前页面（`QStackedWidget` index2 live） |
-| `DEC-NAV-04` | 设备 | - | 点击切换高亮，回退到态势占位（index3 未实现独立页面） |
-| `DEC-NAV-05` | 统计 | - | 点击切换高亮，回退到态势占位（index4 未实现独立页面） |
-| `DEC-NAV-06` | 配置 | - | 点击切换高亮，回退到态势占位（index5 未实现独立页面） |
+| `DEC-NAV-04` | 设备 | - | 点击切换高亮，导航保持态势工作区（未实现独立页面） |
+| `DEC-NAV-05` | 统计 | - | 点击切换高亮，导航保持态势工作区（未实现独立页面） |
+| `DEC-NAV-06` | 配置 | - | 点击切换高亮，导航保持态势工作区（未实现独立页面） |
 
 ### 2.2 菜单栏
 

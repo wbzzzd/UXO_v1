@@ -178,7 +178,7 @@ CURRENT 来源：
 
 ## 3. 区域 B：视频 PiP 浮层
 
-位于地图主舞台容器（`m_mapContainer`）内，作为画中画（PiP）浮层叠加在战术地图上。CURRENT 为 `VideoStreamPanel`，加载本地演示视频文件（`kVideoPath = "/home/lin/uxo-assets/video/perth_airport_drone_edit.mp4"`），通过 `QMediaPlayer` 输出到 `QVideoWidget` 渲染。`VideoOverlayWidget` 作为透明叠加层覆盖在视频画面上，仅持久显示 HUD（十字准星、REC、遥测 LAT/LON/ALT/HDG、时间码），**不绘制检测框**。冻结标注证据仅在 `TargetDetailOverlay` 中按目标选中显示（见 §3.5）。不接入真实视频流。
+位于地图主舞台容器（`m_mapContainer`）内，作为画中画（PiP）浮层叠加在战术地图上。CURRENT 为 `VideoStreamPanel`，加载本地演示视频文件（`kVideoPath = "/home/lin/uxo-assets/video/perth_airport_drone_uxo.mp4"`），通过 `QMediaPlayer` 输出到 `QVideoWidget` 渲染。`VideoOverlayWidget` 作为透明叠加层覆盖在视频画面上，仅持久显示 HUD（十字准星、REC、遥测 LAT/LON/ALT/HDG、时间码），**不绘制检测框**。冻结标注证据仅在 `TargetDetailOverlay` 中按目标选中显示（见 §3.5）。不接入真实视频流。
 
 默认布局：地图为主视图（填满 `m_mapContainer`），视频 PiP 浮于左下角（480×294 = 480 宽 × (270 视频高 + 24 标题栏高)）。主次可切换、可最小化、可关闭。
 
@@ -275,7 +275,7 @@ PiP 尺寸常量（`MainWindow.cpp`）：`kPipWidth = 480`、`kPipVideoHeight = 
 
 标题栏下方为视频区（`m_videoArea`），使用 `QVBoxLayout` 排列。`QVideoWidget` 作为 `QMediaPlayer` 的视频输出控件填满视频区，`VideoOverlayWidget` 作为子 widget 叠加在上方。
 
-**QVideoWidget**（底层）：Qt 标准视频渲染控件，接收 `QMediaPlayer` 视频帧并渲染。`VideoStreamPanel` 通过 `QVideoProbe` 拦截视频帧（`onFrameProbed`），提供 `currentFrameSnapshot()` 返回当前帧的 detached `QImage`（用于证据捕获），`hasFrame()` 判断是否有帧。视频路径由 `loadVideo(kVideoPath)` 加载，不自动播放，等待 [开始] 触发 `play()`。
+**QVideoWidget**（底层）：Qt 标准视频渲染控件，接收 `QMediaPlayer` 视频帧并渲染。`VideoStreamPanel` 通过 `QVideoProbe` 拦截视频帧（`onFrameProbed`）并缓存到 `m_lastFrame`，3 秒抽帧定时器 `m_extractionTimer` 超时时发射 `frameExtracted(m_lastFrame, 播放位置ms)` 送 DetectionEngine 分析；`currentFrameSnapshot()`/`hasFrame()` 为帧访问接口（前者当前无调用方）。视频路径由 `loadVideo(kVideoPath)` 加载，不自动播放，等待 [开始] 触发 `play()`。
 
 **VideoOverlayWidget**（上层，透明）：HUD 叠加层，仅绘制准星与遥测文本，不绘制检测框。鼠标事件透传给下层（`setAttribute(Qt::WA_TransparentForMouseEvents)` 不设置，但 `mousePressEvent`/`mouseReleaseEvent` 等不处理，事件自然传播）。
 
@@ -301,12 +301,12 @@ PiP 尺寸常量（`MainWindow.cpp`）：`kPipWidth = 480`、`kPipVideoHeight = 
 
 | 阶段 | 触发 | 行为 | 证据存储 |
 |------|------|------|---------|
-| 捕获 | `onDetectionOccurred` | `m_videoPiP->currentFrameSnapshot()` 获取当前视频帧 -> `annotateEvidenceImage()` 在帧上绘制检测框与标注 -> 存入 `m_evidenceByTargetId` | `QMap<QString, DetectionEvidence> m_evidenceByTargetId` |
-| 显示 | `onSelectTargetEverywhere`（侧边栏/地图选中目标） | 查找 `m_evidenceByTargetId[targetId]`：找到则 `m_targetDetailOverlay->setEvidence(image, timestamp, frameIndex, targetId)` 显示冻结标注帧；未找到则 `clearEvidence()` | 只读查询 |
-| 结束检测 | `onStopDetection` | 停止视频播放 + `seek(0)` + 停止模拟器；**保留所有证据**，已捕获的冻结帧仍可通过选中目标查看 | 保留 |
-| 重置 | `onResetDetection` | 停止视频 + 重置模拟器 + 清空目标/地图/侧边栏 + `m_evidenceByTargetId.clear()` + `m_targetDetailOverlay->reset()` | 清空 |
+| 捕获 | `onFrameAnalyzed`（DetectionEngine 的 `imageAnalyzed` 信号，视频抽帧 -> AI 分析） | 异常帧生成目标 ID（T-NNN）后，直接取 `result.annotatedImage`（AI 红框标注图，无则回退 `result.heatmapOverlay` 热力图叠加图）构造 `DetectionEvidence`（含 `provenance = "[AI] PatchCore+YOLO 自动检测"`），不做手工标注 | `QMap<QString, DetectionEvidence> m_evidenceByTargetId` |
+| 显示 | `onSelectTargetEverywhere`（侧边栏/地图/探测页选中目标） | 查找 `m_evidenceByTargetId[targetId]`：找到则 `m_targetDetailOverlay->setEvidence(annotatedImage, captureTime, videoPositionMs, provenance)` 显示冻结标注帧；未找到则 `clearEvidence()` | 只读查询 |
+| 结束检测 | `onStopDetection` | 停止视频播放 + seek(0) + 停止模拟器；**保留所有证据**，已捕获的冻结帧仍可通过选中目标查看 | 保留 |
+| 重置 | `onResetDetection` | 停止视频 + 重置模拟器 + 清空目标/地图/侧边栏/探测页结果 + `m_evidenceByTargetId.clear()` + `m_targetDetailOverlay->reset()` | 清空 |
 
-`TargetDetailOverlay` 位于 `m_mapContainer` 右上角，340px 宽不透明面板，显示冻结标注帧时覆盖在地图之上；无目标时隐藏。面板包含目标详情行（ID、类型、威胁等级、置信度、坐标等）、证据视口（316×180）和 3 个模拟研判操作按钮（`createTaskRequested`/`assignDeviceRequested`/`viewHistoryRequested`），点击后仅给出纯文本反馈，不改状态机。证据图像为本地演示视频的冻结帧 + 模拟标注，不包含真实检测数据。
+`TargetDetailOverlay` 位于 `m_mapContainer` 右上角，340px 宽不透明面板，显示冻结标注帧时覆盖在地图之上；无目标时隐藏。面板包含目标详情行（ID、类型、威胁等级、置信度、坐标等）、证据视口（316×180）和 3 个模拟研判操作按钮（`createTaskRequested`/`assignDeviceRequested`/`viewHistoryRequested`），点击后仅给出纯文本反馈，不改状态机。证据图像为 DetectionEngine 的 AI 标注结果（红框标注图，无则热力图叠加图），携带 `[AI]` 来源标识，与视频画面本身解耦。
 
 ### 3.6 信号说明
 
@@ -681,8 +681,8 @@ CURRENT 在 1280x720 下决策面板末两行（指派设备、模拟声明）�
 |----|------|------|
 | `SIT-NAV-LOGO` | 导航栏 Logo | 应用壳 |
 | `SIT-NAV-01` | 导航项：态势（选中） | 应用壳 |
-| `SIT-NAV-02` | 导航项：探测（占位） | 应用壳 |
-| `SIT-NAV-03` | 导航项：决策（占位） | 应用壳 |
+| `SIT-NAV-02` | 导航项：探测（已实现，切换探测页） | 应用壳 |
+| `SIT-NAV-03` | 导航项：决策（已实现，切换 MOS 决策页） | 应用壳 |
 | `SIT-NAV-04` | 导航项：设备（占位） | 应用壳 |
 | `SIT-NAV-05` | 导航项：统计（占位） | 应用壳 |
 | `SIT-NAV-06` | 导航项：配置（占位） | 应用壳 |

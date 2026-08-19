@@ -228,7 +228,9 @@ TARGET 原型行为：**按钮禁用并标注“模拟占位，无实际效果�
 | 工具栏“同步状态”“书签”标签 `SIT-TB-SYNC`/`SIT-TB-BOOKMARK` | QLabel 占位，无实际效果 | 省略 |
 | 菜单“历史回放/日志查看/数据同步”（无 ID，省略） | lambda 空 | 省略 |
 | 菜单“新建任务/打开预案/保存方案/系统设置” `SIT-MENU-NEW-TASK`/`SIT-MENU-OPEN-PLAN`/`SIT-MENU-SAVE-PLAN`/`SIT-MENU-SETTINGS` | 槽函数占位 | 禁用并标注“占位” |
-| 导航 `SIT-NAV-02`/`04`/`05`/`06` | 未实现独立页面 | 保留可点击高亮，中心区回退态势占位并标注"占位" |
+| 导航 `SIT-NAV-02` | 已实现独立探测页面（`DetectionView`） | 路由到探测 live 页面（详见 `pages/detection.md`） |
+| 导航 `SIT-NAV-03` | 已实现独立决策页面（`DecisionView` MOS P0） | 路由到决策 live 页面（详见 `pages/decision.md`） |
+| 导航 `SIT-NAV-04`/`05`/`06` | 未实现独立页面 | 保留可点击高亮，中心区回退态势占位并标注"占位" |
 | 导航 `SIT-NAV-03` | 已实现独立决策页面（`DecisionView` MOS P0） | 路由到决策 live 页面（详见 `pages/decision.md`） |
 
 ## 8. 视口适配
