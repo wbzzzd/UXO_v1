@@ -30,12 +30,18 @@ TargetCardWidget::TargetCardWidget(QWidget *parent)
     // 等宽字体走 fontFamily="mono" 词汇（批次5，先于 addWidget）
     m_idLabel->setProperty("labelRole", "caption");
     m_idLabel->setProperty("fontFamily", "mono");
+    // 批次6：基线卡片标签底色 #252526 由左面板裸样式表 * 级联提供；面板转 containerBg="panel"
+    // 后级联消失，labelBg="panel" 以 PanelBackground 令牌显式恢复同值底色（labelBg 块声明在
+    // labelRole/textColor 之后，同特异度后声明胜，可安全叠加已有前景/字体属性）
+    m_idLabel->setProperty("labelBg", "panel");
     row1->addWidget(m_idLabel);
     m_typeLabel = new QLabel(this);
     // 属性转换（批次5）：13px/bold/主文本色逐值等价走 fontSize/fontWeight/textColor 词汇
     m_typeLabel->setProperty("fontSize", "13");
     m_typeLabel->setProperty("fontWeight", "bold");
     m_typeLabel->setProperty("textColor", "white");
+    // 批次6：同 m_idLabel，恢复左面板裸级联消失后的标签底色
+    m_typeLabel->setProperty("labelBg", "panel");
     row1->addWidget(m_typeLabel, 1);
     m_threatBadge = new QLabel(this);
     m_threatBadge->setStyleSheet(
@@ -50,6 +56,8 @@ TargetCardWidget::TargetCardWidget(QWidget *parent)
     // 属性转换（批次5）：11px+次级文本色逐值等价走 fontSize/textColor 词汇
     m_statusLabel->setProperty("fontSize", "11");
     m_statusLabel->setProperty("textColor", "secondary");
+    // 批次6：同 m_idLabel，恢复左面板裸级联消失后的标签底色
+    m_statusLabel->setProperty("labelBg", "panel");
     row2->addWidget(m_statusLabel);
     row2->addStretch();
     m_coordLabel = new QLabel(this);
@@ -57,6 +65,8 @@ TargetCardWidget::TargetCardWidget(QWidget *parent)
     m_coordLabel->setProperty("fontFamily", "mono");
     m_coordLabel->setProperty("fontSize", "11");
     m_coordLabel->setProperty("textColor", "secondary");
+    // 批次6：同 m_idLabel，恢复左面板裸级联消失后的标签底色
+    m_coordLabel->setProperty("labelBg", "panel");
     row2->addWidget(m_coordLabel);
     layout->addLayout(row2);
 
@@ -66,6 +76,8 @@ TargetCardWidget::TargetCardWidget(QWidget *parent)
     m_sizeLabel->setProperty("fontFamily", "mono");
     m_sizeLabel->setProperty("fontSize", "11");
     m_sizeLabel->setProperty("textColor", "secondary");
+    // 批次6：同 m_idLabel，恢复左面板裸级联消失后的标签底色
+    m_sizeLabel->setProperty("labelBg", "panel");
     layout->addWidget(m_sizeLabel);
 
     updateStyle();

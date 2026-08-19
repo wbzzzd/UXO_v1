@@ -501,6 +501,123 @@ QString getMainWindowStyle()
             padding: 4px 8px;
         }
         QLineEdit[fieldVariant="compact"]:focus { border: 1px solid %6; }
+
+        /* ===== 决策页词汇（2026-08 批次6 收敛登记，均为存量内联值的等价迁移，非新增视觉值）===== */
+
+        /* sectionTitle=区块标题标签：panel=面板通栏标题（PanelBackground 底+主文本色+6px 内边距），
+           inset=面板内嵌小标题（次文本色+4/8 内边距，原决策页跑道标题迁移） */
+        QLabel[sectionTitle="panel"] {
+            background: %15;
+            color: %3;
+            padding: 6px;
+        }
+        QLabel[sectionTitle="inset"] {
+            color: %18;
+            padding: 4px 8px;
+        }
+
+        /* chipStyle=紧凑徽标标签：warnBadge=工具栏威胁徽标（ThreatMedium 色描边+1/6 内边距），
+           simTag=状态栏模拟标签（同色描边+0/4 内边距） */
+        QLabel[chipStyle="warnBadge"] {
+            color: %25;
+            border: 1px solid %25;
+            padding: 1px 6px;
+        }
+        QLabel[chipStyle="simTag"] {
+            color: %25;
+            border: 1px solid %25;
+            padding: 0 4px;
+        }
+
+        /* statusDot=状态圆点标签：8px 圆点 4px 圆角，取威胁/在线令牌；
+           uxo=未爆弹图例黄，字面量在 Colors 中无等值 token（ThreatHigh 为红非同色），在此收敛登记；
+           device=10px 圆点 5px 圆角（状态栏设备在线点） */
+        QLabel[statusDot="high"] {
+            background: %24;
+            border-radius: 4px;
+            min-width: 8px; max-width: 8px;
+            min-height: 8px; max-height: 8px;
+        }
+        QLabel[statusDot="medium"] {
+            background: %25;
+            border-radius: 4px;
+            min-width: 8px; max-width: 8px;
+            min-height: 8px; max-height: 8px;
+        }
+        QLabel[statusDot="online"] {
+            background: %21;
+            border-radius: 4px;
+            min-width: 8px; max-width: 8px;
+            min-height: 8px; max-height: 8px;
+        }
+        QLabel[statusDot="uxo"] {
+            background: #FFEB3B;
+            border-radius: 4px;
+            min-width: 8px; max-width: 8px;
+            min-height: 8px; max-height: 8px;
+        }
+        QLabel[statusDot="device"] {
+            background: %21;
+            border-radius: 5px;
+            min-width: 10px; max-width: 10px;
+            min-height: 10px; max-height: 10px;
+        }
+
+        /* slotStyle=禁用占位插槽标签：title=插槽标题（禁用文本色+虚线边框+4px 内边距），
+           item=插槽条目（ToolbarBackground 底+禁用文本色+虚线边框+3px 内边距） */
+        QLabel[slotStyle="title"] {
+            color: %10;
+            border: 1px dashed %4;
+            padding: 4px;
+        }
+        QLabel[slotStyle="item"] {
+            background: %2;
+            color: %10;
+            border: 1px dashed %4;
+            padding: 3px;
+        }
+
+        /* zoom=地图缩放按钮：工具栏底色+边框+紧凑内边距+30px 最小宽（原决策页缩放行内联迁移；
+           仅用于 +/- 单字符钮。复位钮禁用本变体：基线复位钮内联无 min-width，回落基础规则
+           min-width:%7（实宽 102px），误用 zoom 会因 30px 最小宽缩至 52px（批次6 矩阵实证） */
+        QPushButton[btnVariant="zoom"] {
+            background-color: %2;
+            color: %3;
+            border: 1px solid %4;
+            border-radius: 4px;
+            padding: 4px 10px;
+            min-width: 30px;
+        }
+
+        /* zoomReset=缩放行复位钮：外观同 zoom 但不声明 min-width，宽度回落基础 QPushButton
+           规则的 min-width:%7，保持基线 102px 实宽与缩放行整体几何（批次6 修正 52px 回归） */
+        QPushButton[btnVariant="zoomReset"] {
+            background-color: %2;
+            color: %3;
+            border: 1px solid %4;
+            border-radius: 4px;
+            padding: 4px 10px;
+        }
+
+        /* toolBg=工具栏按钮保底底色：仅声明背景属性，其余沿用基础 QPushButton 规则。
+           用于容器转 containerBg 后，原由工具栏裸样式表级联提供底色的按钮
+           （基础按钮背景是 PrimaryGreen，省略本规则会使按钮变绿，批次6 回归预防） */
+        QPushButton[btnVariant="toolBg"] {
+            background-color: %2;
+        }
+
+        /* mainBg=主区底色按钮保底：仅声明背景为主区 Background %1，其余沿用基础 QPushButton 规则。
+            用于容器转 containerBg 后，原由主区裸样式表级联提供底色的按钮
+            （基础按钮背景是 PrimaryGreen，省略本规则会使按钮变绿，批次6 回归预防） */
+        QPushButton[btnVariant="mainBg"] {
+            background-color: %1;
+        }
+
+        /* QSplitter 容器化配套：QSplitter 转 containerBg="main" 后把手失去裸级联底色，
+           且无全局 QSplitter 规则可依，会回落 Fusion 浅色；此规则恢复基线把手底色 Background */
+        QSplitter[containerBg="main"]::handle {
+            background-color: %1;
+        }
     )")
         .arg(Colors::Background)
         .arg(Colors::ToolbarBackground)

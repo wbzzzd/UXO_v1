@@ -74,19 +74,27 @@ void DecisionView::applyViewportScale()
     // field 角色为 MOS 参数标签专用：1x 基准 11px（比 caption 更紧凑），
     // 沿用 1x/2x 缩放策略，2x（4K）下为 22px，避免 1280 下单位文本被换行截断。
     const int scaledFieldPt = static_cast<int>(11 * scale);
-    // 保留 DecisionView 本体暗色底：setStyleSheet 会整体替换样式表，
-    // 需在 scaledStyle 中显式包含 background-color，否则每次缩放重算都会
-    // 丢失构造函数设置的 #1E1E1E 背景，导致页面回退为默认浅灰
+    // 警示：控件级样式表禁止携带裸 background-color 声明——它会连带失效应用级
+    // 样式表对本控件整棵子树的 containerBg 属性规则，子容器全部回退为本体底色
+    // （minirepro5 裸树五阶段实验实证：仅裸声明即致命，仅字体规则无害）。
+    // 本体底色由构造函数的 containerBg="main" 属性 + GlobalStyle 规则负责，
+    // 本样式表只承载 mosFontRole 字号缩放。
     const QString scaledStyle = QStringLiteral(
-        "background-color:%1;"
-        "QWidget[mosFontRole=\"body\"] { font-size: %2px; }"
-        "QWidget[mosFontRole=\"title\"] { font-size: %3px; }"
-        "QWidget[mosFontRole=\"caption\"] { font-size: %4px; }"
-        "QWidget[mosFontRole=\"field\"] { font-size: %5px; }"
-    ).arg(GlobalStyle::Colors::Background)
-     .arg(scaledBodyPt).arg(scaledTitlePt).arg(scaledCaptionPt).arg(scaledFieldPt);
+        "QWidget[mosFontRole=\"body\"] { font-size: %1px; }"
+        "QWidget[mosFontRole=\"title\"] { font-size: %2px; }"
+        "QWidget[mosFontRole=\"caption\"] { font-size: %3px; }"
+        "QWidget[mosFontRole=\"field\"] { font-size: %4px; }"
+    ).arg(scaledBodyPt).arg(scaledTitlePt).arg(scaledCaptionPt).arg(scaledFieldPt);
+    // 字体缩放注入总开关（当前关闭，所有 scale 均注入空样式表）：这组 mosFontRole
+    // 字号规则自批次1-5 引入以来从未在任何基线生效过——裸声明事故使其在全部
+    // scale 下连带失效，1x 与 4K 基线一直按应用级默认字号渲染并通过门禁。移除
+    // 裸声明后若开启注入：1x 下整页标签将从默认字号抬到 body=14px（standalone
+    // 实测增高 46px、行距逐行下移）；4K 下产生 14.28% 布局漂移（3840x2160 矩阵
+    // 实测）。是否让字号随视口放大属可见视觉变更，待用户单独裁决后改为 true；
+    // 本批次目标为像素对齐迁移，保持关闭。
+    constexpr bool injectViewportFontScale = false;
     // 用 setProperty 触发样式刷新：动态属性改变后需显式 unpolish/polish 才生效
-    setStyleSheet(scaledStyle);
+    setStyleSheet(injectViewportFontScale ? scaledStyle : QString());
     // 中心跑道画布按视口缩放重设内部字体/笔宽
     m_runway->setViewportScale(scale);
 

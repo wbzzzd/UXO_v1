@@ -41,7 +41,22 @@ int main(int argc, char *argv[])
     // 与 MainWindow 中 setStyleSheet 的层级一致
     qApp->setStyleSheet(GlobalStyle::getMainWindowStyle());
     DecisionView view;
-    view.resize(1280, 720);
+
+    // 视口参数（命令行第二个参数，格式 "宽x高"，如 1920x1080；缺省 1280x720）。
+    // 用于 UI 升级像素门禁的三视口 A/B 采集（1280x720 / 1920x1080 / 3840x2160）；
+    // 基线与当前两侧使用同一份工具源码，保证采集路径一致、只有被测代码不同。
+    QSize viewport(1280, 720);
+    if (app.arguments().size() > 2) {
+        const QStringList parts = app.arguments().at(2).split(QLatin1Char('x'));
+        if (parts.size() == 2) {
+            bool okW = false, okH = false;
+            const int w = parts.at(0).toInt(&okW);
+            const int h = parts.at(1).toInt(&okH);
+            if (okW && okH && w > 0 && h > 0)
+                viewport = QSize(w, h);
+        }
+    }
+    view.resize(viewport);
     view.setSnapshot(snap);
 
     // 显示并处理事件以确保布局完成

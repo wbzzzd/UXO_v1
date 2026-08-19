@@ -36,6 +36,12 @@ PlanCardWidget::PlanCardWidget(QWidget *parent)
     // 左侧：迷你跑道缩略图 48×24
     m_thumbnail = new QLabel(this);
     m_thumbnail->setFixedSize(48, 24);
+    // 无效卡（无可行方案）整体 disabled，Qt 对 disabled QLabel 的 pixmap 做淡化渲染
+    // （pixmap 颜色与标签自身背景混合）。基线中该背景由 DEC-RP-PLANS 祖先裸样式
+    // background-color:#252526 级联提供；批次6 移除裸样式后回落 app 级 transparent，
+    // 淡化混合底色改变产生 48x24 像素差。显式补 labelBg=panel（#252526）恢复基线
+    // 混合底色；有效卡 pixmap 不透明全覆盖，背景不可见，不受影响。
+    m_thumbnail->setProperty("labelBg", "panel");
     mainLayout->addWidget(m_thumbnail);
 
     // 右侧：名称/徽章 + 3×2 网格

@@ -320,6 +320,23 @@ target_link_libraries(ScreenshotTool
 )
 set_target_properties(ScreenshotTool PROPERTIES AUTOMOC ON)
 
+# 主窗口门禁采集工具：离屏渲染 MainWindow 并导航到指定页（默认 DEC-NAV-03 决策页）保存整窗 PNG，
+# 用于 UI 升级像素门禁的基线/当前 A/B 比对（支持 1280x720/1920x1080/3840x2160 三视口）。
+# 不进入 CTest，仅手动构建运行：cmake --build build --target MainWindowCapture
+add_executable(MainWindowCapture
+    tests/main_window_capture.cpp
+)
+target_include_directories(MainWindowCapture PRIVATE ${HEADERS_DIR})
+target_link_libraries(MainWindowCapture
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    MainWindow
+    Core
+    Common
+)
+set_target_properties(MainWindowCapture PROPERTIES AUTOMOC ON)
+
 # Widget 树导出工具：输出所有子控件的几何/颜色/字体/样式表为文本，用于代码级视觉对比。
 # 不进入 CTest，仅手动构建运行：cmake --build build --target WidgetDump
 add_executable(WidgetDump

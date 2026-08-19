@@ -268,6 +268,10 @@ CURRENT `DecisionSuggestionPanel` 用 `QProgressBar` 显示模拟置信度。
 
 `SituationView` 是 Qt3DWindow，无 QSS 控件样式。本试点在 HTML 原型中以占位画布表达，背景使用 `--color-ground`，标记用威胁色。容器标题栏高 32px（`RightPanelWidget` 中 section header `setFixedHeight(32)`），背景 `--color-panel`，标题字号 `--font-size-body` 加粗。
 
+### 5.12 决策页属性词汇（Qt 侧收敛登记）
+
+2026-08 批次6 将决策页 `DecisionView` 的内联 QSS 收敛为 `GlobalStyle` 属性词汇，均为存量基线值的等价迁移（非新增视觉值）：`sectionTitle="panel"/"inset"` 区块标题、`chipStyle="warnBadge"/"simTag"` 紧凑徽标（ThreatMedium 描边）、`statusDot="high"/"medium"/"online"/"uxo"/"device"` 状态圆点（uxo 黄 `#FFEB3B` 为存量字面量收敛登记，token 表无等值项）、`slotStyle="title"/"item"` 禁用占位插槽、`btnVariant="zoom"` 缩放按钮、`btnVariant="toolBg"` 工具栏按钮保底底色（ToolbarBackground）、`btnVariant="zoomReset"` 缩放行复位钮（外观同 zoom 但不声明 min-width，宽度回落基础 QPushButton 规则）与 `btnVariant="mainBg"` 主区底色按钮保底（仅声明 Background，用于参数栏复位钮），以及 `QSplitter[containerBg="main"]::handle` 把手底色规则（Background）。HTML 原型不新增使用这些值，状态徽章语义仍以 5.9 与 6.3 为准。
+
 ## 6. 状态规则
 
 ### 6.1 五态必填
