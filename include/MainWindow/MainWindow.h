@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "Core/Simulation/SimulationWorkflow.h"
+#include "Detection/DetectionTypes.h"
 
 #include <QMainWindow>
 #include <QImage>
@@ -21,6 +22,8 @@ class DeviceResourceBar;
 class TargetDetailOverlay;
 class AlertPanel;
 class DecisionView;
+class DetectionView;
+class DetectionEngine;
 
 namespace Core::MOS {
 class MosPlanningController;
@@ -28,13 +31,12 @@ class MosPlanningController;
 
 namespace Core::Simulation {
 class DroneTelemetrySimulator;
-class DetectionSimulator;
 }
 
 // 主窗口: 态势页布局
 // 导航(80px) | 左pane(可折叠40/320px) | 中心区(设备资源条36px + 地图主舞台)
 // 地图主舞台上浮动: 视频PiP(左下480x270) + 目标详情浮层(右上340px)
-// 探测工具栏: [重置][开始][结束] 驱动无人机遥测+检测模拟器
+// 探测工具栏: [重置][开始][结束] 驱动无人机遥测+AI 检测（视频抽帧）
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -67,8 +69,14 @@ private slots:
 
     // 模拟器回调
     void onTelemetryUpdated(double lat, double lng, double alt, double heading);
-    void onDetectionOccurred(const Core::DetectionResult& result);
     void onVideoEnded();
+
+    // AI 检测引擎回调
+    void onFrameAnalyzed(const ImageDetectionResult& result);
+
+    // 探测页人工校验回调
+    void onTargetConfirmed(const QString& targetId);
+    void onTargetRejected(const QString& targetId);
 
     // 三向联动: 目标表/地图/视频框 任一选中 -> 同步其他两区
     void onSelectTargetEverywhere(const QString& targetId);
@@ -101,9 +109,11 @@ private:
                               double heading,
                               const QRectF& videoRect,
                               double& outLat, double& outLng) const;
-    // 在证据截图上绘制归一化检测框和目标标签
-    void annotateEvidenceImage(QImage& image, const Core::DetectionResult& result,
-                               const QString& targetId) const;
+    // YOLOv8-cls 类别名 -> TargetType
+    Core::TargetType targetTypeFromClassName(const QString& className) const;
+    // 从 AI 分析结果构造 TargetInfo: 类型/置信度取最优分类, 坐标由异常 patch 推算
+    Core::TargetInfo createDetectedTarget(const ImageDetectionResult& result,
+                                          const QString& targetId) const;
 
     // 检测证据记录（内存中冻结，不持久化）
     struct DetectionEvidence {
@@ -130,12 +140,13 @@ private:
     QPushButton *m_resetBtn;       // 探测工具栏 [重置]
 
     Core::Simulation::DroneTelemetrySimulator *m_droneSimulator;
-    Core::Simulation::DetectionSimulator *m_detectionSimulator;
+    DetectionEngine *m_detectionEngine;
 
     // P0 最小页面栈：index 0 = 态势工作区，index 1 = MOS 决策页
     QStackedWidget *m_pageStack;
     QWidget *m_situationPage;
     DecisionView *m_decisionView;
+    DetectionView *m_detectionView;
     // MOS P0 规划控制器（应用拥有，本地合成 fixture 驱动）
     Core::MOS::MosPlanningController *m_mosController;
 

@@ -1,6 +1,6 @@
-// 态势页重构后离屏 UI 契约测试：验证空起步目标注入、左面板折叠、设备资源条、
-// 目标详情浮层、PiP 控制、双向高亮、端到端四目标同步、目标表四列契约、
-// 证据元数据填充、结束保留和重置清除。不连接设备、网络或持久化。
+// 态势页离屏 UI 契约测试：验证空起步目标注入、左面板折叠、设备资源条、
+// 目标详情浮层、PiP 控制、双向高亮、端到端四目标同步（伪造 AI 分析结果注入）、
+// 目标表四列契约、证据元数据填充、结束保留和重置清除。不连接设备、网络或持久化。
 
 #include "MainWindow/MainWindow.h"
 #include "MainWindow/LeftPanelWidget.h"
@@ -8,14 +8,13 @@
 #include "MainWindow/TargetDetailOverlay.h"
 #include "MainWindow/TacticalMapWidget.h"
 #include "MainWindow/VideoStreamPanel.h"
-#include "Core/Simulation/DetectionSimulator.h"
+#include "Detection/DetectionEngine.h"
 #include "Core/Simulation/DemoScenarioProvider.h"
 #include "Core/Simulation/DroneTelemetrySimulator.h"
 
 #include <QtTest>
 #include <QSignalSpy>
 #include <QtMath>
-#include <QVideoFrame>
 
 #include <QAbstractButton>
 #include <QCoreApplication>
@@ -39,6 +38,49 @@ namespace {
 
 // MainWindow 生成目标 ID 格式为 T-001, T-002, ...
 const QString kTargetId = QStringLiteral("T-001");
+
+// 伪造异常帧分析结果: 单异常 patch + 指定类别分类 + 非空 512x512 热力图叠加图
+// (bestClass 仅需 >=0 即参与选取, 目标类型由 bestClassName 映射)
+ImageDetectionResult makeAnomalousResult(const QString &className, float confidence,
+                                         int patchRow, int patchCol, qint64 timestampMs)
+{
+    ImageDetectionResult result;
+    result.hasAnomaly = true;
+    result.maxAnomalyScore = 0.9f;
+    result.processingTimeMs = 120;
+    result.timestampMs = timestampMs;
+
+    PatchResult patch;
+    patch.row = patchRow;
+    patch.col = patchCol;
+    patch.rawScore = 2.9f;
+    patch.normalizedScore = 0.9f;
+    patch.isAnomalous = true;
+    result.patches.append(patch);
+
+    ClassificationResult classification;
+    classification.patchRow = patchRow;
+    classification.patchCol = patchCol;
+    classification.bestClass = 4;
+    classification.bestClassName = className;
+    classification.confidence = confidence;
+    result.classifications.append(classification);
+
+    result.heatmapOverlay = QImage(512, 512, QImage::Format_ARGB32);
+    result.heatmapOverlay.fill(Qt::red);
+    return result;
+}
+
+// 伪造正常帧分析结果（无异常, 不生成目标）
+ImageDetectionResult makeNormalResult(qint64 timestampMs)
+{
+    ImageDetectionResult result;
+    result.hasAnomaly = false;
+    result.timestampMs = timestampMs;
+    result.heatmapOverlay = QImage(512, 512, QImage::Format_ARGB32);
+    result.heatmapOverlay.fill(Qt::darkGreen);
+    return result;
+}
 
 template <typename WidgetType>
 WidgetType *contractWidget(MainWindow &window, const char *objectName)
@@ -81,8 +123,7 @@ bool clickFirstTarget(QTableWidget *table)
     return true;
 }
 
-// 创建离屏窗口并停止 loadMockData 自动启动的检测模拟器和视频，
-// 避免模拟时钟在测试期间注入非预期目标。需要检测的测试自行调用 start()。
+// 创建离屏窗口并暂停视频（AI 检测引擎由视频抽帧定时器驱动，视频暂停即无自动注入）
 std::unique_ptr<MainWindow> createOffscreenWindow()
 {
     auto window = std::make_unique<MainWindow>();
@@ -99,40 +140,19 @@ std::unique_ptr<MainWindow> createOffscreenWindow()
     }
     window->show();
 
-    // 停止检测模拟器（loadMockData 已通过 loadDetections 加载数据，但 running=false）
-    if (auto *sim = window->findChild<Core::Simulation::DetectionSimulator *>()) {
-        sim->stop();
-    }
     if (auto *video = window->findChild<VideoStreamPanel *>("videoPiP")) {
         video->pause();
     }
     return window;
 }
 
-// 向 VideoStreamPanel 注入一帧测试图像，使检测证据快照非空
-void injectVideoFrame(MainWindow &window)
-{
-    auto *videoPanel = window.findChild<VideoStreamPanel *>("videoPiP");
-    QVERIFY2(videoPanel != nullptr, "主窗口必须包含 VideoStreamPanel");
-    QImage testFrame(320, 240, QImage::Format_RGB32);
-    testFrame.fill(Qt::red);
-    QVideoFrame frame(testFrame);
-    videoPanel->onFrameProbed(frame);
-    QCoreApplication::processEvents(QEventLoop::AllEvents);
-    QVERIFY2(videoPanel->hasFrame(), "注入帧后 VideoStreamPanel 必须持有帧");
-}
-
-// 注入 T-001 到窗口（先注入视频帧使证据快照非空，再启动检测模拟器 ->
-// onPositionChanged 触发 detectionOccurred -> 处理事件循环）
+// 注入 T-001 到窗口（直接向检测引擎发 imageAnalyzed 信号 ->
+// onFrameAnalyzed 生成目标 -> 处理事件循环）
 void injectFirstTarget(MainWindow &window)
 {
-    injectVideoFrame(window);
-    auto *sim = window.findChild<Core::Simulation::DetectionSimulator *>();
-    QVERIFY2(sim != nullptr, "主窗口必须包含 DetectionSimulator");
-    sim->start();
-    const auto detections = Core::Simulation::DemoScenarioProvider::create().detections;
-    QVERIFY2(!detections.isEmpty(), "检测数据不得为空");
-    sim->onPositionChanged(detections.first().videoPositionMs);
+    auto *engine = window.findChild<DetectionEngine *>("detectionEngine");
+    QVERIFY2(engine != nullptr, "主窗口必须包含 DetectionEngine");
+    emit engine->imageAnalyzed(makeAnomalousResult(QStringLiteral("landmines"), 0.87f, 1, 2, 5000));
     QCoreApplication::processEvents(QEventLoop::AllEvents);
 }
 
@@ -334,7 +354,7 @@ void SimulationWorkflowUiTest::unsafeControlsAreAbsent()
                             .arg(visibleUnsafeControls.join(QStringLiteral(", ")))));
 }
 
-// 检测模拟器注入 T-001 后四区同步: 目标表 1 行, 2D 地图 1 个红点
+// AI 检测注入 T-001 后四区同步: 目标表 1 行, 2D 地图 1 个红点
 void SimulationWorkflowUiTest::detectingTargetInjectsFourZoneSync()
 {
     auto window = createOffscreenWindow();
@@ -350,8 +370,8 @@ void SimulationWorkflowUiTest::detectingTargetInjectsFourZoneSync()
     QCOMPARE(tacticalMap->targetCount(), 1);
 
     const int statusColumn = columnWithHeader(targetTable, QStringLiteral("状态"));
-    QVERIFY2(statusColumn >= 0, "targetTable 必须提供模拟状态列");
-    QCOMPARE(firstTargetStatus(targetTable, statusColumn), QStringLiteral("[模拟] 已发现"));
+    QVERIFY2(statusColumn >= 0, "targetTable 必须提供状态列");
+    QCOMPARE(firstTargetStatus(targetTable, statusColumn), QStringLiteral("已发现"));
 
     captureVisualEvidence(*window, QStringLiteral("refactor-detected.png"));
 }
@@ -517,7 +537,7 @@ void SimulationWorkflowUiTest::tacticalMapClickHighlightsTargetRow()
              "目标表第0行应被 selectTargetRow 选中");
 }
 
-// 端到端: 推进 4 个检测时间点, 验证目标表和 2D 地图同步
+// 端到端: 注入 4 个异常帧 AI 结果（含首尾正常帧）, 验证目标表和 2D 地图同步
 void SimulationWorkflowUiTest::detectionStageE2EFourTargetsFourZoneSync()
 {
     auto window = createOffscreenWindow();
@@ -526,28 +546,36 @@ void SimulationWorkflowUiTest::detectionStageE2EFourTargetsFourZoneSync()
     QVERIFY2(targetTable != nullptr && tacticalMap != nullptr,
              "缺少目标表或战术地图");
 
-    auto *sim = window->findChild<Core::Simulation::DetectionSimulator *>();
-    QVERIFY2(sim != nullptr, "主窗口必须包含 DetectionSimulator");
+    auto *engine = window->findChild<DetectionEngine *>("detectionEngine");
+    QVERIFY2(engine != nullptr, "主窗口必须包含 DetectionEngine");
 
-    const auto detections = Core::Simulation::DemoScenarioProvider::create().detections;
-    QCOMPARE(static_cast<int>(detections.size()), 4);
-
-    sim->start();
-    QCoreApplication::processEvents(QEventLoop::AllEvents);
-    QVERIFY2(sim->isRunning(), "检测模拟器应处于运行态");
     QCOMPARE(targetTable->rowCount(), 0);
     QCOMPARE(tacticalMap->targetCount(), 0);
 
-    // MainWindow::targetTypeName 返回的中文类型名（不含"模拟"前缀）
+    // 正常帧不得生成目标
+    emit engine->imageAnalyzed(makeNormalResult(1000));
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+    QCOMPARE(targetTable->rowCount(), 0);
+    QCOMPARE(tacticalMap->targetCount(), 0);
+
+    // MainWindow::targetTypeFromClassName 将 YOLO 类别名映射为中文类型名
+    const QStringList classNames = {
+        QStringLiteral("landmines"),
+        QStringLiteral("aircraft-bombs"),
+        QStringLiteral("submunitions"),
+        QStringLiteral("mortars")
+    };
     const QStringList expectedTypeNames = {
         QStringLiteral("反跑道雷"),
         QStringLiteral("航弹"),
         QStringLiteral("子母弹"),
-        QStringLiteral("简易爆炸装置")
+        QStringLiteral("迫击炮弹")
     };
+    const qint64 timestamps[] = { 5000, 20000, 35000, 50000 };
 
-    for (int i = 0; i < static_cast<int>(detections.size()); ++i) {
-        sim->onPositionChanged(detections[i].videoPositionMs);
+    for (int i = 0; i < classNames.size(); ++i) {
+        emit engine->imageAnalyzed(
+            makeAnomalousResult(classNames[i], 0.9f, i, i, timestamps[i]));
         QCoreApplication::processEvents(QEventLoop::AllEvents);
 
         QCOMPARE(targetTable->rowCount(), i + 1);
@@ -555,8 +583,8 @@ void SimulationWorkflowUiTest::detectionStageE2EFourTargetsFourZoneSync()
         QCOMPARE(targetTable->item(i, 0)->text(), expectedTypeNames[i]);
     }
 
-    // 超过最后一个检测时间点后不再产生新目标
-    sim->onPositionChanged(80000);
+    // 视频末尾的正常帧不再产生新目标
+    emit engine->imageAnalyzed(makeNormalResult(80000));
     QCoreApplication::processEvents(QEventLoop::AllEvents);
     QCOMPARE(targetTable->rowCount(), 4);
     QCOMPARE(tacticalMap->targetCount(), 4);
@@ -564,7 +592,7 @@ void SimulationWorkflowUiTest::detectionStageE2EFourTargetsFourZoneSync()
     captureVisualEvidence(*window, QStringLiteral("refactor-e2e-four-targets.png"));
 }
 
-// 目标表必须恰好 4 列，表头为 类型/置信度/位置/模拟状态
+// 目标表必须恰好 4 列，表头为 类型/置信度/位置/状态
 void SimulationWorkflowUiTest::targetTableHasExactlyFourColumns()
 {
     auto window = createOffscreenWindow();
@@ -575,7 +603,7 @@ void SimulationWorkflowUiTest::targetTableHasExactlyFourColumns()
     QCOMPARE(targetTable->horizontalHeaderItem(0)->text(), QStringLiteral("类型"));
     QCOMPARE(targetTable->horizontalHeaderItem(1)->text(), QStringLiteral("置信度"));
     QCOMPARE(targetTable->horizontalHeaderItem(2)->text(), QStringLiteral("位置"));
-    QCOMPARE(targetTable->horizontalHeaderItem(3)->text(), QStringLiteral("模拟状态"));
+    QCOMPARE(targetTable->horizontalHeaderItem(3)->text(), QStringLiteral("状态"));
 }
 
 // 目标表单元格不得可勾选（无 ItemIsUserCheckable）
@@ -643,7 +671,7 @@ void SimulationWorkflowUiTest::targetSelectionShowsEvidenceMetadata()
     QVERIFY2(overlay->isVisibleTo(window->centralWidget()),
              "选中目标后浮层必须显现");
 
-    // 证据元数据标签必须填充（注入视频帧后证据快照非空，捕获时间/视频时间/来源写入）
+    // 证据元数据标签必须填充（AI 热力图证据非空，捕获时间/视频时间/来源写入）
     auto *provenanceLabel = contractWidget<QLabel>(*window, "targetDetailProvenanceValue");
     auto *captureTimeLabel = contractWidget<QLabel>(*window, "targetDetailCaptureTimeValue");
     auto *videoTimeLabel = contractWidget<QLabel>(*window, "targetDetailVideoTimeValue");
@@ -657,10 +685,10 @@ void SimulationWorkflowUiTest::targetSelectionShowsEvidenceMetadata()
     QVERIFY2(!videoTimeLabel->text().isEmpty()
              && videoTimeLabel->text() != QStringLiteral("-"),
              "视频时间不得为空或占位符");
-    QVERIFY2(provenanceLabel->text().contains(QStringLiteral("模拟")),
-             "证据来源必须标注模拟");
+    QVERIFY2(provenanceLabel->text().contains(QStringLiteral("AI")),
+             "证据来源必须标注 AI 自动检测");
 
-    // 冻结标注截图 pixmap 必须非空：注入视频帧后 onDetectionOccurred 捕获非空快照，
+    // 冻结热力图叠加图 pixmap 必须非空：onFrameAnalyzed 冻结 AI 热力图证据，
     // onSelectTargetEverywhere 调用 setEvidence 将 pixmap 设置到证据图像标签
     auto *evidenceImageLabel = contractWidget<QLabel>(*window, "targetDetailEvidenceImage");
     auto *evidencePlaceholder = contractWidget<QLabel>(*window, "targetDetailEvidencePlaceholder");
@@ -668,8 +696,8 @@ void SimulationWorkflowUiTest::targetSelectionShowsEvidenceMetadata()
     QVERIFY2(evidencePlaceholder != nullptr, "浮层缺少证据占位标签");
 
     QVERIFY2(evidenceImageLabel->pixmap() != nullptr
-             && !evidenceImageLabel->pixmap()->isNull(),
-             "选中目标后证据图像 pixmap 必须非空（注入视频帧后证据快照非空）");
+              && !evidenceImageLabel->pixmap()->isNull(),
+             "选中目标后证据图像 pixmap 必须非空（AI 热力图证据非空）");
     QVERIFY2(evidenceImageLabel->isVisibleTo(overlay),
              "有证据时证据图像标签必须可见");
     QVERIFY2(!evidencePlaceholder->isVisibleTo(overlay),
@@ -693,7 +721,7 @@ void SimulationWorkflowUiTest::stopPreservesStateAndResetClears()
     QVERIFY2(overlay->isVisibleTo(window->centralWidget()),
              "选中后浮层必须显现");
 
-    // 选中后证据图像 pixmap 必须非空（injectFirstTarget 已注入视频帧）
+    // 选中后证据图像 pixmap 必须非空（injectFirstTarget 已注入 AI 热力图）
     auto *evidenceImageLabel = contractWidget<QLabel>(*window, "targetDetailEvidenceImage");
     QVERIFY2(evidenceImageLabel != nullptr, "浮层缺少证据图像标签");
     QVERIFY2(evidenceImageLabel->pixmap() != nullptr
@@ -785,7 +813,7 @@ void SimulationWorkflowUiTest::tacticalMapSatelliteImageAspectFit()
 // 端到端验证航向感知目标坐标投影：
 // calculateTargetCoord 是 MainWindow 私有方法，无测试接口且不应为测试暴露公开 API；
 // 改为端到端驱动：启动无人机遥测模拟器（同步发出 P1 遥测，航向 198.7°）-> 冻结 ->
-// 注入视频帧并触发首个检测 -> onDetectionOccurred 按当前航向推算目标坐标 ->
+// 伪造异常帧 emit imageAnalyzed -> onFrameAnalyzed 按当前航向推算目标坐标 ->
 // 选中目标读取浮层坐标标签 -> 断言坐标在机场边界内且接近 P1（航向投影偏移受 footprint 限制）。
 void SimulationWorkflowUiTest::detectionMarkerProjectsFromDroneTelemetry()
 {
@@ -798,13 +826,10 @@ void SimulationWorkflowUiTest::detectionMarkerProjectsFromDroneTelemetry()
     QCoreApplication::processEvents(QEventLoop::AllEvents);
     droneSim->stop();  // 冻结遥测在 P1（航向 198.7°）
 
-    injectVideoFrame(*window);
-    auto *detSim = window->findChild<Core::Simulation::DetectionSimulator *>();
-    QVERIFY2(detSim != nullptr, "主窗口必须包含 DetectionSimulator");
-    detSim->start();
-    const auto detections = Core::Simulation::DemoScenarioProvider::create().detections;
-    QVERIFY2(!detections.isEmpty(), "检测数据不得为空");
-    detSim->onPositionChanged(detections.first().videoPositionMs);
+    auto *engine = window->findChild<DetectionEngine *>("detectionEngine");
+    QVERIFY2(engine != nullptr, "主窗口必须包含 DetectionEngine");
+    emit engine->imageAnalyzed(
+        makeAnomalousResult(QStringLiteral("landmines"), 0.87f, 1, 2, 5000));
     QCoreApplication::processEvents(QEventLoop::AllEvents);
 
     auto *targetTable = contractWidget<QTableWidget>(*window, "targetTable");

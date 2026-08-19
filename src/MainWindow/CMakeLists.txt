@@ -1,6 +1,7 @@
 set(MAINWINDOW_SOURCES
     MainWindow.cpp
     DecisionView.cpp
+    DetectionView.cpp
     DecisionViewLayout.cpp
     DecisionViewSnapshot.cpp
     DecisionViewTier.cpp
@@ -25,6 +26,7 @@ set(MAINWINDOW_SOURCES
 set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/MainWindow.h
     ${HEADERS_DIR}/MainWindow/DecisionView.h
+    ${HEADERS_DIR}/MainWindow/DetectionView.h
     ${HEADERS_DIR}/MainWindow/StatusBarWidget.h
     ${HEADERS_DIR}/MainWindow/LeftPanelWidget.h
     ${HEADERS_DIR}/MainWindow/NavigationWidget.h
@@ -58,4 +60,5 @@ target_link_libraries(MainWindow
     Qt5::3DExtras
     Common
     Core
+    Detection
 )

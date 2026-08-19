@@ -2,33 +2,87 @@
 
 > 本文从 [ARCHITECTURE.md](../ARCHITECTURE.md) 第 5 节迁出，是 CURRENT 实现细节子文档。描述经自动测试与 UI 契约测试验证的操作路径。
 
-下图为当前经自动测试与 UI 契约测试验证的两条完整操作路径：目标处置链（原有）与 MOS 重规划链（新增）。
+下图为当前验证的三条完整操作路径：目标三向选择联动链、AI 检测与人工校验链、MOS 重规划链。三向联动链经自动测试覆盖（`simulation_workflow_ui` 验证目标表与 2D 战术地图双向高亮，`stop_select_flicker_repro` 为事件风暴调试复现）；AI 检测与人工校验链暂无自动化测试，经实际运行冒烟验证（见 [features/detection-onnx-integration.md](../features/detection-onnx-integration.md)）；MOS 重规划链经自动测试与 UI 契约测试验证。
 
-## 1. 目标处置链
+## 1. 目标三向选择联动链
 
 ```mermaid
 sequenceDiagram
     actor User as 用户
     participant Left as LeftPanelWidget
+    participant Map as TacticalMapWidget
+    participant DV as DetectionView
     participant Window as MainWindow
     participant Flow as SimulationWorkflow
-    participant Control as DetectionControlPanel
-    participant Decision as DecisionSuggestionPanel
+    participant Overlay as TargetDetailOverlay
 
+    Note over User,Overlay: 三个等价入口：左表行点击 / 地图目标点点击 / 探测页结果行选择
     User->>Left: 点击目标行
     Left->>Window: targetSelected(target副本)
-    Window->>Flow: selectTarget(target.id)
-    Window->>Control: setSelectedTarget()
-    Window->>Decision: setTarget()
-    User->>Control: 模拟确认/处置/完成
-    Control->>Window: 对应requested信号
-    Window->>Flow: requestSelectedTargetStatus()
-    Window->>Left: updateTargetStatus()
-    Window->>Control: 刷新状态和日志
-    Window->>Decision: 刷新目标状态
+    User->>Map: 点击目标标点
+    Map->>Window: targetClicked(targetId)
+    User->>DV: 点击结果行
+    DV->>Window: resultSelected(targetId)
+    Window->>Window: onSelectTargetEverywhere(targetId)
+    Window->>Left: blockSignals + selectTargetRow（防递归）
+    Window->>Map: setSelectedTarget(targetId)
+    Window->>Flow: selectTarget(targetId)
+    Window->>Overlay: showTarget(selected)
+    Window->>Overlay: setEvidence(冻结证据快照) 或 clearEvidence
 ```
 
-## 2. MOS 重规划链
+事实补充：
+
+- 探测页结果行选择同时驱动 `DetectionView::displayRecord` 更新证据查看器、分类 Top-3、详情字段、热力图与状态时间线；`DetectionView` 只作为联动入口发出 `resultSelected`，不接收联动链回写。
+- 证据快照在 AI 分析产出目标时冻结于 `MainWindow::m_evidenceByTargetId`（AI 红框标注图，无则回退热力图叠加图）。
+- 未编译基线面板（`DetectionControlPanel`、`DecisionSuggestionPanel` 等，见 `UI.md`）不在本链中。
+
+## 2. AI 检测与人工校验链
+
+```mermaid
+sequenceDiagram
+    actor User as 用户
+    participant Window as MainWindow
+    participant Video as VideoStreamPanel
+    participant Sim as DroneTelemetrySimulator
+    participant Engine as DetectionEngine
+    participant DV as DetectionView
+    participant Flow as SimulationWorkflow
+    participant Sync as 左表/地图/状态栏
+
+    User->>Window: 地图工具栏 [开始]
+    Window->>Video: play()（抽帧定时器随播放启动）
+    Window->>Sim: start()
+    Video->>Engine: frameExtracted(frame)
+    Engine->>Engine: PatchCore 异常检测 + YOLOv8-cls 分类（QtConcurrent 后台）
+    Engine-->>Window: imageAnalyzed(result)
+    alt 正常帧，或异常帧但分类未确认
+        Window->>DV: onFrameAnalyzed(result, 空)（仅追加结果行）
+    else 异常且分类确认
+        Window->>Flow: addTarget(T-NNN)
+        Window->>Sync: 左表插行 + 地图红点 + 状态栏告警
+        Window->>DV: onFrameAnalyzed(result, targetId)
+        Window->>Window: 冻结证据快照 m_evidenceByTargetId
+    end
+    User->>DV: 选中结果行，点击 [确认]/[拒绝]（仅待处理状态启用）
+    alt 确认
+        DV-->>Window: targetConfirmed(targetId)
+        Window->>Flow: selectTarget + requestSelectedTargetStatus(Confirmed)
+    else 拒绝
+        DV-->>Window: targetRejected(targetId)
+        Window->>Flow: markSelectedTargetFalseAlarm（标记误报）
+    end
+    Window->>DV: 结果行状态更新为 已确认/已拒绝
+```
+
+事实补充：
+
+- 引擎在 `setupUi` 末尾 `initialize` 加载 ONNX 模型（`patchcore_512.onnx`/`yolov8_cls_224.onnx`/`patchcore_params.json`，路径经 `DETECTION_ASSETS_DIR` 注入）；失败经 `error` 信号在状态栏告警 `[AI] 检测引擎错误: ...`，不阻断启动。
+- 地图工具栏 [结束] 停止视频与遥测并回 0s；[重置] 额外清空目标、航迹、探测页结果与证据快照。
+- 目标处置状态机的处置中/完成（`Disposing`/`Disposed`）无 UI 入口，仅 `SimulationWorkflow` API 可达。
+- 本链暂无自动化测试，冒烟验证记录见 [features/detection-onnx-integration.md](../features/detection-onnx-integration.md)。
+
+## 3. MOS 重规划链
 
 ```mermaid
 sequenceDiagram
@@ -75,4 +129,4 @@ sequenceDiagram
 - 合法无解是接受结果：复合结果仍提交，具体 tier 以 `rectangle.valid=false` 与 `NoFeasibleRectangle` 表示；它不是 `IgnoredStale`。
 - 导出链为 `MosGeneratorDialog` 请求 -> `DecisionView::exportRequested` -> `MainWindow` -> `MosPlanningController::exportFixture`。仅 controller 使用 `QSaveFile` 写出当前已提交障碍物的 canonical bytes；导出不改业务状态、revision、日志或通知计数，也无导入、网络或数据库路径。
 
-导航、任务选择、设备选择、批量操作、紧急停止和 3D 目标点击没有形成等价的完整消费链。
+导航仅实现页面栈路由（见 [startup.md](./startup.md)）；任务选择、设备选择、批量操作与紧急停止没有形成等价的完整消费链。

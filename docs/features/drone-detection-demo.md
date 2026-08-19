@@ -4,6 +4,8 @@
 关联产品需求：REQ-009（requirements/REQ-009.md，Approved）
 关联版本：待确认
 
+> **2026-08 更新**：本功能的 `DetectionSimulator` 模拟检测链路已被 `DetectionEngine`（真实 ONNX 推理）替代并停止接线（代码保留为备用回退），见 [detection-onnx-integration.md](./detection-onnx-integration.md)。四区同步机制不变，检测源变为真实 AI。
+
 ## 1. 问题与目标
 
 ### 1.1 问题

@@ -13,6 +13,9 @@ obj/
 *.dylib
 *.a
 
+# Vendored onnxruntime: 运行时库不入库（仅头文件与模型资产入库）
+third_party/onnxruntime/lib/
+
 # IDE specific
 .idea/
 .vscode/

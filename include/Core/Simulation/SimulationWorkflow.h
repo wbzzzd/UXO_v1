@@ -37,9 +37,14 @@ public:
     bool selectTarget(const QString &targetId);
     bool requestSelectedTargetStatus(Core::TargetStatus requestedStatus);
 
-    // 阶段4 探测脚本驱动: 运行时插入新探测目标并追加探测日志
-    // target 为新探测到的目标; 追加一条 "[模拟] 探测到目标 TGT-XXX" 日志
+    // 探测阶段驱动: 运行时插入 AI 检测新目标并追加探测日志
+    // target 为新探测到的目标; 追加一条 "[AI] 探测到目标 TGT-XXX" 日志
     void addTarget(const Core::TargetInfo &target);
+
+    // 探测页 [拒绝]: 选中目标判定为误报 (仅 Detected 状态允许流转到 FalseAlarm)
+    // 成功追加 "[AI] 目标 XXX 判定为误报" 日志并返回 true;
+    // 无选中/状态不允许时追加拒绝日志并返回 false
+    bool markSelectedTargetFalseAlarm();
 
     bool hasSelectedTarget() const;
     QString selectedTargetId() const;

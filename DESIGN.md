@@ -168,7 +168,7 @@
 
 ### 5.1 目标列表行（已批准原语 · `LeftPanelWidget` 目标表）
 
-- **结构**：单行。CURRENT 列序：类型 / 置信度 / 位置 / 模拟状态（4 列，勾选列已移除）。行高 40px（CURRENT `setRowHeight(row, 40)`）。
+- **结构**：单行。CURRENT 列序：类型 / 置信度 / 位置 / 状态（4 列，勾选列已移除）。行高 40px（CURRENT `setRowHeight(row, 40)`）。
 - **变体**：默认 / hover / 选中。仅一个选中态，不定义 selected-hover。
 - **间距**：item padding 4px（`LeftPanelWidget` 内联 QSS），列宽见 4.4。
 - **状态**：
@@ -177,7 +177,7 @@
   - 选中：`RowSelected #2E3D2F`（新增绿色）背景，`TextPrimary` 文本，单一绿色选中态。选中行 hover 仍保持 `RowSelected`（本地 `::item:selected:hover` 规则以 QSS specificity 守护，颜色等同选中态，非独立视觉变体）。
   - 交替行：`alternatingRowColors` 关闭，所有未选中行统一 `PanelBackground` 单一底色，避免奇偶行产生两种未选中底。
 - **交互**：单击发出 `targetSelected`，驱动模拟工作流与右侧目标状态；不绑定双击事件（详情由地图浮层承担）。
-- **无障碍**：类型列仅以威胁色作前景（类型名本身即文字标签，无 `●` 字形；`●` 仅出现在详情浮层威胁值）；模拟状态文本以 `[模拟]` 前缀（`simulationTargetStatusText`）；行可达 Tab，选中态不仅靠颜色。
+- **无障碍**：类型列仅以威胁色作前景（类型名本身即文字标签，无 `●` 字形；`●` 仅出现在详情浮层威胁值）；状态文本无 `[模拟]` 前缀（`simulationTargetStatusText`，含误报态）；行可达 Tab，选中态不仅靠颜色。
 - **无勾选框**：已移除 `kTargetCheckColumn` 勾选列与 `Qt::ItemIsUserCheckable`，单选改为 `SingleSelection` 行选（`setColumnCount(4)`）。
 
 ### 5.2 目标详情浮层（已批准原语 · `TargetDetailOverlay`）
@@ -204,7 +204,7 @@
 
 - **结构**：`QLabel` 或自定义 `QWidget`，`aspectRatioMode` 保持 16:9，最小高 `Sizes::EvidenceViewportHeight = 180px`，宽填满浮层内容区（316px）。背景 `Colors::EvidenceViewport #161616`，1px `Border` 边框，3px 圆角。
 - **内容**：冻结标注截图（`QImage`），与实时视频 PiP 区分--视频 PiP 是实时流且 HUD-only（十字准星、REC、遥测 LAT/LON/ALT/HDG、时间码），证据视口是冻结快照。视口内只读，不可裁剪、不可缩放交互（最小实现）。
-- **所有权与生命周期**：冻结 `QImage` 由 `MainWindow` 内存持有，按目标 ID 索引；检测发生时（`DetectionSimulator::detectionOccurred`）捕获并标注，仅在详情浮层显示（detail-only）。[结束] 保留已有证据（`onStopDetection` 保留目标/侧栏/选中），[重置] 清空（`onResetDetection` 清空目标/冻结证据/航迹）。不持久化到磁盘，进程结束即释放。
+- **所有权与生命周期**：冻结 `QImage` 由 `MainWindow` 内存持有，按目标 ID 索引；检测发生时（`DetectionEngine::imageAnalyzed` 异常帧）捕获引擎热力图叠加图（`heatmapOverlay`，已含标注），仅在详情浮层显示（detail-only）。[结束] 保留已有证据（`onStopDetection` 保留目标/侧栏/选中），[重置] 清空（`onResetDetection` 清空目标/冻结证据/航迹）。不持久化到磁盘，进程结束即释放。
 - **冻结标识**：左上角小 chip，`CaptionSize`，`TextSecondary` 文本 "证据快照（已冻结）"，`PanelBackground` 半透明底，配锁形 SVG 图标。不新增颜色，复用现有 token。冻结语义由文字+图标承担，不靠新颜色。
 - **变体**：有证据（显示截图）/ 无证据（占位：`EvidenceViewport` 底 + `TextDisabled` "暂无证据快照[模拟]"）/ 待检测态（整个浮层为待检测提示，视口不显示）。
 - **状态**：默认只读。无 hover/active 交互（非交互元素，符合"motion serves meaning"）。

@@ -13,6 +13,7 @@ find_package(Qt5 REQUIRED COMPONENTS
     Core
     Widgets
     Gui
+    Concurrent
     3DCore
     3DRender
     3DInput
@@ -30,8 +31,12 @@ find_package(PostgreSQL QUIET)
 set(HEADERS_DIR ${CMAKE_SOURCE_DIR}/include)
 set(SOURCES_DIR ${CMAKE_SOURCE_DIR}/src)
 
+# RPATH so the executable finds libonnxruntime.so at build time
+set(CMAKE_BUILD_RPATH "${CMAKE_SOURCE_DIR}/third_party/onnxruntime/lib")
+
 add_subdirectory(src/Common)
 add_subdirectory(src/Core)
+add_subdirectory(src/Detection)
 add_subdirectory(src/MainWindow)
 add_subdirectory(src/App)
 
@@ -118,6 +123,26 @@ target_link_libraries(UXOMissionControlVideoRenderCaptureTest
 if(DEFINED ENV{DISPLAY} AND NOT "$ENV{DISPLAY}" STREQUAL "")
     add_test(NAME video_render_capture COMMAND UXOMissionControlVideoRenderCaptureTest)
     set_tests_properties(video_render_capture PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=xcb")
+endif()
+
+# 调试复现（问题③，临时）：结束 -> 选中左侧目标 -> PiP 视频区闪烁/黑色方块量化取证。
+# PNG 证据落盘 /tmp/opencode/flicker_repro/；退出码 1 = 检出闪烁。
+add_executable(UXOMissionControlStopSelectFlickerRepro
+    tests/stop_select_flicker_repro.cpp
+)
+target_include_directories(UXOMissionControlStopSelectFlickerRepro PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlStopSelectFlickerRepro
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    Qt5::Test
+    MainWindow
+    Core
+    Common
+)
+if(DEFINED ENV{DISPLAY} AND NOT "$ENV{DISPLAY}" STREQUAL "")
+    add_test(NAME stop_select_flicker_repro COMMAND UXOMissionControlStopSelectFlickerRepro)
+    set_tests_properties(stop_select_flicker_repro PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=xcb")
 endif()
 
 # 巡检员：随机点击 + 自洽性检查，独立进程循环运行。

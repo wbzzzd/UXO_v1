@@ -33,7 +33,6 @@ VideoOverlayWidget::VideoOverlayWidget(QWidget *parent)
     m_hudTimer = new QTimer(this);
     m_hudTimer->setInterval(HUD_INTERVAL_MS);
     connect(m_hudTimer, &QTimer::timeout, this, &VideoOverlayWidget::onHudTick);
-    m_hudTimer->start();
 }
 
 void VideoOverlayWidget::setDeviceInfo(const QString& deviceId, const QString& deviceName)
@@ -55,6 +54,22 @@ void VideoOverlayWidget::setTelemetry(double lat, double lng, double alt, double
 void VideoOverlayWidget::clear()
 {
     update();
+}
+
+void VideoOverlayWidget::setHudActive(bool active)
+{
+    if (active) {
+        if (!m_hudTimer->isActive()) {
+            m_recBlinkOn = true;
+            m_hudTimer->start();
+        }
+    } else {
+        m_hudTimer->stop();
+        if (m_recBlinkOn) {
+            m_recBlinkOn = false;   // REC 指示仅播放中显示
+            update();
+        }
+    }
 }
 
 void VideoOverlayWidget::onHudTick()

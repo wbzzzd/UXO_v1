@@ -34,8 +34,8 @@ CURRENT 来源：
 |------|------|----------|----------------|
 | A | 左面板 | 搜索栏、状态子标签、三标签表格 | `LeftPanelWidget` |
 | B | 地图容器内浮层 | 视频 PiP 浮层（本地演示视频 + HUD-only） | `VideoStreamPanel` |
-| C | 中心下 | 告警面板、模拟流程与操作日志、批量操作条 | `AlertPanel` + `DetectionControlPanel` + `BatchOperationBar` |
-| D | 右面板 | 三维态势地图、模拟设备状态、模拟决策建议 | `RightPanelWidget`（含 `SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`） |
+| C | 中心下 | 告警面板、模拟流程与操作日志、批量操作条 | 未在 CURRENT 主窗口实例化（源文件保留，见 [UI.md](../UI.md)）；目标确认/拒绝已由探测页 `DetectionView` 底部操作条承接，处置中/完成无 UI 入口 |
+| D | 右面板 | 三维态势地图、模拟设备状态、模拟决策建议 | 未在 CURRENT 主窗口实例化（源文件保留，见 [UI.md](../UI.md)）；态势页当前无右面板，地图主舞台由 `TacticalMapWidget` 2D 战术地图承担 |
 | E | 中心顶部 | 设备资源卡片条（状态点 + ID + 电量 + 任务状态） | `DeviceResourceBar` |
 | F | 地图容器内浮层 | 目标详情浮层（冻结标注证据 + 研判操作） | `TargetDetailOverlay` |
 
@@ -94,7 +94,7 @@ CURRENT 来源：
 | 0 | 类型 | 52px 固定 | `typeName`，按威胁等级着色 | 高=`--color-threat-high`、中=`--color-threat-medium`、低=`--color-threat-low`、未知=`--color-text-disabled` |
 | 1 | 置信度 | 48px 固定 | `XX%`（confidence*100，整数） | `--color-text-primary` |
 | 2 | 位置 | 72px 固定 | `X:n Y:n`（position.x、position.z 取整） | `--color-text-primary` |
-| 3 | 模拟状态 | 拉伸 | `[模拟] 已发现/已确认/处置中/已完成/状态未知` | `--color-text-primary` |
+| 3 | 状态 | 拉伸 | `已发现/已确认/处置中/已完成/误报/状态未知`（`simulationTargetStatusText`，无 `[模拟]` 前缀） | `--color-text-primary` |
 
 行样式：默认 `--color-panel`；hover `--color-row-hover`；选中 `--color-selection`。
 
@@ -356,6 +356,8 @@ PiP 尺寸常量（`MainWindow.cpp`）：`kPipWidth = 480`、`kPipVideoHeight = 
 
 背景 `--color-panel`，外边距 8px，间距 8px。头部 28px：标题“模拟流程与操作日志”。状态行 40px：目标标签 + 状态标签（均 `--font-size-caption`）。操作行 32px：三个按钮（68x32，间距 8px）。操作日志：`QTextEdit` 只读，最小高 72px，背景 `--color-bg`，1px `--color-border` 边框，圆角 4px，字号 10px，内边距 4px。
 
+> [CURRENT 漂移] 本节（§4.2）的 `DetectionControlPanel` 未在当前主窗口实例化（源文件保留，见 [UI.md](../UI.md)）。目标确认与拒绝已由探测页 `DetectionView` 底部操作条承接（见 `detection.md` §3.4）；处置中（Disposing）/已完成（Disposed）两步当前无 UI 入口，仅 `SimulationWorkflow` API 可达。
+
 #### 4.2.1 状态行
 
 | ID | 默认值 | 用途 | 样式 | CURRENT 映射 |
@@ -520,8 +522,8 @@ CURRENT 在 `SituationView` 右侧叠加一个 60px 宽的竖直工具栏，背�
 |----|------|------|------|------|--------|-------|--------|---------|------|---------|---------------|------|
 | `SIT-NAV-LOGO` | UXO | div | 导航栏顶，40px 高 | 品牌标识 | `--color-primary` 色，18px，加粗，字间距 2px，居中 | 不适用 | 不适用 | 无 | 不可聚焦 | 同 CURRENT | 见 `application-shell.md` 第 3 节 | 无 |
 | `SIT-NAV-01` | 态势 | div | 导航项 1，56px 高 | 切换到态势页（当前页） | 选中 | 背景 `--color-row-hover`、文本 `--color-text-primary` | 背景 `--color-selection`、左边框 `--color-primary`、文本 `--color-text-primary`、加粗 | 移除其他项 selected，当前加 selected（无实际页面跳转） | div 无 tabindex，不可键盘聚焦 | 默认选中；点击仅保持选中 | 见 `application-shell.md` 第 3 节 | 无 |
-| `SIT-NAV-02` | 探测 | div | 导航项 2，56px 高 | 切换到探测页（占位） | 未选中，tooltip `未实现页面（占位）` | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
-| `SIT-NAV-03` | 决策 | div | 导航项 3，56px 高 | 切换到决策页（占位） | 未选中，tooltip `未实现页面（占位）` | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
+| `SIT-NAV-02` | 探测 | div | 导航项 2，56px 高 | 切换到探测页（CURRENT 已实现 live 页面 `DetectionView`，见 `detection.md`） | 未选中 | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
+| `SIT-NAV-03` | 决策 | div | 导航项 3，56px 高 | 切换到决策页（CURRENT 已实现 live 页面 `DecisionView`，MOS P0） | 未选中 | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
 | `SIT-NAV-04` | 设备 | div | 导航项 4，56px 高 | 切换到设备页（占位） | 未选中，tooltip `未实现页面（占位）` | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
 | `SIT-NAV-05` | 统计 | div | 导航项 5，56px 高 | 切换到统计页（占位） | 未选中，tooltip `未实现页面（占位）` | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
 | `SIT-NAV-06` | 配置 | div | 导航项 6，56px 高 | 切换到配置页（占位） | 未选中，tooltip `未实现页面（占位）` | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
@@ -595,24 +597,23 @@ CURRENT 已实现的空态：告警面板、操作日志、决策建议。其余
 
 ### 8.1 目标选择流程
 
-1. 用户在 `SIT-LP-TARGET-TABLE` 单击目标行。
-2. `LeftPanelWidget` 发出 `targetSelected`。
-3. `MainWindow::onTargetSelected` 调 `SimulationWorkflow::selectTarget(targetId)`。
-4. 工作流选中目标后，`refreshSelectedTarget` 同步：
-   - 左表选中行高亮（CURRENT 通过表选择，未显式同步；原型补齐）。
-   - 右面板 `setTarget`：决策区更新方案/风险/置信度/状态；三维视图 `highlightTarget` 高亮标记、`focusOnTarget` 相机聚焦。
-   - 探测控制区 `setSelectedTarget`：更新 `SIT-DC-TARGET`、`SIT-DC-STATUS` 与按钮可用性。
+1. 三入口之一触发：态势页左表单击行（`LeftPanelWidget` 发出 `targetSelected`）、地图目标点击（`TacticalMapWidget` 发出 `targetClicked`）、探测页结果表单击行（`DetectionView` 发出 `resultSelected`）。
+2. `MainWindow::onSelectTargetEverywhere(targetId)` 统一处理：左表 `selectTargetRow` 高亮、地图 `setSelectedTarget`、`SimulationWorkflow::selectTarget(targetId)`。
+3. 工作流选中目标后同步：
+   - 地图浮层 `TargetDetailOverlay::showTarget` 显示目标详情；证据冻结时 `setEvidence` 更新证据区，否则清空证据。
+   - 探测页 `DetectionView` 经 `onResultSelected`/`displayRecord` 显示对应结果的详情与时间线。
+4. 原型的右面板 `setTarget`（决策区/三维视图高亮聚焦）与探测控制区 `setSelectedTarget` 属未实例化面板行为（见 §4.2 漂移注）；补齐时应接入同一选中链。
 
 ### 8.2 模拟处置流程
 
-目标状态机：`Detected -> Confirmed -> Disposing -> Disposed`。每步对应一个按钮：
+目标状态机：`Detected -> Confirmed -> Disposing -> Disposed`，另有拒绝分支 `Detected -> FalseAlarm`（误报）。CURRENT 的 UI 入口：
 
-1. 目标 `Detected`：`SIT-DC-CONFIRM` 启用，`SIT-DC-START`/`SIT-DC-COMPLETE` 禁用。
-2. 点击 `SIT-DC-CONFIRM`：状态变为 `Confirmed`，`SIT-DC-START` 启用。
-3. 点击 `SIT-DC-START`：状态变为 `Disposing`，`SIT-DC-COMPLETE` 启用。
-4. 点击 `SIT-DC-COMPLETE`：状态变为 `Disposed`，三个按钮全部禁用。
+1. 目标 `Detected`（AI 检出并生成 T-NNN 后）：探测页 `DetectionView` 底部 [确认]/[拒绝] 按钮启用（仅选中且 `Pending` 时）。
+2. 点击 [确认]：`targetConfirmed` -> `MainWindow::onTargetConfirmed` -> `selectTarget` + `requestSelectedTargetStatus(Confirmed)`；左表状态列经 `m_leftPanel->updateTargetStatus` 回写为 已确认。
+3. 点击 [拒绝]：`targetRejected` -> `MainWindow::onTargetRejected` -> `selectTarget` + `markSelectedTargetFalseAlarm`；左表状态列回写为 误报。
+4. `Disposing`/`Disposed` 两步当前无 UI 入口（见 §4.2 漂移注），仅 `SimulationWorkflow` API 可达；原型 [模拟处置]/[模拟完成] 按钮属未实例化面板行为。
 
-每步操作在 `SIT-DC-LOG` 追加一条 `[HH:mm:ss] 消息`，并更新左表第 4 列模拟状态文字与右面板决策区状态标签。所有变更仅影响内存 `SimulationWorkflow`，重启后清空。
+状态变更即时回写左表第 4 列状态文字。所有变更仅影响内存 `SimulationWorkflow`，重启后清空。
 
 ### 8.3 刷新流程
 
