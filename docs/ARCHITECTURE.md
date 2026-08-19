@@ -37,14 +37,14 @@ flowchart LR
 | `Detection` | `src/Detection/`、`include/Detection/` | DetectionEngine、PatchCoreDetector、YoloClassifier：ONNX 双阶段 UXO 检测推理（PatchCore 异常检测 + YOLOv8-cls 分类），模型文件位于 `assets/models/` | 无项目依赖（链接 `onnxruntime` 与 `Qt5::Core/Gui/Concurrent`） |
 | `Common` | `src/Common/`、`include/Common/` | GlobalStyle（UI 样式）、MockDataGenerator（无当前调用方） | 无项目依赖（注：`Core` 不链接 `Common`；`Common` 通过公共头文件目录引用 `Core/Data/Types.h`，构成隐藏依赖） |
 
-外部依赖：根 CMake 查找 `Qt5::Network` 与 `Qt5::Sql`，但无生产目标链接使用；ZeroMQ、PostgreSQL 只做可选探测；当前没有 MQTT 依赖；ONNX Runtime（`third_party/onnxruntime` 随源码捆绑的预编译动态库，`libonnxruntime.so.1.23.2`）由 `Detection` 库链接，模型资产路径经 `DETECTION_ASSETS_DIR` 以开发期绝对路径注入。根 CMake 另定义 16 个测试目标（5 个检测/通用 + 11 个 MOS），测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
+外部依赖：根 CMake 查找 `Qt5::Network` 与 `Qt5::Sql`，但无生产目标链接使用；ZeroMQ、PostgreSQL 只做可选探测；当前没有 MQTT 依赖；ONNX Runtime 头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库（`third_party/onnxruntime/`），需本地部署后才能构建，由 `Detection` 库链接，模型资产路径经 `DETECTION_ASSETS_DIR` 以开发期绝对路径注入。根 CMake 另定义 17 个测试目标（6 个检测/通用 + 11 个 MOS），测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
 
 `MainWindow` 库内 `MosPlanningController` 拥有同步 `MosReplanWorker`（值持有，`Qt::DirectConnection` 直连），不引入生产 `QThread`；worker 调用 plain Core `MosPlanner::planProgressive` 后同步返回完成结果。`DecisionView` 只持有 `MosPlanningSnapshot` 副本，不拥有会话状态、不发起规划、不联网。`MosRunwayWidget` 的 P0 渲染只绘制并命中当前选中档位（`m_selectedTier`），在单一共享坐标系下使用各向同性 `pxPerM`（X/Y 共用同一比例），障碍物影响圆像素半径 = `influenceRadius × pxPerM`，绘制与命中测试共用同一公式且无钳制或系数。
 
 > CURRENT 启动装配、状态所有权与已验证调用链的细节见：
 > - [startup.md](./architecture/startup.md)：启动时序与对象装配
 > - [state-ownership.md](./architecture/state-ownership.md)：状态树与权威位置
-> - [call-chains.md](./architecture/call-chains.md)：目标处置链与 MOS 重规划链
+> - [call-chains.md](./architecture/call-chains.md)：目标三向选择联动链、AI 检测与人工校验链与 MOS 重规划链
 
 ## 3. CURRENT 结构问题
 
@@ -56,7 +56,7 @@ flowchart LR
 | `UXOMissionControl` 是启动外壳，初始化为占位 | 无真实配置、日志、装配 |
 | 状态权威分散在 `SimulationWorkflow`、`MainWindow` 与 UI 面板 | 跨面板不一致，手工同步易错 |
 | 根 CMake 查找 `Qt5::Network`、`Qt5::Sql`、ZeroMQ、PostgreSQL 但无生产目标使用 | 误导存在外部集成 |
-| ONNX Runtime 以随源码捆绑的预编译动态库引入并由 `Detection` 链接；模型资产路径为开发期绝对路径注入 | 新增真实外部依赖；部署形态（安装相对路径/Qt 资源）未定，二进制可移植性受限 |
+| ONNX Runtime 头文件随源码入库、预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库并由 `Detection` 链接；模型资产路径为开发期绝对路径注入 | 新增真实外部依赖；新克隆仓库需本地部署动态库后才能构建；部署形态（安装相对路径/Qt 资源）未定，二进制可移植性受限 |
 | 外部数据边界未开始 | 无网络、存储、设备或服务适配器 |
 
 各问题的长期归属集中见第 6.1 节，避免在两处维护同一迁移决定。
