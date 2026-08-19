@@ -31,7 +31,7 @@ find_package(PostgreSQL QUIET)
 set(HEADERS_DIR ${CMAKE_SOURCE_DIR}/include)
 set(SOURCES_DIR ${CMAKE_SOURCE_DIR}/src)
 
-# RPATH so the executable finds libonnxruntime.so at build time
+# 构建期 RPATH: 让可执行文件在构建树中能找到 libonnxruntime.so（绝对路径注入，仅开发期用）
 set(CMAKE_BUILD_RPATH "${CMAKE_SOURCE_DIR}/third_party/onnxruntime/lib")
 
 add_subdirectory(src/Common)

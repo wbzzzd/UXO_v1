@@ -51,7 +51,7 @@ ARCHITECTURE.md §5 描述了未来 `Integration` 库用于适配外部系统（
 - **人工二次校验**：确认/拒绝操作条，目标状态机 `Detected -> Confirmed / Rejected`。
 - **四区同步适配**：DetectionEngine 检出异常时，MainWindow 将结果映射为 `Core::DetectionResult`，触发既有四区同步机制。
 - **异步推理**：检测在后台线程执行，UI 不阻塞。
-- **阈值修正**：PatchCore 归一化阈值从代码中硬编码的 0.25 修正为从 `patchcore_params.json` 的 `image_threshold` 推导（0.508）。
+- **阈值修正**：PatchCore 归一化阈值从代码中硬编码的 0.25 修正为从 `patchcore_params.json` 的 `image_threshold` 推导（(2.4904−1.5988)/(3.3820−1.5988) = 0.500）。
 - **检测结果标注"AI 分析"来源标识**，与态势页的"模拟"/"演示"标识区分。
 
 ### 2.2 非目标
@@ -99,11 +99,11 @@ ARCHITECTURE.md §5 描述了未来 `Integration` 库用于适配外部系统（
    - YOLO 分类结果 -> `TargetType`（类名映射）。
    - YOLO 置信度 -> `confidence`（YOLO 未确认时不生成目标）。
 2. 触发既有四区同步机制（与 DetectionSimulator 的 `detectionOccurred` 路径相同）：
-   - 捕获当前视频帧 + 标注检测结果 -> 冻结标注证据。
+   - 取该帧 AI 标注图（annotatedImage，无则热力图叠加图）-> 冻结标注证据。
    - 目标表插入新行。
    - 地图在推算的目标地表坐标处加标点。
    - 告警面板插入 1 条，日志追加 1 条。
-3. 使用 DetectionEngine 的 `heatmapOverlay`（已含热力图叠加）作为证据图片，替代 `currentFrameSnapshot()` + 标注。
+3. 证据图片使用 DetectionEngine 的 `annotatedImage`（AI 红框标注图），无标注图时回退 `heatmapOverlay`（热力图叠加图）；不再使用 `currentFrameSnapshot()` + 手工标注。
 
 ### 3.4 停止与重置
 
@@ -127,7 +127,7 @@ REQ-009 验收结果中的"检测模拟器在画面中发现目标时输出检�
 | 组件 | 类型 | 职责 | 状态 |
 |------|------|------|------|
 | `DetectionEngine` | QObject 子类 | 检测编排器：加载模型，接收图像路径，异步执行两阶段管线，发射结果信号 | 已实现，需扩展 |
-| `PatchCoreDetector` | 普通类 | PatchCore ONNX 推理：512x512 输入 -> 4x4 滑动窗口 -> 16 个 patch 异常分数 + 热力图 | 已实现 |
+| `PatchCoreDetector` | 普通类 | PatchCore ONNX 推理：512x512 整帧单次推理 -> pred_score + anomaly_map -> 4x4 分区聚合出 16 个 patch 异常分数 + 热力图 | 已实现 |
 | `YoloClassifier` | 普通类 | YOLOv8-cls ONNX 推理：224x224 输入 -> 多尺度 TTA -> 9 类概率聚合 | 已实现 |
 | `DetectionTypes.h` | 头文件 | 数据结构定义：PatchResult、ClassificationResult、ImageDetectionResult | 已实现，需扩展 |
 
@@ -145,8 +145,8 @@ REQ-009 验收结果中的"检测模拟器在画面中发现目标时输出检�
 
 | 变更 | 说明 |
 |------|------|
-| 新增 `QTimer *m_frameExtractTimer` | 3 秒间隔定时器，play 时 start，pause/stop 时 stop |
-| 新增 `frameExtracted(const QImage& frame, qint64 timestampMs)` 信号 | 定时器触发时，调用 `currentFrameSnapshot()` 获取当前帧，发射信号 |
+| 新增 `QTimer *m_extractionTimer` | 3 秒间隔定时器，play 时 start，pause/stop 时 stop |
+| 新增 `frameExtracted(const QImage& frame, qint64 timestampMs)` 信号 | 定时器触发时，发射 QVideoProbe 缓存的 `m_lastFrame`，携带播放位置时间戳 |
 | 新增 `startFrameExtraction()` / `stopFrameExtraction()` 方法 | 控制抽帧定时器，由 MainWindow 在 [开始]/[结束]/[重置] 时调用 |
 
 VideoStreamPanel 已有 `QVideoProbe` 和 `m_lastFrame`，`currentFrameSnapshot()` 已实现，无需新增帧捕获机制--仅增加定时器和信号。
@@ -250,8 +250,8 @@ YOLO 类名 -> TargetType 映射：
        -> VideoStreamPanel.startFrameExtraction()  // 3s 定时器启动
        -> DroneTelemetrySimulator.start()
 
-VideoStreamPanel m_frameExtractTimer timeout
-  -> currentFrameSnapshot()  // 已有方法
+VideoStreamPanel m_extractionTimer timeout
+  -> m_lastFrame  // QVideoProbe 缓存帧
   -> frameExtracted(QImage, qint64 timestampMs)
   -> MainWindow::onFrameExtracted(frame, ts)
   -> DetectionEngine::analyzeFrame(frame, ts)
@@ -280,7 +280,7 @@ DetectionEngine::imageAnalyzed(result)
 - ONNX Runtime C++ SDK（v1.23.2，Linux x64 CPU）已放置于 `third_party/onnxruntime/`。
 - CMake 通过 `IMPORTED` 目标引用，已配置完成。
 - 仅使用 CPU Execution Provider，无 GPU 依赖。
-- 运行时 RPATH 设置：`$ORIGIN/../lib`（CMake 已配置）。
+- 构建期 RPATH：根 CMakeLists 通过 `CMAKE_BUILD_RPATH` 指向源码树 `third_party/onnxruntime/lib`（绝对路径，仅开发期；部署需改 install 相对路径或打包 .so）。
 
 ### 5.6 模型文件
 
@@ -299,15 +299,15 @@ DetectionEngine::imageAnalyzed(result)
 
 ### 5.8 阈值修正
 
-当前代码 `DetectionConst::DEFAULT_PC_THRESHOLD = 0.25f`，对应原始分数 1.9368。但 `patchcore_params.json` 中 `image_threshold = 2.4238`，归一化后应为：
+最初代码 `DetectionConst::DEFAULT_PC_THRESHOLD = 0.25f`，阈值过低会产生大量误报。`patchcore_params.json` 中 `image_threshold = 2.4904`、`image_min = 1.5988`、`image_max = 3.382`，归一化后应为：
 
 ```
 normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
-                     = (2.4238 - 1.4652) / (3.3516 - 1.4652)
-                     = 0.5082
+                     = (2.4904 - 1.5988) / (3.382 - 1.5988)
+                     = 0.500
 ```
 
-需修正：从 `patchcore_params.json` 读取 `image_threshold`，计算归一化阈值（0.508），替代硬编码的 0.25。当前 0.25 阈值过低，会产生大量误报。
+实现采用硬编码常量对齐推导值：`DEFAULT_PC_THRESHOLD = 0.500f`（不做运行时读取 json）。
 
 ### 5.9 帧预处理
 
@@ -402,7 +402,7 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
 | 8 | 正常帧（无异常）不触发四区同步 | 运行时观察 |
 | 9 | DetectionSimulator 不再接线，态势页检测来自 DetectionEngine | 代码审查 |
 | 10 | C++ ONNX 推理结果与 Python 基线一致（异常分数差异 < 0.01） | 回归测试 |
-| 11 | 阈值使用 0.508（从 params.json 推导），非 0.25 | 代码审查 + 运行时验证 |
+| 11 | 阈值使用 0.500（与 params.json 推导一致），非 0.25 | 代码审查 + 运行时验证 |
 | 12 | 检测结果标注"AI 分析"来源 | 检查 UI 文案 |
 
 ### 7.2 构建与测试验收
@@ -410,7 +410,7 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
 - `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release` 通过。
 - `cmake --build build -j2` 通过。
 - `ctest --test-dir build --output-on-failure` 全部通过（现有测试不受影响）。
-- 新增测试：DetectionEngine `analyzeFrame` 单元测试、VideoStreamPanel 抽帧信号测试。
+- 未新增 C++ 单元测试（规划中的 DetectionEngine `analyzeFrame` 单测与 VideoStreamPanel 抽帧信号测试未实施）；Detection 行为回归目前依赖 Python 评估门与既有 17 项 CTest 工作流/UI 测试。
 
 ### 7.3 安全验收
 
@@ -448,9 +448,9 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
 
 建议方案 A，由用户确认。
 
-### 9.2 演示视频无 UXO 目标
+### 9.2 演示视频无 UXO 目标（实现阶段已按方案 B 解决）
 
-当前演示视频（`perth_airport_drone_edit.mp4`）为机场航拍，不含 UXO 目标。DetectionEngine 分析该视频帧时，PatchCore 应正确报告无异常（或低异常分数）。这意味着：
+设计阶段演示视频（`perth_airport_drone_edit.mp4`）为机场航拍，不含 UXO 目标。DetectionEngine 分析该视频帧时，PatchCore 应正确报告无异常（或低异常分数）。这意味着：
 
 - 态势页四区同步不会被触发（无异常检测）。
 - 探测页结果表会填充"正常"帧（无异常标记）。
@@ -463,6 +463,8 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
 - 方案 C：保留 DetectionSimulator 作为演示回退，DetectionEngine 作为真实检测。用户可切换。
 
 建议方案 A，由用户确认。
+
+> 实现阶段（commit 1860e6e）演示视频已更换为 `perth_airport_drone_uxo.mp4`（1920×1080, 96s, 30fps），部分时段（如约 15s 处）合成了 UXO 目标（航弹），实际效果等同方案 B：可演示异常检出与四区同步。
 
 ### 9.3 抽帧间隔配置
 
@@ -480,7 +482,7 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
 
 ### 9.5 ONNX Runtime 部署方式
 
-当前方案：共享库放在 `third_party/onnxruntime/lib/`，CMake RPATH 设置 `$ORIGIN/../lib`。生产部署需考虑安装到系统路径或打包。当前方案可工作，实现阶段确认最终部署方式。
+当前方案：共享库放在 `third_party/onnxruntime/lib/`，构建期通过根 CMakeLists 的 `CMAKE_BUILD_RPATH` 注入源码树绝对路径（仅开发期）。生产部署需考虑安装到系统路径或打包。当前方案可工作，实现阶段确认最终部署方式。
 
 ### 9.6 模型文件版本管理
 

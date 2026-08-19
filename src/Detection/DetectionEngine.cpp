@@ -44,7 +44,7 @@ bool DetectionEngine::initialize(const QString& patchcoreModelPath,
                                  const QString& yoloModelPath,
                                  const QString& paramsPath)
 {
-    // Load PatchCore post-processor params from JSON
+    // 从 JSON 读取 PatchCore 后处理参数
     QFile paramsFile(paramsPath);
     if (!paramsFile.open(QIODevice::ReadOnly)) {
         emit error(QString("Cannot open params file: %1").arg(paramsPath));
@@ -62,7 +62,7 @@ bool DetectionEngine::initialize(const QString& patchcoreModelPath,
     float imageMax       = static_cast<float>(obj["image_max"].toDouble());
     float imageThreshold = static_cast<float>(obj["image_threshold"].toDouble());
 
-    // Convert raw threshold to normalized space
+    // 原始阈值换算到归一化空间
     float normalizedThreshold = (imageThreshold - imageMin) / (imageMax - imageMin);
 
     qDebug() << "PatchCore params: image_min=" << imageMin
@@ -70,7 +70,7 @@ bool DetectionEngine::initialize(const QString& patchcoreModelPath,
              << " image_threshold=" << imageThreshold
              << " -> normalized threshold=" << normalizedThreshold;
 
-    // Create detectors
+    // 创建检测器
     d->patchcore = std::make_unique<PatchCoreDetector>(
         *d->env, patchcoreModelPath, imageMin, imageMax, normalizedThreshold);
 
@@ -281,7 +281,9 @@ QImage DetectionEngine::generateAnnotatedImage(const QImage& original,
 
     QImage result = original;
     QPainter painter(&result);
-    QPen pen(QColor(255, 45, 45));
+    // 警示红检测框色: 证据图红框的既定约定色, 提取为局部常量避免魔法数
+    const QColor kBBoxColor(255, 45, 45);
+    QPen pen(kBBoxColor);
     pen.setWidth(4);
     painter.setPen(pen);
     if (selected->targetRect.isValid()) {

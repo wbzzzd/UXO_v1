@@ -28,7 +28,7 @@ NEXT 使用单一指挥席用户，所有模拟操作和结果必须明确标注
 
 ## 3. CURRENT 主界面
 
-MainWindow 中心区由 `QStackedWidget` 承载，按导航索引切换页面：index0=态势（live）、index2=决策/MOS（live，P0 已实现）、index1/3/4/5=态势占位（未实现页面回退到态势视图）。导航栏点击同时切换高亮与堆栈页面。
+MainWindow 中心区由 `QStackedWidget` 承载，按导航索引切换页面：index0=态势（live）、index1=探测（live，`DetectionView`）、index2=决策/MOS（live，P0 已实现）、index3/4/5=态势占位（未实现页面回退到态势视图）。导航栏点击同时切换高亮与堆栈页面。
 
 ```text
 MainWindow

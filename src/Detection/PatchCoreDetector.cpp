@@ -21,7 +21,7 @@ PatchCoreDetector::PatchCoreDetector(Ort::Env& env, const QString& modelPath,
         m_session = std::make_unique<Ort::Session>(
             m_env, modelPath.toStdString().c_str(), opts);
 
-        // Cache I/O tensor names (copy strings – smart pointer frees original)
+        // 缓存 I/O 张量名 (拷贝字符串 - 智能指针会释放原始内存)
         Ort::AllocatorWithDefaultOptions allocator;
         m_inputName   = m_session->GetInputNameAllocated(0, allocator).get();
         m_outputName0 = m_session->GetOutputNameAllocated(0, allocator).get();
@@ -48,7 +48,7 @@ void PatchCoreDetector::preprocess(const QImage& image, std::vector<float>& outp
         src = src.convertToFormat(QImage::Format_RGB888);
     }
 
-    // 512x512 RGB888 -> [1, 3, 512, 512] NCHW float, ImageNet normalized
+    // 512x512 RGB888 -> [1, 3, 512, 512] NCHW float, 含 ImageNet 归一化
     // (与 v07 训练/评估门预处理一致: RGB -> [0,1] -> ImageNet 归一化)
     constexpr int C = 3;
     constexpr int H = DetectionConst::IMAGE_SIZE;
@@ -69,7 +69,7 @@ void PatchCoreDetector::preprocess(const QImage& image, std::vector<float>& outp
             g = (g - DetectionConst::IMAGENET_MEAN[1]) / DetectionConst::IMAGENET_STD[1];
             b = (b - DetectionConst::IMAGENET_MEAN[2]) / DetectionConst::IMAGENET_STD[2];
 
-            // NCHW: channel-first
+            // NCHW: 通道优先排布
             output[0 * channelSize + y * W + x] = r;
             output[1 * channelSize + y * W + x] = g;
             output[2 * channelSize + y * W + x] = b;
@@ -93,7 +93,7 @@ QImage PatchCoreDetector::generateCellHeatmap(const float* mapData, int regionH,
             float v = (mapData[y * stride + x] - minVal) / range;
             v = std::clamp(v, 0.0f, 1.0f);
 
-            // Jet colormap
+            // Jet 伪彩色映射
             float r = std::clamp(1.5f - std::abs(4.0f * v - 3.0f), 0.0f, 1.0f);
             float g = std::clamp(1.5f - std::abs(4.0f * v - 2.0f), 0.0f, 1.0f);
             float b = std::clamp(1.5f - std::abs(4.0f * v - 1.0f), 0.0f, 1.0f);
@@ -116,11 +116,11 @@ QVector<PatchResult> PatchCoreDetector::detect(const QImage& image)
     QVector<PatchResult> results;
     if (!m_session) return results;
 
-    // Preprocess: 整帧单张 [1, 3, 512, 512]
+    // 预处理: 整帧单张 [1, 3, 512, 512]
     std::vector<float> inputData;
     preprocess(image, inputData);
 
-    // Create input tensor [1, 3, 512, 512]
+    // 构造输入张量 [1, 3, 512, 512]
     auto memInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
     std::vector<int64_t> inputShape = {
         1, 3, DetectionConst::IMAGE_SIZE, DetectionConst::IMAGE_SIZE
@@ -129,7 +129,7 @@ QVector<PatchResult> PatchCoreDetector::detect(const QImage& image)
         memInfo, inputData.data(), inputData.size(),
         inputShape.data(), inputShape.size());
 
-    // Run inference
+    // 执行推理
     const char* inputNames[]  = { m_inputName.c_str() };
     const char* outputNames[] = { m_outputName0.c_str(), m_outputName1.c_str() };
 

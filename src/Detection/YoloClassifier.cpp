@@ -107,7 +107,7 @@ ClassificationResult YoloClassifier::classify(const QImage& image, int row, int 
         centerY = row * DetectionConst::PATCH_SIZE + DetectionConst::PATCH_SIZE / 2;
     }
 
-    // Accumulate probabilities over all TTA runs
+    // 在全部 TTA 运行上累计概率
     float avgProbs[DetectionConst::NUM_CLASSES] = {};
     int numRuns = 0;
 
@@ -116,7 +116,7 @@ ClassificationResult YoloClassifier::classify(const QImage& image, int row, int 
         int cropSize = static_cast<int>(baseSize * scale);
         int half = cropSize / 2;
 
-        // Clamp crop to image bounds [0, 512]
+        // 裁剪区域收敛到图像边界 [0, 512]
         int x1 = std::max(0, centerX - half);
         int y1 = std::max(0, centerY - half);
         int x2 = std::min(DetectionConst::IMAGE_SIZE, centerX + half);
@@ -146,13 +146,13 @@ ClassificationResult YoloClassifier::classify(const QImage& image, int row, int 
         }
     }
 
-    // Average
+    // 取平均
     for (int c = 0; c < DetectionConst::NUM_CLASSES; c++) {
         avgProbs[c] /= numRuns;
         result.probs[c] = avgProbs[c];
     }
 
-    // Find best non-bg class above threshold
+    // 找过阈的最优非背景类
     int bestClass = -1;
     float bestProb = m_threshold;
     for (int c = 0; c < DetectionConst::NUM_CLASSES; c++) {

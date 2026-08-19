@@ -1,4 +1,4 @@
-# Detection static library - ONNX-based UXO detection (PatchCore + YOLOv8-cls)
+# Detection 静态库 - 基于 ONNX 的 UXO 检测（PatchCore + YOLOv8-cls）
 
 # ---- ONNX Runtime IMPORTED target ----
 set(ONNXRUNTIME_ROOT "${CMAKE_SOURCE_DIR}/third_party/onnxruntime")
@@ -10,7 +10,7 @@ set_target_properties(onnxruntime PROPERTIES
     INTERFACE_LINK_DIRECTORIES "${ONNXRUNTIME_ROOT}/lib"
 )
 
-# ---- Detection static library ----
+# ---- Detection 静态库 ----
 set(CMAKE_AUTOMOC ON)
 
 add_library(Detection STATIC
@@ -31,9 +31,10 @@ target_link_libraries(Detection PUBLIC
     Qt5::Concurrent
 )
 
-# Propagate RPATH so the executable finds libonnxruntime at runtime
-# DEVELOPMENT ONLY: assets path injected as absolute source-dir path.
-# For deployment, replace with an install-relative path or Qt resource system.
+# 编译期注入 ONNX Runtime 根路径与资产目录宏
+# 注意：仅为开发期便利，资产目录以源码树绝对路径注入；
+# 正式部署时应改为 install 相对路径或 Qt 资源系统。
+# （RPATH 由根 CMakeLists 的 CMAKE_BUILD_RPATH 统一设置）
 target_compile_definitions(Detection PUBLIC
     ONNXRUNTIME_ROOT="${ONNXRUNTIME_ROOT}"
     DETECTION_ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets"

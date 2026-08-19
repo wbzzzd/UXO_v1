@@ -124,7 +124,7 @@ REQ-008（时间线驱动方案）已被标记为 `Superseded`，本功能（REQ
 |------|------|
 | `TacticalMapWidget` | 坐标系从本地米(0-5000)改为经纬度；底图从占位纯色改为卫星图 QPixmap；新增无人机位置标记（航向三角形）+ 航迹绘制；新增 `setDronePosition(lat,lng,heading)` 和 `addTrackPoint(lat,lng)` 接口；目标标点坐标改为经纬度 |
 | `VideoOverlayWidget` | HUD-only 叠加（十字准星、REC 指示、遥测 LAT/LON/ALT/HDG、时间码）；不绘制检测框、不持有冻结证据、无点击命中信号；鼠标事件透传给下层视频控件 |
-| `VideoStreamPanel` | 加载真实视频文件（`/home/lin/uxo-assets/video/perth_airport_drone_edit.mp4`）；移除模拟时钟模式；`positionChanged` 信号驱动 `DetectionSimulator` |
+| `VideoStreamPanel` | 加载真实视频文件（`/home/lin/uxo-assets/video/perth_airport_drone_uxo.mp4`）；移除模拟时钟模式；`positionChanged` 信号驱动 `DetectionSimulator`（检测链路后被 DetectionEngine 替代，见文首备注） |
 | `MainWindow` | 移除 `DetectionTimelineController` 接线；新增 `DroneTelemetrySimulator` + `DetectionSimulator` 接线；检测事件 -> 四区同步（冻结标注证据捕获 + 目标表插行 + 地图标点 + 告警/日志）；双向联动（地图标点/目标表行） |
 | `DemoScenarioProvider` | 移除 `DetectionScriptEntry` 时间线脚本；新增无人机航线数据（经纬度航点序列）；新增检测数据（目标类型 + 画面位置 + 置信度，**不含时间点**）；新增机场区域边界（经纬度） |
 
@@ -217,9 +217,9 @@ DroneTelemetrySimulator -> telemetryUpdated(lat, lng, alt, heading)
 ### 6.4 视频区
 
 - 单画面：UAV-1 视频流（QMediaPlayer + VideoSurfaceWidget）。
-- 视频文件：`/home/lin/uxo-assets/video/perth_airport_drone_edit.mp4`（1920×1080, 96s, 30fps）。
+- 视频文件：`/home/lin/uxo-assets/video/perth_airport_drone_uxo.mp4`（1920×1080, 96s, 30fps；部分时段合成 UXO 目标）。
 - 视频叠加：HUD-only（十字准星、REC 指示、遥测 LAT/LON/ALT/HDG、时间码），不绘制检测框；鼠标事件透传给下层视频控件。
-- 冻结标注证据：检测发生时 MainWindow 捕获当前视频帧并标注检测结果（红框 + 标签），内存持有（m_evidenceByTargetId），仅在目标被选中时由详情浮层 TargetDetailOverlay 显示。
+- 冻结标注证据：检测发生时取 DetectionEngine 输出的 AI 标注图（annotatedImage，红框 + 标签，无则热力图叠加图），内存持有（m_evidenceByTargetId），仅在目标被选中时由详情浮层 TargetDetailOverlay 显示。
 - 空状态：黑屏，显示"等待开始"文字。
 
 ### 6.5 模拟标识

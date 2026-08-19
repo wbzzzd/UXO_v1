@@ -30,6 +30,7 @@ struct DetectionRecord {
     QString targetId;   // 异常帧对应的目标 ID；正常帧为空
     QDateTime analyzedAt;
     DetectionReview review = DetectionReview::Pending;
+    QDateTime reviewedAt;   // 人工确认/拒绝时间，动作发生时记录（时间线展示用）
 };
 
 class DetectionView : public QWidget

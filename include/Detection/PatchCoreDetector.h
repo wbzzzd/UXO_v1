@@ -19,16 +19,16 @@
 // Output : 16 PatchResults (保持 UI 网格契约: row/col 0-3, 128x128 热力图)
 class PatchCoreDetector {
 public:
-    // env        : Ort::Env reference (must outlive this object)
-    // modelPath  : path to patchcore_512.onnx
-    // imageMin   : post-processor param (raw score min for normalization)
-    // imageMax   : post-processor param (raw score max for normalization)
-    // threshold  : normalized score threshold (e.g. 0.5)
+    // env        : Ort::Env 引用 (生命周期须长于本对象)
+    // modelPath  : patchcore_512.onnx 路径
+    // imageMin   : 后处理参数 (归一化用原始分下限)
+    // imageMax   : 后处理参数 (归一化用原始分上限)
+    // threshold  : 归一化分数阈值 (如 0.5)
     PatchCoreDetector(Ort::Env& env, const QString& modelPath,
                       float imageMin, float imageMax, float threshold);
     ~PatchCoreDetector();
 
-    // Detect anomalies in a 512x512 image. Returns 16 PatchResults.
+    // 对 512x512 图像做异常检测, 返回 16 个 PatchResult。
     QVector<PatchResult> detect(const QImage& image);
 
     bool isLoaded() const { return m_session != nullptr; }
@@ -37,7 +37,7 @@ private:
     Ort::Env& m_env;
     std::unique_ptr<Ort::Session> m_session;
 
-    // I/O tensor names (stored as std::string to keep memory alive)
+    // I/O 张量名 (以 std::string 持有以延长生命周期)
     std::string m_inputName;
     std::string m_outputName0;   // pred_score
     std::string m_outputName1;   // anomaly_map
@@ -46,8 +46,8 @@ private:
     float m_imageMax;
     float m_threshold;
 
-    // Preprocess 512x512 image into [1, 3, 512, 512] NCHW float tensor
-    // with ImageNet normalization.
+    // 将 512x512 图像预处理为 [1, 3, 512, 512] NCHW float 张量,
+    // 含 ImageNet 归一化 (与训练/评估门口径一致)。
     void preprocess(const QImage& image, std::vector<float>& output);
 
     // 从整帧 map 的分区区域生成 128x128 彩色热力图 (ARGB32).

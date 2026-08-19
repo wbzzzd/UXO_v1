@@ -482,12 +482,10 @@ void DetectionView::displayRecord(int index)
                    .arg(record.analyzedAt.toString(QStringLiteral("HH:mm:ss")));
     if (record.review == DetectionReview::Confirmed) {
         timeline << QStringLiteral("%1  已确认（人工）")
-                       .arg(QDateTime::currentDateTime().toString(
-                           QStringLiteral("HH:mm:ss")));
+                       .arg(record.reviewedAt.toString(QStringLiteral("HH:mm:ss")));
     } else if (record.review == DetectionReview::Rejected) {
         timeline << QStringLiteral("%1  已拒绝（人工）")
-                       .arg(QDateTime::currentDateTime().toString(
-                           QStringLiteral("HH:mm:ss")));
+                       .arg(record.reviewedAt.toString(QStringLiteral("HH:mm:ss")));
     }
     m_timelineLabel->setText(timeline.join(QLatin1Char('\n')));
 
@@ -508,7 +506,10 @@ void DetectionView::onConfirmClicked()
         return;
     }
     record.review = DetectionReview::Confirmed;
-    m_resultTable->item(m_currentIndex, kColStatus)->setText(QStringLiteral("已确认"));
+    record.reviewedAt = QDateTime::currentDateTime();
+    if (auto *statusItem = m_resultTable->item(m_currentIndex, kColStatus)) {
+        statusItem->setText(QStringLiteral("已确认"));
+    }
     emit targetConfirmed(record.targetId);
     displayRecord(m_currentIndex);
 }
@@ -523,7 +524,10 @@ void DetectionView::onRejectClicked()
         return;
     }
     record.review = DetectionReview::Rejected;
-    m_resultTable->item(m_currentIndex, kColStatus)->setText(QStringLiteral("已拒绝"));
+    record.reviewedAt = QDateTime::currentDateTime();
+    if (auto *statusItem = m_resultTable->item(m_currentIndex, kColStatus)) {
+        statusItem->setText(QStringLiteral("已拒绝"));
+    }
     emit targetRejected(record.targetId);
     displayRecord(m_currentIndex);
 }
