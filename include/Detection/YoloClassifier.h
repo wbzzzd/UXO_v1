@@ -9,33 +9,35 @@
 #include <vector>
 #include "Detection/DetectionTypes.h"
 
-// YOLOv8-cls UXO classifier - runs ONNX inference with multi-scale TTA.
+// YOLOv8-cls UXO 分类器 - 多尺度 TTA 的 ONNX 推理。
 //
-// Input  : 512x512 QImage + patch grid position (row, col) + optional UXO bbox
-// Process: For each scale in [0.75, 1.0, 1.5, 2.0]:
-//            Crop centered on UXO bbox center (fallback: patch-cell center),
-//            size = scale * base (base = bbox max side, fallback: 128), clamped to [0, 512]
-//            Resize to 224x224
-//            For each flip in [false, true]:
-//              Apply horizontal flip if needed
-//              ImageNet normalize -> [1, 3, 224, 224]
-//              Run ONNX inference -> [1, 9] probabilities (already softmaxed)
-//          Average probabilities over 8 TTA runs
-//          Find best non-background class above threshold
-// Output : ClassificationResult with averaged probs and best class
+// 输入  : 512x512 QImage + patch 网格位置 (row, col) + 可选 UXO 紧包框
+// 过程  : 对每个尺度 [0.75, 1.0, 1.5, 2.0]:
+//           以 UXO 紧包框中心裁剪 (无效时回退格子中心),
+//           边长 = scale * base (base = 紧包框最长边, 无效时取 128), 收敛到 [0, 512]
+//           缩放到 224x224
+//           对每个翻转 [false, true]:
+//             按需水平翻转
+//             仅 /255 缩放 -> [1, 3, 224, 224]
+//             (ImageNet 归一化已嵌入 ONNX 图内, 外部再做 mean/std 属双重
+//              归一化, 会把输入推离训练分布、丧失判别力 - 见 preprocessCrop)
+//             ONNX 推理 -> [1, 9] 概率 (图内已含 softmax)
+//         对 8 次 TTA 结果取平均
+//         取过阈的最优非背景类
+// 输出  : ClassificationResult (TTA 平均概率 + 最优类)
 class YoloClassifier {
 public:
-    // env       : Ort::Env reference (must outlive this object)
-    // modelPath : path to yolov8_cls_224.onnx
-    // threshold : minimum probability for non-bg class (e.g. 0.05)
+    // env       : Ort::Env 引用 (生命周期须长于本对象)
+    // modelPath : yolov8_cls_224.onnx 路径
+    // threshold : 非背景类的最低概率阈值 (如 0.05)
     YoloClassifier(Ort::Env& env, const QString& modelPath, float threshold);
     ~YoloClassifier();
 
-    // Classify a single patch using multi-scale TTA.
-    // image : 512x512 original image
-    // row, col : patch grid position [0, 3]
-    // targetRect : UXO tight bbox in 512 domain (same source as red box);
-    //              crop centers on it when valid, else on the patch-cell center
+    // 对单个 patch 做多尺度 TTA 分类。
+    // image : 512x512 原图
+    // row, col : patch 网格位置 [0, 3]
+    // targetRect : UXO 在 512 域内的紧包框 (与红框同源);
+    //              有效时裁剪以其为中心, 否则以格子中心为准
     ClassificationResult classify(const QImage& image, int row, int col,
                                   const QRect& targetRect = QRect());
 
@@ -50,12 +52,12 @@ private:
 
     float m_threshold;
 
-    // Preprocess a 224x224 RGB888 crop into [1, 3, 224, 224] NCHW float tensor
-    // with ImageNet normalization.
+    // 将 224x224 RGB888 裁剪图转为 [1, 3, 224, 224] NCHW float 张量,
+    // 仅做 /255 缩放 - ImageNet 归一化已嵌入 ONNX 图, 外部不得重复归一化。
     void preprocessCrop(const QImage& crop, std::vector<float>& output);
 
-    // Run single ONNX inference. inputData must be [1, 3, 224, 224].
-    // outputData receives 9 class probabilities.
+    // 单次 ONNX 推理。inputData 须为 [1, 3, 224, 224],
+    // outputData 接收 9 个类别概率。
     void runInference(const float* inputData, float* outputData);
 };
 
