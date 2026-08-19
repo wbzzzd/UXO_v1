@@ -29,9 +29,9 @@ CURRENT 来源：
 
 | 区域 | 位置 | 内部组件 | CURRENT 映射 |
 |------|------|----------|--------------|
-| A | 左面板 | 搜索栏、三维筛选器组、目标表 | `LeftPanelWidget`（态势页复用，部分字段未实现） |
-| B | 中心区 | 证据面板头、证据 Tab 栏、证据内容区、确认操作条 | 未实现为独立页面 |
-| C | 右面板 | 目标详情、状态历史时间线 | `DecisionSuggestionPanel`（部分字段复用） |
+| A | 左面板 | 搜索栏、三维筛选器组、目标表 | 未按原型实现为独立左面板；等价物为 `DetectionView` 结果表 `m_resultTable`（7 列），搜索/筛选未实现 |
+| B | 中心区 | 证据面板头、证据 Tab 栏、证据内容区、确认操作条 | 已实现为独立页面（`DetectionView`，导航 index1）：顶部摘要条 + 中栏 `m_viewerLabel` 标注图查看器 + 底部操作条；证据 Tab 未实现 |
+| C | 右面板 | 目标详情、状态历史时间线 | 已实现于 `DetectionView` 内：`m_detailLabel` 详情、`m_timelineLabel` 状态时间线、`m_heatmapLabel` 热力图；分类 Top-3（`m_classLabel`）在中栏 |
 
 应用壳控件（导航栏、菜单栏、工具栏、状态栏）的详细规格见 `application-shell.md`，本文第 5 节给出本页专属的 `DET-*` ID 与简要规格。
 
@@ -45,9 +45,9 @@ CURRENT 来源：
 
 | ID | 标签 | 类型 | 位置 | 用途 | 样式与状态 | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
 |----|------|------|------|------|-----------|---------|------|---------|---------------|------|
-| `DET-LP-SEARCH` | - | input | 搜索栏左，弹性宽 | 按文字过滤目标表 | 高 28px；默认 `--color-bg` 背景、`--color-border` 边框、圆角 `--radius-control`；focus 边框 `--color-border-focus`；placeholder `搜索目标 ID 或类型...`、`--color-text-disabled`；内边距 `0 8px` | input 事件触发，遍历表格行，按目标 ID、类型、威胁字段做大小写不敏感包含匹配，不匹配的行 `display:none` | Tab 聚焦，Esc 不清空（无 Esc 绑定） | 同上；空文本显示全部目标 | `LeftPanelWidget.cpp` `m_searchEdit`、`onSearchTextChanged`（态势页复用，CURRENT 遍历所有列做包含匹配） | 无 |
+| `DET-LP-SEARCH` | - | input | 搜索栏左，弹性宽 | 按文字过滤目标表 | 高 28px；默认 `--color-bg` 背景、`--color-border` 边框、圆角 `--radius-control`；focus 边框 `--color-border-focus`；placeholder `搜索目标 ID 或类型...`、`--color-text-disabled`；内边距 `0 8px` | input 事件触发，遍历表格行，按目标 ID、类型、威胁字段做大小写不敏感包含匹配，不匹配的行 `display:none` | Tab 聚焦，Esc 不清空（无 Esc 绑定） | 同上；空文本显示全部目标 | 未实现（CURRENT 探测页 `DetectionView` 无搜索框） | 无 |
 | `DET-LP-CLEAR` | 清除 | button | 搜索框右，50x28 | 清空搜索框并恢复全部行 | 默认 `--color-toolbar` 背景、`--color-text-secondary` 文本、1px `--color-border` 边框、圆角 `--radius-control`；hover 背景 `--color-border`、文本 `--color-text-primary`；字号 `--font-size-caption` | 清空搜索框值，触发 input 事件重新过滤 | Tab 聚焦，Enter 触发 | 同上 | 未实现（CURRENT 无清除按钮，态势页 `LeftPanelWidget` 仅有搜索框无清除按钮） | 无 |
-| `DET-LP-REFRESH` | 刷新 | button | 清除右，主按钮 | 请求刷新模拟探测数据 | 主要按钮变体：`--color-primary` 背景、`--color-text-primary` 文本；hover `--color-primary-hover`；高 28px，内边距 `0 12px`，字号 `--font-size-caption` | 空操作（JS 绑定 `()=>{}`，无实际刷新逻辑） | Tab 聚焦，Enter 触发 | 点击后无视觉反馈，不重新加载数据 | `LeftPanelWidget.cpp` `onRefreshTargets` -> `MainWindow::onRefreshSimulationRequested`（态势页复用，CURRENT 发出 `refreshSimulationRequested` 重读工作流权威副本并回填面板） | 无设备通信，仅内存同步（CURRENT）；原型为空操作 |
+| `DET-LP-REFRESH` | 刷新 | button | 清除右，主按钮 | 请求刷新模拟探测数据 | 主要按钮变体：`--color-primary` 背景、`--color-text-primary` 文本；hover `--color-primary-hover`；高 28px，内边距 `0 12px`，字号 `--font-size-caption` | 空操作（JS 绑定 `()=>{}`，无实际刷新逻辑） | Tab 聚焦，Enter 触发 | 点击后无视觉反馈，不重新加载数据 | 未实现（探测页无刷新按钮；清空结果经态势页地图工具栏 [重置] 触发 `MainWindow` 复位流程调用 `m_detectionView->clearResults()`） | 无设备通信，仅内存同步（CURRENT）；原型为空操作 |
 
 ### 2.2 筛选器组
 
@@ -79,7 +79,7 @@ CURRENT 来源：
 
 | ID | 标签 | 类型 | 位置 | 用途 | 样式与状态 | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
 |----|------|------|------|------|-----------|---------|------|---------|---------------|------|
-| `DET-LP-TABLE-COUNT` | 5 个目标 | span | 表头栏标题右 | 显示当前可见目标数量 | `--color-text-secondary`，`--font-size-caption` | 无（只读） | 不可聚焦 | 初始显示"5 个目标"；筛选或搜索后由 `updateCount` 更新为可见行数 | 未实现（CURRENT 无计数标签） | 无 |
+| `DET-LP-TABLE-COUNT` | 5 个目标 | span | 表头栏标题右 | 显示当前可见目标数量 | `--color-text-secondary`，`--font-size-caption` | 无（只读） | 不可聚焦 | 初始显示"5 个目标"；筛选或搜索后由 `updateCount` 更新为可见行数 | `DetectionView.cpp` `m_summaryLabel`（显示 `已分析 N 帧 · 异常 M`，由 `updateSummaryLabel` 维护） | 无 |
 | `DET-LP-SORT-THREAT` | 威胁排序 | span | 表头栏右 1 | 按威胁等级排序目标表 | 默认 `--color-text-secondary` 文本、透明背景、1px `--color-border` 边框、圆角 3px、字号 11px；hover 背景 `--color-border`；active（`.active` 类）背景 `--color-primary`、白色文本（原型从未添加 active 类） | 空操作（JS 绑定 `()=>{}`） | span 无 tabindex，不可键盘聚焦 | 点击无效果；原型中排序功能为占位，不改变表格行顺序 | 未实现（CURRENT 无排序按钮） | 无 |
 | `DET-LP-SORT-CONF` | 置信度排序 | span | 表头栏右 2 | 按置信度排序目标表 | 同上 | 同上 | 同上 | 同上 | 未实现 | 无 |
 
@@ -113,7 +113,7 @@ CURRENT 来源：
 | 键盘 | `<tr>` 无 tabindex，不可键盘聚焦（无障碍缺口） |
 | 五态 | 正常：列表展示；加载：骨架行（原型未实现）；空：`暂无目标`（原型未实现）；错误：边框 `--color-status-error` + `目标加载失败`（原型未实现）；禁用：不适用 |
 | 原型行为 | 单击选中行，同步更新中心区证据面板头目标标签与确认信息标签；右面板详情与时间线不随选择更新（始终显示 target-001 数据） |
-| CURRENT 映射 | `LeftPanelWidget.cpp` `setupTargetList`、`populateTargetList`、`itemClicked` 连接（态势页复用，CURRENT 为 `QTableWidget` 5 列含复选框，原型为 7 列无复选框） |
+| CURRENT 映射 | `DetectionView.cpp` `m_resultTable`（objectName `detectionResultTable`，7 列，不可编辑）；`cellClicked` -> `onResultSelected`：更新中/右栏并发出 `resultSelected`，经 `MainWindow::onSelectTargetEverywhere` 参与三向选中联动 |
 | 安全 | 无设备控制，仅前端选择 |
 
 模拟目标数据（JS 内嵌 fixture）：
@@ -136,7 +136,7 @@ CURRENT 来源：
 
 | ID | 标签 | 类型 | 位置 | 用途 | 样式与状态 | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
 |----|------|------|------|------|-----------|---------|------|---------|---------------|------|
-| `DET-CE-TARGET` | target-001 · 反跑道雷 · 高威胁 | span | 证据面板头标题右 | 显示当前选中目标的摘要 | `--color-text-secondary`，`--font-size-caption` | 无（只读） | 不可聚焦 | 初始显示 `target-001 · 反跑道雷 · 高威胁`；选中表格行后由 `updateDetail` 更新为 `{id} · {type} · {threat}威胁` | 未实现（CURRENT 无独立证据面板头） | 无 |
+| `DET-CE-TARGET` | target-001 · 反跑道雷 · 高威胁 | span | 证据面板头标题右 | 显示当前选中目标的摘要 | `--color-text-secondary`，`--font-size-caption` | 无（只读） | 不可聚焦 | 初始显示 `target-001 · 反跑道雷 · 高威胁`；选中表格行后由 `updateDetail` 更新为 `{id} · {type} · {threat}威胁` | `DetectionView.cpp` 顶部摘要条（`[模拟]` 标识 + `m_summaryLabel` 已分析/异常计数）与底部 `m_statusLabel`（`当前目标: %1 · 状态: %2`，未选中时 `未选中结果`）共同承担摘要显示 | 无 |
 
 ### 3.2 证据 Tab 栏
 
@@ -158,7 +158,7 @@ CURRENT 来源：
 
 | ID | 标签 | 类型 | 位置 | 用途 | 样式与状态 | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
 |----|------|------|------|------|-----------|---------|------|---------|---------------|------|
-| `DET-CE-CONTENT` | - | div 容器 | 证据 Tab 栏下方，弹性填充 | 承载证据卡片列表 | 背景 `--color-bg`，`overflow:auto`，内边距 16px，间距 12px | 无 | 不可聚焦 | 始终显示两张识别证据卡片；Tab 切换不改变内容 | 未实现 | 无 |
+| `DET-CE-CONTENT` | - | div 容器 | 证据 Tab 栏下方，弹性填充 | 承载证据卡片列表 | 背景 `--color-bg`，`overflow:auto`，内边距 16px，间距 12px | 无 | 不可聚焦 | 始终显示两张识别证据卡片；Tab 切换不改变内容 | `DetectionView.cpp` 中栏：`m_viewerLabel` 标注图（检测框叠加，随窗口等比缩放）+ `m_heatmapLabel` 热力图（无热力图时占位文字）+ `m_classLabel` 分类 Top-3；原型证据卡片形式未实现 | 无 |
 | `DET-CE-RECOG-1` | [模拟] 识别结果 | div 卡片 | 证据内容区第 1 张 | 展示模拟识别结果证据 | 背景 `--color-panel`，1px `--color-border` 边框，圆角 `--radius-control`，内边距 12px，间距 8px | 无（只读） | 不可聚焦 | 固定显示 target-001 的识别结果：类型 反跑道雷、置信度 86%、尺寸 120cm x 25cm、金属外壳；来源"识别算法 v1.0（占位）"；标注 `[模拟数据，不连接真实识别系统]` | 未实现 | 模拟数据，不连接真实识别系统 |
 | `DET-CE-RECOG-2` | [模拟] 融合分析 | div 卡片 | 证据内容区第 2 张 | 展示模拟多源融合分析证据 | 同上 | 无（只读） | 不可聚焦 | 固定显示融合分析：来源 UAV-1 可见光 + GPR-1 地质雷达、一致性 0.82、冲突无、建议聚能引爆；标注 `[模拟数据，不执行真实处置]` | 未实现 | 模拟数据，不执行真实处置 |
 
@@ -173,12 +173,12 @@ CURRENT 来源：
 
 | ID | 标签 | 类型 | 位置 | 用途 | 样式与状态 | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
 |----|------|------|------|------|-----------|---------|------|---------|---------------|------|
-| `DET-CE-CONFIRM-INFO` | 当前目标: target-001 · 状态: 已发现 | span | 确认条左 | 显示当前选中目标与模拟状态 | `[模拟]` 前缀为 `--color-status-busy` 色、`--font-size-caption`、加粗；目标信息为 `--color-text-primary`、`--font-size-body` | 无（只读） | 不可聚焦 | 初始显示 `当前目标: target-001 · 状态: 已发现`；选中行或确认后由 `updateDetail` 更新为 `当前目标: {id} · 状态: {statusLabel}` | `DetectionControlPanel.cpp` `m_targetLabel`、`m_statusLabel`（态势页复用，CURRENT 分两个标签显示目标与状态） | 无 |
-| `DET-CE-REJECT-MSG` | - | span | 确认信息右，弹性宽 | 显示拒绝/无法确认的提示消息 | 默认 `display:none` 隐藏；显示时 `--color-danger` 色、`--font-size-caption`、弹性宽 | 无（只读） | 不可聚焦 | 确认按钮点击时若目标状态非 Detected，显示 `该目标已确认或正在处置，无法重复确认`；确认成功时隐藏 | 未实现 | 模拟提示，无实际拒绝操作 |
-| `DET-CE-CONFIRM` | 模拟确认 | button | 确认条右 1 | 模拟确认当前目标 | 主要按钮变体：`--color-primary` 背景、`--color-text-primary` 文本；hover `--color-primary-hover`；高 36px，内边距 `0 20px`，`--font-size-body`；disabled 不适用（始终启用） | 若 `selectedTarget.status === 'Detected'`：隐藏 `DET-CE-REJECT-MSG`，将状态改为 `Confirmed`，更新 `selectedTarget.statusLabel` 为 `已确认`，调用 `updateDetail` 更新 `DET-CE-TARGET` 与 `DET-CE-CONFIRM-INFO`，更新表格行第 6 列状态标签为 `已确认`。若状态非 `Detected`：显示 `DET-CE-REJECT-MSG` 文本 `该目标已确认或正在处置，无法重复确认` | Tab 聚焦，Enter/Space 触发 | 同上；确认后表格行状态标签从橙色"已发现"变为绿色"已确认" | `DetectionControlPanel.cpp` `m_confirmButton`、`confirmSimulationRequested` 信号（态势页复用，CURRENT 发出信号经 `MainWindow` 调 `SimulationWorkflow::requestSelectedTargetStatus(Confirmed)`） | 仅修改原型显示状态，不调用真实传感器或 AI |
-| `DET-CE-REJECT` | 拒绝确认 | button | 确认条右 2 | 拒绝确认当前目标 | **始终禁用**：`--color-border` 背景、`--color-text-disabled` 文本（inline style 覆盖 `.confirm-btn` 默认样式）；tooltip `拒绝确认（需先选择目标）`；高 36px，内边距 `0 20px` | 无（disabled，不响应点击） | 不可聚焦（disabled） | 始终禁用；tooltip 提示"需先选择目标"但 JS 从不启用此按钮 | 未实现（CURRENT 无拒绝确认按钮） | 模拟占位，无实际效果 |
+| `DET-CE-CONFIRM-INFO` | 当前目标: target-001 · 状态: 已发现 | span | 确认条左 | 显示当前选中目标与模拟状态 | `[模拟]` 前缀为 `--color-status-busy` 色、`--font-size-caption`、加粗；目标信息为 `--color-text-primary`、`--font-size-body` | 无（只读） | 不可聚焦 | 初始显示 `当前目标: target-001 · 状态: 已发现`；选中行或确认后由 `updateDetail` 更新为 `当前目标: {id} · 状态: {statusLabel}` | `DetectionView.cpp` `m_statusLabel`（`当前目标: %1 · 状态: %2`；未选中时 `未选中结果`） | 无 |
+| `DET-CE-REJECT-MSG` | - | span | 确认信息右，弹性宽 | 显示拒绝/无法确认的提示消息 | 默认 `display:none` 隐藏；显示时 `--color-danger` 色、`--font-size-caption`、弹性宽 | 无（只读） | 不可聚焦 | 确认按钮点击时若目标状态非 Detected，显示 `该目标已确认或正在处置，无法重复确认`；确认成功时隐藏 | 未实现；CURRENT 以按钮禁用态阻止重复操作（确认/拒绝仅选中且 `Pending` 时启用），无提示文本 | 模拟提示，无实际拒绝操作 |
+| `DET-CE-CONFIRM` | 模拟确认 | button | 确认条右 1 | 模拟确认当前目标 | 主要按钮变体：`--color-primary` 背景、`--color-text-primary` 文本；hover `--color-primary-hover`；高 36px，内边距 `0 20px`，`--font-size-body`；disabled 不适用（始终启用） | 若 `selectedTarget.status === 'Detected'`：隐藏 `DET-CE-REJECT-MSG`，将状态改为 `Confirmed`，更新 `selectedTarget.statusLabel` 为 `已确认`，调用 `updateDetail` 更新 `DET-CE-TARGET` 与 `DET-CE-CONFIRM-INFO`，更新表格行第 6 列状态标签为 `已确认`。若状态非 `Detected`：显示 `DET-CE-REJECT-MSG` 文本 `该目标已确认或正在处置，无法重复确认` | Tab 聚焦，Enter/Space 触发 | 同上；确认后表格行状态标签从橙色"已发现"变为绿色"已确认" | `DetectionView.cpp` `m_confirmButton`：仅选中且 `Pending` 时启用；点击发出 `targetConfirmed(targetId)` -> `MainWindow::onTargetConfirmed` -> `selectTarget` + `requestSelectedTargetStatus(Confirmed)`，并回写态势页左表状态列 | 仅修改原型显示状态，不调用真实传感器或 AI |
+| `DET-CE-REJECT` | 拒绝确认 | button | 确认条右 2 | 拒绝确认当前目标 | **始终禁用**：`--color-border` 背景、`--color-text-disabled` 文本（inline style 覆盖 `.confirm-btn` 默认样式）；tooltip `拒绝确认（需先选择目标）`；高 36px，内边距 `0 20px` | 无（disabled，不响应点击） | 不可聚焦（disabled） | 始终禁用；tooltip 提示"需先选择目标"但 JS 从不启用此按钮 | `DetectionView.cpp` `m_rejectButton`：已实现拒绝确认（原型此处为始终禁用占位）；仅选中且 `Pending` 时启用，点击发出 `targetRejected(targetId)` -> `MainWindow::onTargetRejected` -> `selectTarget` + `markSelectedTargetFalseAlarm`（标记误报）并回写左表状态列 | 模拟占位，无实际效果 |
 
-> 注：`DET-CE-REJECT` 的 tooltip 暗示选中目标后应启用，但 JS 从未实现启用逻辑，按钮始终禁用。TARGET 实现时如需拒绝功能，需先在本文登记交互逻辑。
+> 注：原型中 `DET-CE-REJECT` 始终禁用（tooltip 暗示选中后应启用，但 JS 从未实现）。CURRENT `DetectionView` 已实现拒绝：仅选中且 `Pending` 时启用，拒绝将目标标记为误报（FalseAlarm）。
 
 ## 4. 区域 C：右面板
 
@@ -213,7 +213,7 @@ CURRENT 来源：
 | 键盘 | 不可聚焦 |
 | 五态 | 正常：字段列表；加载：骨架；空：`请选择目标`（原型未实现）；错误：不适用（数据为本地模拟）；禁用：不适用 |
 | 原型行为 | 固定显示 target-001 的详情字段，不随表格行选择更新（`updateDetail` 不更新此区域） |
-| CURRENT 映射 | `DecisionSuggestionPanel.cpp` `setTarget`（态势页复用，CURRENT 展示方案/风险/置信度/详情，字段集不同） |
+| CURRENT 映射 | `DetectionView.cpp` `m_detailLabel`：按选中结果逐行显示 目标 ID/类型/威胁等级/置信度/最大异常分/帧时间/推理耗时/探测源（无选中时 `--`） |
 | 安全 | 只读展示，模拟数据，无操作入口 |
 
 ### 4.2 状态历史时间线
@@ -235,7 +235,7 @@ CURRENT 来源：
 | 键盘 | 不可聚焦 |
 | 五态 | 正常：时间线列表；加载：骨架；空：`暂无历史`（原型未实现）；错误：不适用；禁用：不适用 |
 | 原型行为 | 固定显示 target-001 的 1 条历史记录，不随表格行选择或模拟确认更新；底部标注 `[模拟数据，待人工确认]` |
-| CURRENT 映射 | 未实现（CURRENT 无状态历史时间线组件） |
+| CURRENT 映射 | `DetectionView.cpp` `m_timelineLabel`：`HH:mm:ss 已发现（AI）` 起始，人工确认/拒绝后追加 `已确认（人工）`/`已拒绝（人工）`（无选中时 `--`） |
 | 安全 | 只读展示，模拟数据 |
 
 ## 5. 应用壳控件
@@ -417,26 +417,26 @@ CURRENT 来源：
 
 | 页面元素 | CURRENT 源码位置 |
 |---------|------------------|
-| **页面级** | **本页在 CURRENT Qt 客户端中未实现为独立页面** |
-| 搜索框 `DET-LP-SEARCH` | `LeftPanelWidget.cpp` `m_searchEdit`、`onSearchTextChanged`（态势页复用） |
-| 刷新按钮 `DET-LP-REFRESH` | `LeftPanelWidget.cpp` `onRefreshTargets` -> `MainWindow::onRefreshSimulationRequested`（态势页复用） |
+| **页面级** | **已实现为独立页面**：`DetectionView`（导航 index1，`MainWindow.cpp` 页面栈 slot 1） |
+| 搜索框 `DET-LP-SEARCH` | 未实现（探测页无搜索框） |
+| 刷新按钮 `DET-LP-REFRESH` | 未实现（清空结果经态势页 [重置] 流程调用 `m_detectionView->clearResults()`） |
 | 清除按钮 `DET-LP-CLEAR` | 未实现（CURRENT 无清除按钮） |
 | 类型筛选器 `DET-LP-FILTER-TYPE` | 未实现（CURRENT 声明 `m_typeFilterCombo` 成员但 `setupUi` 未实例化） |
 | 威胁筛选器 `DET-LP-FILTER-THREAT` | 未实现（CURRENT 声明 `m_threatFilterCombo` 成员但 `setupUi` 未实例化） |
 | 状态筛选器 `DET-LP-FILTER-STATUS` | 未实现 |
-| 目标表 `DET-LP-TARGET-TABLE` | `LeftPanelWidget.cpp` `setupTargetList`、`populateTargetList`、`itemClicked`（态势页复用，CURRENT 为 5 列含复选框，原型为 7 列无复选框） |
-| 目标计数 `DET-LP-TABLE-COUNT` | 未实现 |
+| 目标表 `DET-LP-TARGET-TABLE` | `DetectionView.cpp` `m_resultTable`（7 列）；`cellClicked` -> `onResultSelected` -> `resultSelected` -> 三向选中联动 |
+| 目标计数 `DET-LP-TABLE-COUNT` | `DetectionView.cpp` `m_summaryLabel`（已分析 N 帧 · 异常 M） |
 | 排序按钮 `DET-LP-SORT-*` | 未实现 |
-| 证据面板头 `DET-CE-TARGET` | 未实现 |
+| 证据面板头 `DET-CE-TARGET` | 顶部摘要条（`[模拟]` + `m_summaryLabel`）与底部 `m_statusLabel` 共同承担 |
 | 证据 Tab `DET-CE-TAB-*` | 未实现 |
-| 证据内容 `DET-CE-CONTENT` | 未实现 |
+| 证据内容 `DET-CE-CONTENT` | 中栏 `m_viewerLabel` 标注图 + `m_heatmapLabel` 热力图 + `m_classLabel` 分类 Top-3 |
 | 证据卡片 `DET-CE-RECOG-*` | 未实现 |
-| 模拟确认按钮 `DET-CE-CONFIRM` | `DetectionControlPanel.cpp` `m_confirmButton`、`confirmSimulationRequested` 信号（态势页复用） |
-| 确认信息标签 `DET-CE-CONFIRM-INFO` | `DetectionControlPanel.cpp` `m_targetLabel`、`m_statusLabel`（态势页复用，CURRENT 分两标签） |
+| 模拟确认按钮 `DET-CE-CONFIRM` | `DetectionView.cpp` `m_confirmButton`：`targetConfirmed` -> `onTargetConfirmed` -> `requestSelectedTargetStatus(Confirmed)` |
+| 确认信息标签 `DET-CE-CONFIRM-INFO` | `DetectionView.cpp` `m_statusLabel`（`当前目标: %1 · 状态: %2`） |
 | 拒绝消息 `DET-CE-REJECT-MSG` | 未实现 |
-| 拒绝确认按钮 `DET-CE-REJECT` | 未实现 |
-| 目标详情 `DET-RP-DETAIL` | `DecisionSuggestionPanel.cpp` `setTarget`（态势页复用，字段集不同） |
-| 状态历史时间线 `DET-RP-TIMELINE` | 未实现 |
+| 拒绝确认按钮 `DET-CE-REJECT` | `DetectionView.cpp` `m_rejectButton`：`targetRejected` -> `onTargetRejected` -> `markSelectedTargetFalseAlarm`（误报） |
+| 目标详情 `DET-RP-DETAIL` | `DetectionView.cpp` `m_detailLabel`（逐行显示选中结果字段） |
+| 状态历史时间线 `DET-RP-TIMELINE` | `DetectionView.cpp` `m_timelineLabel`（已发现/已确认/已拒绝 追加式） |
 | 导航栏 `DET-NAV-*` | 见 `application-shell.md` 第 3 节 |
 | 菜单栏 `DET-MENU-*` | 见 `application-shell.md` 第 4 节 |
 | 工具栏 `DET-TB-*` | 见 `application-shell.md` 第 5 节 |

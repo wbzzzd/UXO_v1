@@ -418,7 +418,7 @@ chip 样式：内边距 `3px 8px`，字号 11px，默认 `--color-bg` 背景、`
 | 设备控制台占位 | `DeviceControlView.cpp`（空 `QTabWidget` 壳，含"无人机控制"/"机器人控制"空面板，未接入任何页面） |
 | 导航栏 | `application-shell.md` 第 3 节（`NavigationWidget.cpp`） |
 | 菜单栏 | `application-shell.md` 第 4 节（`MainWindow.cpp` `createMenuBar`） |
-| 工具栏 | `application-shell.md` 第 5 节（`MainWindow.cpp` `createToolBar`） |
+| 工具栏 | `application-shell.md` 第 5 节（`MainWindow.cpp` `createMapToolbar`） |
 | 状态栏 | `application-shell.md` 第 6 节（`StatusBarWidget.cpp`） |
 | 紧急停止 | `application-shell.md` 第 6.3 节（`StatusBarWidget.cpp` `onEmergencyStop`，`MainWindow` 未连接 `emergencyStopClicked`） |
 | 模拟数据类型 | `Types.h`（`DeviceInfo`/`DeviceStatus` 枚举） |

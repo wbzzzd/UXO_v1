@@ -168,7 +168,7 @@
 
 ### 5.1 目标列表行（已批准原语 · `LeftPanelWidget` 目标表）
 
-- **结构**：单行。CURRENT 列序：类型 / 置信度 / 位置 / 模拟状态（4 列，勾选列已移除）。行高 40px（CURRENT `setRowHeight(row, 40)`）。
+- **结构**：单行。CURRENT 列序：类型 / 置信度 / 位置 / 状态（4 列，勾选列已移除）。行高 40px（CURRENT `setRowHeight(row, 40)`）。
 - **变体**：默认 / hover / 选中。仅一个选中态，不定义 selected-hover。
 - **间距**：item padding 4px（`LeftPanelWidget` 内联 QSS），列宽见 4.4。
 - **状态**：
@@ -177,7 +177,7 @@
   - 选中：`RowSelected #2E3D2F`（新增绿色）背景，`TextPrimary` 文本，单一绿色选中态。选中行 hover 仍保持 `RowSelected`（本地 `::item:selected:hover` 规则以 QSS specificity 守护，颜色等同选中态，非独立视觉变体）。
   - 交替行：`alternatingRowColors` 关闭，所有未选中行统一 `PanelBackground` 单一底色，避免奇偶行产生两种未选中底。
 - **交互**：单击发出 `targetSelected`，驱动模拟工作流与右侧目标状态；不绑定双击事件（详情由地图浮层承担）。
-- **无障碍**：类型列仅以威胁色作前景（类型名本身即文字标签，无 `●` 字形；`●` 仅出现在详情浮层威胁值）；模拟状态文本以 `[模拟]` 前缀（`simulationTargetStatusText`）；行可达 Tab，选中态不仅靠颜色。
+- **无障碍**：类型列仅以威胁色作前景（类型名本身即文字标签，无 `●` 字形；`●` 仅出现在详情浮层威胁值）；状态文本无 `[模拟]` 前缀（`simulationTargetStatusText`，含误报态）；行可达 Tab，选中态不仅靠颜色。
 - **无勾选框**：已移除 `kTargetCheckColumn` 勾选列与 `Qt::ItemIsUserCheckable`，单选改为 `SingleSelection` 行选（`setColumnCount(4)`）。
 
 ### 5.2 目标详情浮层（已批准原语 · `TargetDetailOverlay`）
