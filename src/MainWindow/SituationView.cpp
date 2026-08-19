@@ -166,7 +166,7 @@ void SituationView::setupToolBar()
     
     // 标题
     QLabel *titleLabel = new QLabel("视角", toolBarContainer);
-    // 辅助文本色走全局 QSS textColor="secondary"（=TextSecondary，构造期静态属性先于 addWidget）；10px 字号无对应 labelRole（body2/caption=12px），保留内联
+    // 辅助文本色走全局 QSS textColor="secondary"（=TextSecondary，构造期静态属性先于 addWidget）；10px 字号无对应 labelRole（body2/caption=13px），保留内联
     titleLabel->setProperty("textColor", "secondary");
     // 属性转换（批次5）：10px 字号走 fontSize 词汇（先于 addWidget）
     titleLabel->setProperty("fontSize", "10");

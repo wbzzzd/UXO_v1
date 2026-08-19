@@ -44,7 +44,7 @@ void DeviceResourceBar::setupUi()
 
     // 左侧标题"设备资源"
     m_label = new QLabel(tr("设备资源"), this);
-    // (a) 次级文本色+12px 字号走全局 QSS labelRole="caption"（=%18 TextSecondary=#AAAAAA + %20px CaptionSize=12），构造期静态属性先于 addWidget
+    // (a) 次级文本色+13px 字号走全局 QSS labelRole="caption"（=%18 TextSecondary=#B8B8B8 + %20px CaptionSize=13，批次7 token 提升后值），构造期静态属性先于 addWidget
     m_label->setProperty("labelRole", "caption");
     layout->addWidget(m_label);
 
@@ -180,7 +180,7 @@ QWidget *DeviceResourceBar::createCard(const Core::DeviceInfo &device)
 
     // 任务状态文案
     auto *taskLabel = new QLabel(taskStatusText(device.status), card);
-    // (a) 任务状态次级文本色走全局 QSS textColor="secondary"（=%18 TextSecondary=#AAAAAA），新建标签先于 addWidget
+    // (a) 任务状态次级文本色走全局 QSS textColor="secondary"（=%18 TextSecondary=#B8B8B8，批次7 提对比度后值），新建标签先于 addWidget
     taskLabel->setProperty("textColor", "secondary");
     // 像素回归修复（批次3门禁）：恢复基线裸样式表级联的 #1E1E1E 不透明标签底（见 idLabel 注释）
     taskLabel->setProperty("labelBg", "main");

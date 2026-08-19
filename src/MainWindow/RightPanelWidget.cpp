@@ -55,7 +55,7 @@ void RightPanelWidget::setupUi()
     mapHeaderLayout->setContentsMargins(8, 0, 8, 0);
 
     QLabel *mapTitle = new QLabel("三维态势地图", mapHeader);
-    // 区块标题样式由全局 QSS labelRole="h2" 提供（BodySize=14px 与原内联一致）
+    // 区块标题样式由全局 QSS labelRole="h2" 提供（BodySize=15px；转换时与原内联 14px 等值，批次7 token 提升至 15px 后随全局值）
     mapTitle->setProperty("labelRole", "h2");
     mapHeaderLayout->addWidget(mapTitle);
     mapHeaderLayout->addStretch();

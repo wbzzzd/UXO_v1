@@ -45,7 +45,7 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 | Token | 值 | CURRENT 出处 | 用途 |
 |------|----|------|------|
 | `--color-text-primary` | `#FFFFFF` | `Colors::TextPrimary` | 主文本 |
-| `--color-text-secondary` | `#AAAAAA` | `Colors::TextSecondary` | 辅助文本、未选中标签 |
+| `--color-text-secondary` | `#B8B8B8` | `Colors::TextSecondary` | 辅助文本、未选中标签（阶段2 批次7：#AAAAAA->#B8B8B8，对 `#1E1E1E` 底对比度 4.8:1->约 6.3:1，达 WCAG AA） |
 | `--color-text-disabled` | `#888888` | `Colors::TextDisabled` | 禁用文本 |
 | `--color-border` | `#3C3C3C` | `Colors::Border` | 控件边框、分隔线、表格网格线 |
 | `--color-border-focus` | `#4A7A4C` | `Colors::BorderFocus` | 输入框聚焦边框（与主色同值） |
@@ -76,15 +76,15 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 | Token | 值 | CURRENT 出处 | 用途 |
 |------|----|------|------|
 | `--font-family` | `"Microsoft YaHei", "Source Han Sans SC", "SimHei", sans-serif` | `Fonts::Family` | 全局字体族 |
-| `--font-size-title` | `16px` | `Fonts::TitleSize` | 窗口标题、模块标题 |
-| `--font-size-body` | `14px` | `Fonts::BodySize` | 正文、按钮、输入框、表格 |
-| `--font-size-caption` | `12px` | `Fonts::CaptionSize` | 时间戳、状态说明、小字提示 |
+| `--font-size-title` | `17px` | `Fonts::TitleSize` | 窗口标题、模块标题（阶段2 批次7：16->17） |
+| `--font-size-body` | `15px` | `Fonts::BodySize` | 正文、按钮、输入框、表格（阶段2 批次7：14->15） |
+| `--font-size-caption` | `13px` | `Fonts::CaptionSize` | 时间戳、状态说明、小字提示（阶段2 批次7：12->13） |
 | `--font-weight-title` | `bold` | `Fonts::TitleWeight` | 标题字重 |
 | `--font-weight-body` | `normal` | `Fonts::BodyWeight` | 正文字重 |
 
 字体族优先微软雅黑，回退思源黑体、黑体，最后 sans-serif。HTML 原型必须使用相同顺序，避免环境差异导致渲染漂移。
 
-字号覆盖档位（2026-08 批次5 收敛登记）：Qt 侧 `GlobalStyle` 属性词汇提供 `fontSize` 覆盖档位 9/10/11/12/13/14px（`QLabel[fontSize="N"]`）、`fontWeight="bold"` 与等宽字族 `fontFamily="mono"`（`'Consolas','Courier New',monospace`）。其中 12/14 与 `--font-size-caption`/`--font-size-body` 等值；9/10/11/13 为存量内联字号的收敛登记（沿用基线已有值，非新增视觉值），用于坐标、徽标、紧凑数值列等小字场景，不取代本节全局字体 token，HTML 原型仍只用 12/14/16。
+字号覆盖档位（2026-08 批次5 收敛登记）：Qt 侧 `GlobalStyle` 属性词汇提供 `fontSize` 覆盖档位 9/10/11/12/13/14px（`QLabel[fontSize="N"]`）、`fontWeight="bold"` 与等宽字族 `fontFamily="mono"`（`'Consolas','Courier New',monospace`）。档位为存量内联字号的收敛登记（沿用基线已有值，非新增视觉值），用于坐标、徽标、紧凑数值列等小字场景，不随全局字号 token 缩放；批次7 全局字号提升（caption 12->13、body 14->15）后，12/14 档位不再与 `--font-size-caption`/`--font-size-body` 等值，属预期层级变化（小字场景保持原密度）。
 
 ## 3. 尺寸 token
 
@@ -119,7 +119,7 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 
 | Token | 值 | CURRENT 出处 | 用途 |
 |------|----|------|------|
-| `--space-button-pad-y` | `6px` | `getButtonStyle`/`getMainWindowStyle` QPushButton padding | 按钮上下内边距 |
+| `--space-button-pad-y` | `7px` | `getButtonStyle`/`getMainWindowStyle` QPushButton padding | 按钮上下内边距（阶段2 批次8 6->7px） |
 | `--space-button-pad-x` | `16px` | 同上 | 按钮左右内边距 |
 | `--space-input-pad-y` | `6px` | `getLineEditStyle` padding | 输入框/下拉框上下内边距 |
 | `--space-input-pad-x` | `8px` | 同上 | 输入框/下拉框左右内边距 |
@@ -128,12 +128,14 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 | `--space-table-item-pad` | `8px` | `getTableWidgetStyle` QTableWidget::item padding | 表格单元格内边距 |
 | `--space-toolbar-gap` | `8px` | `getMainWindowStyle` QToolBar spacing | 工具栏按钮间距 |
 | `--space-toolbar-pad` | `8px` | 同上 QToolBar padding | 工具栏内边距 |
-| `--radius-control` | `4px` | 按钮/输入框/下拉框 border-radius | 控件圆角 |
+| `--radius-control` | `6px` | 按钮/输入框/下拉框 border-radius | 控件圆角（阶段2 批次8 4->6px） |
 | `--radius-scroll-handle` | `5px` | `getScrollBarStyle` handle border-radius | 滚动条手柄圆角 |
 | `--size-checkbox` | `16px` | `getMainWindowStyle` QCheckBox::indicator | 复选框指示器尺寸 |
 | `--size-scrollbar` | `10px` | `getScrollBarStyle` width/height | 滚动条宽/高 |
 | `--size-combo-dropdown` | `24px` | `getComboBoxStyle` drop-down width | 下拉箭头区宽 |
 | `--min-scroll-handle` | `30px` | `getScrollBarStyle` min-height/min-width | 滚动条手柄最小尺寸 |
+
+> **`--space-panel-gap` 评估结论（阶段2 批次8）**：暂不引入。当前应用壳为零间距贴边格局（`MainWindow` 各布局 `setSpacing(0)`/`setContentsMargins(0,0,0,0)`，面板以 1px 边框分隔），引入面板间距属布局级变更，需外壳与各视图容器联动改造、三视口几何回归面大，且与"信息密度保持军事指控风格"的验收约束冲突；如后续需要呼吸感，另立批次单独评审。
 
 ## 4. 动画 token
 
@@ -330,7 +332,7 @@ CURRENT 态势页在 1280×720 下右面板旧 `DecisionSuggestionPanel` 仍存�
 以下 CURRENT Qt 事实仅适用于决策页 `DecisionView`，不修改六页 TARGET token 契约；态势页等其余五页仍以本节 §1–§6 的 TARGET token 为准。
 
 - **档位选中语义（checked tier）**：`MosParamsPanel` 与候选方案卡片使用互斥 checked 选中态。选中档位：蓝色高亮 `--color-tier-blue` 背景 + 边框；未选中档位（enabled-but-unchecked）：中性默认色，可点击切换。`no-solution` 状态下：无可行档位 `DEC-TB-PLAN-1` **禁用**（dimmed gray），更高可行档位（如 `DEC-TB-PLAN-3`）**启用但不 checked**（中性可选替代，非当前选择）。该语义由 `tierSelectionCheckedStateIsUnambiguous` 测试锁定，避免"档位3 被误读为当前选中"的歧义。
-- **参数栏字段尺寸**：`MosParamsPanel` 输入框字段高 22px、标签字号 11px（小于 `--font-size-caption` 12px，DecisionView 本地字面量）。该尺寸仅用于决策页参数栏，不替换 §2/§3.2 的全局字体/控件 token。
+- **参数栏字段尺寸**：`MosParamsPanel` 输入框字段高 22px、标签字号 11px（小于 `--font-size-caption` 13px，DecisionView 本地字面量）。该尺寸仅用于决策页参数栏，不替换 §2/§3.2 的全局字体/控件 token。
 - **生成器模态响应式**：`MosGeneratorDialog` 固定 1012×700px，在三视口下均完整可见（4K 下大量留白，不缩放）。底部三按钮（下载 JSON / 取消 / 应用生成）始终可见，不裁切。
 - **本地/合成边界**：`DecisionView` 全部数据为本地种子化 fixture（`mulberry32` 确定性生成），`MosRunwayWidget` QPainter 自绘跑道/弹坑/合成避让几何/MOS 矩形；JSON 导出仅通过 `QSaveFile` 向明确本地路径单向写入合成 fixture 工件，不提供 import/reload/运行时持久化/外部集成通道；不联网、不写入数据库、不控制设备。
 - **单档位渲染**：P0 仅渲染当前模拟选择档位（`m_selectedTier`）的 MOS 矩形，不渲染未选中档位；全档位叠加对比视图为 P1 Draft（见 `docs/features/mos-planning.md` MOS-008）。选中档位中属于该档位 `repairedIds` 的障碍物以 `Qt::DashLine` 虚线轮廓 + 斜十字标记绘制，模拟"已处理"假设，不暗示真实修复或安全结论。

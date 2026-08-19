@@ -83,7 +83,7 @@ void DetectionControlPanel::setupUi()
     m_statusLabel = new QLabel(statusRow);
     m_statusLabel->setObjectName(QStringLiteral("simulationStatusLabel"));
     m_statusLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    // 次级状态说明走全局 QSS labelRole="caption"（=TextSecondary#AAAAAA+12px+transparent，构造期静态属性先于 addWidget，无需 repolish）
+    // 次级状态说明走全局 QSS labelRole="caption"（=TextSecondary#B8B8B8+13px+transparent，批次7 token 提升后值，构造期静态属性先于 addWidget，无需 repolish）
     m_statusLabel->setProperty("labelRole", "caption");
     statusLayout->addWidget(m_statusLabel);
     mainLayout->addWidget(statusRow);

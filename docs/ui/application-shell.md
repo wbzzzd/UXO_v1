@@ -160,7 +160,7 @@ CURRENT 工具栏全部以 `QLabel` 占位，仅“视角复位”是真实 `QAc
 | `SIT-TB-BOOKMARK` | 书签 | QLabel 占位 | 仅展示文字 | 省略 |
 | `SIT-TB-CONSOLE` | 设备控制台 | QLabel 占位 | 仅展示文字 | **省略**（占位且无实际效果，详见第 7 节） |
 
-CURRENT 标签样式为 `color: #AAAAAA; padding: 4px; font-size: 12px;`，对应 `--color-text-secondary`、`--font-size-caption`。
+CURRENT 标签样式为 `color: #B8B8B8; padding: 4px; font-size: 13px;`，对应 `--color-text-secondary`、`--font-size-caption`（阶段2 批次7 token 提升后值）。
 
 ### 5.2 工具栏交互
 
