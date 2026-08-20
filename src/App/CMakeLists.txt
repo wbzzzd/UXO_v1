@@ -21,3 +21,6 @@ target_link_libraries(UXOMissionControl
     Qt5::3DInput
     MainWindow
 )
+
+# 安装主程序到 bin/（onnxruntime 库与模型资产的安装规则见根 CMakeLists）
+install(TARGETS UXOMissionControl RUNTIME DESTINATION bin)

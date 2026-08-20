@@ -280,7 +280,7 @@ DetectionEngine::imageAnalyzed(result)
 - ONNX Runtime C++ SDK（v1.23.2，Linux x64 CPU）已放置于 `third_party/onnxruntime/`。
 - CMake 通过 `IMPORTED` 目标引用，已配置完成。
 - 仅使用 CPU Execution Provider，无 GPU 依赖。
-- 构建期 RPATH：根 CMakeLists 通过 `CMAKE_BUILD_RPATH` 指向源码树 `third_party/onnxruntime/lib`（绝对路径，仅开发期；部署需改 install 相对路径或打包 .so）。
+- RPATH：根 CMakeLists 通过 `CMAKE_BUILD_RPATH` 指向源码树 `third_party/onnxruntime/lib`（绝对路径，仅开发期）；安装版通过 `CMAKE_INSTALL_RPATH = $ORIGIN/../lib` 相对解析，安装布局见 §9.5。
 
 ### 5.6 模型文件
 
@@ -307,7 +307,7 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
                      = 0.500
 ```
 
-实现采用硬编码常量对齐推导值：`DEFAULT_PC_THRESHOLD = 0.500f`（不做运行时读取 json）。
+实现为运行时从 `patchcore_params.json` 读取 `image_min` / `image_max` / `image_threshold` 并按上式推导归一化阈值（`DetectionEngine::initialize`，启动日志可见 "normalized threshold"）；`DetectionConst::DEFAULT_PC_THRESHOLD = 0.500f` 仅作推导值的常量对照，代码未直接引用。
 
 ### 5.9 帧预处理
 
@@ -343,7 +343,7 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
 │      │  │91%  │ │  分类: mortars 0.82        │  状态历史      │
 │      │  └─────┘ │                           │  ● 14:30:02   │
 │      ├──────────┴───────────────────────────┴───────────────┤
-│      │  [确认] [拒绝]  当前目标: T-001 · 状态: 已发现         │
+│      │  [确认] [拒绝] [移除记录] 当前目标: T-001 · 状态: 已发现 │
 └──────┴───────────────────────────────────────────────────────┘
 ```
 
@@ -361,7 +361,7 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
 - 弹性宽度，对齐 `detection.md` 区域 B。
 - 显示选中结果帧的干净原图（512x512，不叠加任何标注，热力图移至右栏）。
 - 底部显示 UXO 分类结果（Top-3 类名 + 置信度条）。
-- 底部确认操作条：[确认] [拒绝] + 当前目标状态标签。
+- 底部确认操作条：[确认] [拒绝] [移除记录] + 当前目标状态标签。[移除记录] 为实现期补充的单项列表管理操作：从记录表移除当前行（含正常帧），不撤回已生成的目标与证据；全量清空仍走 [重置]（clearResults）。
 - 空状态：提示"等待检测结果"。
 
 ### 6.4 右栏：目标详情 + 热力图 + 时间线
@@ -464,7 +464,9 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
 
 建议方案 A，由用户确认。
 
-> 实现阶段（commit 1860e6e）演示视频已更换为 `perth_airport_drone_uxo.mp4`（1920×1080, 96s, 30fps），部分时段（如约 15s 处）合成了 UXO 目标（航弹），实际效果等同方案 B：可演示异常检出与四区同步。
+> 实现阶段（commit 1860e6e）演示视频已更换为 `perth_airport_drone_uxo.mp4`（1920×1080, 96s, 30fps），部分时段合成了 UXO 目标，实际效果等同方案 B：可演示异常检出与四区同步。
+>
+> 当前视频为 v3 运动补偿合成版（制作方案见 `uxo-detection-bench` 仓库 `reports/demo_video_composite_v3.md`）：四段目标为反跑道雷（8-14s）、迫击炮弹（37-43s）、投射物（46-52s）、火箭弹（64-69.5s），演示场景检测触发时刻对应 10s/40s/49s/66s（`DemoScenarioProvider`）。
 
 ### 9.3 抽帧间隔配置
 
@@ -482,7 +484,7 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
 
 ### 9.5 ONNX Runtime 部署方式
 
-当前方案：共享库放在 `third_party/onnxruntime/lib/`，构建期通过根 CMakeLists 的 `CMAKE_BUILD_RPATH` 注入源码树绝对路径（仅开发期）。生产部署需考虑安装到系统路径或打包。当前方案可工作，实现阶段确认最终部署方式。
+当前方案：共享库放在 `third_party/onnxruntime/lib/`，构建期通过根 CMakeLists 的 `CMAKE_BUILD_RPATH` 注入源码树绝对路径（仅开发期）。安装由根 CMakeLists 的 install 规则定义：`cmake --install --prefix <目录>` 产出 `bin/UXOMissionControl` + `lib/libonnxruntime.so.1`（真实库文件按 SONAME 重命名安装，避免符号链被解引用成多份拷贝）+ `share/uxo/assets/models/`（3 个运行时模型文件）；安装版 RPATH 为 `$ORIGIN/../lib`（须在 add_subdirectory 之前设置 `CMAKE_INSTALL_RPATH`，目标创建后设置不生效）。MainWindow 加载模型优先编译期源码树路径，源码树不存在时回退 `bin/../share/uxo/assets/models`（已实测）。Qt 运行库未打包，假定目标环境已安装。
 
 ### 9.6 模型文件版本管理
 

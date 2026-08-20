@@ -152,8 +152,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // 4 个视频位置点必须依次为 5s/20s/40s/65s
-    const QVector<qint64> expectedTimes = {5000, 20000, 40000, 65000};
+    // 4 个视频位置点必须依次为 10s/40s/49s/66s
+    const QVector<qint64> expectedTimes = {10000, 40000, 49000, 66000};
     for (int i = 0; i < 4; ++i) {
         if (scenario.detections[i].videoPositionMs != expectedTimes[i]) {
             qCritical() << "Detection entry" << i << "视频位置应为"
