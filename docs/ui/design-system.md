@@ -8,6 +8,8 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 
 ## 1. 颜色 token
 
+> 阶段3 补登记（2026-08-20）：`GlobalStyle.h` 存量 9 个未入表 token（批次6 A5 完备性缺口）已登记入下列各表，值与头文件逐值核对一致。
+
 ### 1.1 背景与面板
 
 | Token | 值 | CURRENT 出处 | 用途 |
@@ -16,6 +18,8 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 | `--color-panel` | `#252526` | `Colors::PanelBackground` | 左右侧面板背景、菜单项选中态背景、下拉弹窗背景 |
 | `--color-toolbar` | `#2D2D2D` | `Colors::ToolbarBackground` | 工具栏、菜单栏、表头背景 |
 | `--color-menu` | `#2D2D2D` | `Colors::MenuBackground` | 菜单背景（与工具栏同色） |
+| `--color-video` | `#000000` | `Colors::VideoBackground` | 视频流背景（视频视口底色） |
+| `--color-viewport-dark` | `#161616` | `Colors::ViewportDark` | 视口暗底（视频/预览区域） |
 
 ### 1.2 强调色
 
@@ -33,6 +37,9 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 | `--color-threat-high` | `#FF5252` | `Colors::ThreatHigh` | 高威胁标记、P0 优先级、错误状态 |
 | `--color-threat-medium` | `#FFB74D` | `Colors::ThreatMedium` | 中威胁标记、P1 优先级、忙碌状态 |
 | `--color-threat-low` | `#FFF176` | `Colors::ThreatLow` | 低威胁标记、P2 优先级 |
+| `--color-priority-p0` | `#FF5252` | `Colors::PriorityP0` | P0 优先级（别名，值同威胁高色） |
+| `--color-priority-p1` | `#FFB74D` | `Colors::PriorityP1` | P1 优先级（别名，值同威胁中色） |
+| `--color-priority-p2` | `#FFF176` | `Colors::PriorityP2` | P2 优先级（别名，值同威胁低色） |
 | `--color-status-online` | `#4CAF50` | `Colors::StatusOnline` | 设备在线 |
 | `--color-status-offline` | `#888888` | `Colors::StatusOffline` | 设备离线 |
 | `--color-status-busy` | `#FFB74D` | `Colors::StatusBusy` | 设备忙碌 |
@@ -49,10 +56,12 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 | `--color-text-disabled` | `#888888` | `Colors::TextDisabled` | 禁用文本 |
 | `--color-border` | `#3C3C3C` | `Colors::Border` | 控件边框、分隔线、表格网格线 |
 | `--color-border-focus` | `#4A7A4C` | `Colors::BorderFocus` | 输入框聚焦边框（与主色同值） |
+| `--color-text-dim` | `#666666` | `Colors::TextDim` | 暗淡文本（极小字号辅助信息） |
+| `--color-border-light` | `#5A5A5A` | `Colors::BorderLight` | 浅色控件边框（小型按钮） |
 
 ### 1.5 交互态扩展色
 
-以下值在 CURRENT QSS 中作为字面量出现，本试点登记为 token 以便 HTML 复用：
+以下值在 CURRENT QSS 字面量或 `GlobalStyle.h` 常量中出现，本试点登记为 token 以便 HTML 复用：
 
 | Token | 值 | CURRENT 出处 | 用途 |
 |------|----|------|------|
@@ -60,6 +69,10 @@ token 来源（CURRENT）：[`include/Common/GlobalStyle.h`](../../include/Commo
 | `--color-selection-border` | `#3A5F7A` | `Colors::SelectionBorder` | 选中态边框 |
 | `--color-tier-blue` | `#42A5F5` | `Colors::TierBlue` | 档位高亮蓝（区别于威胁色阶） |
 | `--color-row-hover` | `#2A2A2A` | `GlobalStyle.cpp` 列表 hover | 列表/表格行 hover 背景 |
+| `--color-hover` | `#363636` | `Colors::HoverBackground` | 控件 hover 背景色 |
+| `--color-card-selected-border` | `#5B9BD5` | `Colors::CardSelectedBorder` | 卡片选中态边框蓝 |
+| `--color-button-gray` | `#4A4A4A` | `Colors::ButtonGray` | 灰色按钮背景（非主要操作按钮；值同 `--color-taxiway` 但语义不同） |
+| `--color-row-selected` | `#2E3D2F` | `Colors::RowSelected` | 单一绿色选中态背景（与 `--color-selection` 并存的绿色系行选中） |
 
 ### 1.6 场景色
 
