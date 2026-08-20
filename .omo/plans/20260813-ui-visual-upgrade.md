@@ -155,10 +155,10 @@
   - 原方案（存档）：**QSS 不支持 CSS `transition`**，改用 `QPropertyAnimation` 实现有限的 hover 颜色/几何过渡（150ms，复用 `Animation::DurationShort`）；不加干扰决策的大范围位移动画。
   - 验收（取消后）：交互反馈维持现状瞬时切换，决策界面无干扰。
 
-- [ ] **3.3 QSS 主题框架评估（需用户决定是否引入）**
-  - 评估 `Qt-Material`（MIT）或类似库是否能一次性提供现代化效果，对比自绘 QSS 的成本/可控性。
-  - **不擅自引入第三方依赖**，出评估报告由用户决定。
-  - 若决定不引入，本项取消，沿用阶段 1-2 的自绘 QSS。
+- [x] **3.3 QSS 主题框架评估（已裁决：A 不引入，2026-08-20 用户裁决）**
+  - 评估报告：[`docs/research/QSS主题框架评估报告.md`](../research/QSS主题框架评估报告.md)（2026-08-20）。事实更正：qt-material 许可证为 **BSD-2-Clause**（原草案误记 MIT）。
+  - 核心结论：qt-material 系 Python 包，对 C++/Qt5 项目仅能消费其离线导出的静态 QSS+SVG，换肤/密度/涟漪等运行时能力均 Python 专属不可得；全局样式替换将作废属性词汇体系（89 处存量）、37 行 token 对账、批次4-9 像素门禁基线与六页原型 token 桥四项已验收基础设施。
+  - **建议不引入**；决策项 A（不引入）/B（仅借鉴设计细节）/C（引入需另立评审）。用户裁决 **A：不引入**，沿用阶段1-2 自绘 QSS，本项关闭；界面现代化的剩余杠杆 = 3.1 纵深，若其后仍有观感诉求，经六页 HTML 原型先行评审色板等方案再立项。
 
 **阶段 3 门禁**：
 - 每项独立验收，独立确认。
@@ -254,4 +254,5 @@ diff <(rg "Colors::|Fonts::|Sizes::" include/Common/GlobalStyle.h) <(rg "\| `#|`
 - **入库记录（2026-08-19，用户裁决三提交拆分）**：批次7+8 = 0083ad1、批次9 = 30b4c5e、紧急停止文档修正与计划更新随第三提交入库；死代码 4 文件按裁决保持现状（处置另立任务）；预存在紧急停止文档过期已按裁决修正（application-shell.md §6.1/§6.3/§7/§9、docs/ui/README.md §5、docs/ui/pages/situation.md §6.4，均为文档侧修正，代码与 HTML 原型无改动）。
 - **阶段3 基线整合（2026-08-20）**：用户裁决先合并 main 再进阶段3。`git merge origin/main`（e3431c5..794b839：PR #15 合入阶段1、PR #13/#14 探测 ONNX 集成）= f3f7c9b；3 处冲突解决：根 CMakeLists.txt（onnxruntime RPATH 与 QtAwesome 子目录并存）、src/MainWindow/CMakeLists.txt（QtAwesome+Detection 链接并存）、application-shell.md（§3.2 取 main 三页导航语义并保留批次9 applyNavIcon；§9 行号对齐合并后源码实测）。onnxruntime 运行库自旧 worktree `/home/lin/UXO_v1-detection-onnx` 复制（.gitignore 不入库；构建用 uxo-dev 环境工具链全路径）。验证：全目标构建 100% + ctest 17/17（`stop_select_flicker_repro` 为 main 新增，需全目标构建后在 XCB/可见显示环境运行；首轮 Not Run 即仅构建主目标所致）。已推送 origin。
 - **阶段3·补登记（已完成，2026-08-20）**：GlobalStyle.h 9 个存量 token（批次6 A5 完备性缺口）登记入 design-system.md：§1.1 `--color-video`/`--color-viewport-dark`、§1.3 `--color-priority-p0/p1/p2`（别名，值同威胁色阶）、§1.4 `--color-text-dim`/`--color-border-light`、§1.5 `--color-hover`/`--color-card-selected-border`/`--color-button-gray`/`--color-row-selected`；§1.5 引言同步扩展来源说明；§1 头部加补登记说明。3.2 按用户裁决取消并记录于 §4。纯文档登记，无代码/原型改动，无需构建与像素门禁（头文件值与文档行逐值对账）。
-- **待办（三裁决后更新）**：(1) 阶段2 整体效果确认与是否进入阶段3 待用户确认（批次7+8+9 已入库：0083ad1、30b4c5e 及第三提交）；(2) 死代码 4 文件（DetectionControlPanel/RightPanelWidget/DeviceStatusPanel/SituationView，不在任何 CMake target）处置另立任务（用户已裁决本轮保持现状）；(3) ~~预存在紧急停止文档过期修正~~ 已完成（见入库记录）；(4) ~~GlobalStyle.h 9 个未入表 token（批次6 A5 完备性缺口，曾留阶段2）补登记 design-system.md~~ 已完成（2026-08-20，阶段3）；(5) xcb/Windows 真机三视口复核（可选，随用户侧构建）。
+- **阶段3·3.3 评估报告（已交付，2026-08-20）**：新增 `docs/research/QSS主题框架评估报告.md` 并登记 research README 索引。事实核查（web 检索 2026-08-20）：qt-material 为 Python 包（**BSD-2-Clause**，原草案误记 MIT；约 2.8k stars），原仓库 UN-GCPDS 已停止维护并迁至 dunderlab 后继（v2.17 2025-04-21，仅 PySide6/PyQt6 绑定）；C++ 侧唯一集成路径为 `export_theme()` 离线生成静态 QSS+SVG 资产（issue #25 实录图标路径需手工适配），运行时换肤/密度缩放/涟漪均 Python 专属不可得。冲突面六项：双全局样式源级联风险（批次3/4 已付代价）、token 对账失源、像素基线全废、原型 token 桥断裂、Material 审美与军事密度约束冲突、QSS 天花板并未突破（3.1 阴影本就需 QGraphicsDropShadowEffect 原生实现）。**建议不引入**（选项 A），A/B/C 决策项留用户裁决。纯研究资料与计划记录，无代码改动，无需构建门禁。**用户裁决 A（不引入），3.3 关闭（2026-08-20）**。
+- **待办（三裁决后更新）**：(1) ~~阶段2 整体效果确认与是否进入阶段3 待用户确认~~ 已确认（2026-08-20 用户批准进入阶段3 并开工 3.1；批次7+8+9 已入库：0083ad1、30b4c5e 及第三提交）；(2) 死代码 4 文件（DetectionControlPanel/RightPanelWidget/DeviceStatusPanel/SituationView，不在任何 CMake target）处置另立任务（用户已裁决本轮保持现状）；(3) ~~预存在紧急停止文档过期修正~~ 已完成（见入库记录）；(4) ~~GlobalStyle.h 9 个未入表 token（批次6 A5 完备性缺口，曾留阶段2）补登记 design-system.md~~ 已完成（2026-08-20，阶段3）；(5) xcb/Windows 真机三视口复核（可选，随用户侧构建）。
