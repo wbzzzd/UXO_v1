@@ -11,6 +11,7 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QEvent>
+#include <QTimer>
 
 // 标题栏高度 (像素, 对齐原型 --pip-titlebar-h: 24px)
 static constexpr int kTitleBarHeight = 24;
@@ -104,6 +105,11 @@ void VideoStreamPanel::setupUi()
             this, &VideoStreamPanel::onStateChanged);
     connect(m_player, &QMediaPlayer::mediaStatusChanged,
             this, &VideoStreamPanel::onMediaStatusChanged);
+
+    m_extractionTimer = new QTimer(this);
+    m_extractionTimer->setInterval(3000);
+    connect(m_extractionTimer, &QTimer::timeout,
+            this, &VideoStreamPanel::onExtractionTimer);
 }
 
 void VideoStreamPanel::createTitleBar()
@@ -218,19 +224,13 @@ void VideoStreamPanel::loadVideo(const QString& path)
 void VideoStreamPanel::play()
 {
     m_player->play();
-    m_stopped = false;
+    m_extractionTimer->start();
 }
 
 void VideoStreamPanel::pause()
 {
     m_player->pause();
-}
-
-void VideoStreamPanel::stop()
-{
-    m_player->stop();
-    m_lastFrame = QImage();
-    m_stopped = true;
+    m_extractionTimer->stop();
 }
 
 void VideoStreamPanel::seek(qint64 ms)
@@ -275,6 +275,9 @@ void VideoStreamPanel::onDurationChanged(qint64 ms)
 
 void VideoStreamPanel::onStateChanged(QMediaPlayer::State state)
 {
+    // HUD 动画 (REC 闪烁/时间码) 仅播放中驱动; 停止/暂停时停掉 500ms 重绘,
+    // 避免持续重绘停止态原生视频表面 (结束->选中后黑块闪烁根因)
+    m_overlay->setHudActive(state == QMediaPlayer::PlayingState);
     emit stateChanged(state);
 }
 
@@ -289,10 +292,6 @@ void VideoStreamPanel::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
 
 void VideoStreamPanel::onFrameProbed(const QVideoFrame &frame)
 {
-    // 停止状态下不接收帧，避免在 stop() 后仍写入 m_lastFrame
-    if (m_stopped) {
-        return;
-    }
     QVideoFrame copy(frame);
     if (!copy.map(QAbstractVideoBuffer::ReadOnly)) {
         return;
@@ -303,4 +302,12 @@ void VideoStreamPanel::onFrameProbed(const QVideoFrame &frame)
                              copy.bytesPerLine(), fmt).copy();
     }
     copy.unmap();
+}
+
+void VideoStreamPanel::onExtractionTimer()
+{
+    if (m_lastFrame.isNull()) {
+        return;
+    }
+    emit frameExtracted(m_lastFrame, m_player->position());
 }

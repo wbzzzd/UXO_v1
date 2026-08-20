@@ -22,6 +22,10 @@ public:
     // 立即刷新叠加层
     void clear();
 
+    // HUD 动画 (REC 闪烁/时间码) 开关: 仅播放中激活; 停止/暂停时停掉 500ms
+    // 重绘定时器, 避免持续重绘停止态原生视频表面造成黑块闪烁
+    void setHudActive(bool active);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
 

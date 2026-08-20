@@ -271,8 +271,8 @@ chip 样式：内边距 `3px 8px`，字号 11px，默认 `--color-bg` 背景、`
 |----|------|------|------|--------|-------|--------|---------|------|---------|---------------|------|
 | `DEV-NAV-LOGO` | UXO | - | 仅展示产品标识 | 主色文字，18px 加粗，居中 | 同默认 | 同默认 | 无（仅展示） | 不可聚焦 | 同 CURRENT；无交互 | `application-shell.md` 第 3.1 节 | 无 |
 | `DEV-NAV-01` | 态势 | ◎ | 切换到态势页（占位） | 透明背景、辅助色文本 | 背景 `--color-row-hover`、主文本色 | 背景 `--color-selection`、主色左边框 3px、主文本色、加粗 | 切换该项为选中态（移除其他项 selected）；CURRENT 仅 `qDebug`，不切换页面 | 不可原生聚焦（HTML `<div>`）；原型无键盘支持 | 点击仅高亮选中，不路由；中心区仍显示设备页内容 | `application-shell.md` 第 3 节 | 无 |
-| `DEV-NAV-02` | 探测 | ◎ | 切换到探测页（占位） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
-| `DEV-NAV-03` | 决策 | ◎ | 切换到决策页（占位） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
+| `DEV-NAV-02` | 探测 | ◎ | 切换到探测 live 页面（`DetectionView`，见 `detection.md`） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
+| `DEV-NAV-03` | 决策 | ◎ | 切换到决策 live 页面（`DecisionView`，见 `decision.md`） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
 | `DEV-NAV-04` | 设备 | ◎ | 当前页面（默认选中） | 选中（HTML `class="nav-item selected"`） | 同上 | 同上 | 同上 | 同上 | 默认选中；点击保持选中 | 同上 | 无 |
 | `DEV-NAV-05` | 统计 | ◎ | 切换到统计页（占位） | 未选中 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
 | `DEV-NAV-06` | 配置 | ◎ | 切换到配置页（占位） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
@@ -418,7 +418,7 @@ chip 样式：内边距 `3px 8px`，字号 11px，默认 `--color-bg` 背景、`
 | 设备控制台占位 | `DeviceControlView.cpp`（空 `QTabWidget` 壳，含"无人机控制"/"机器人控制"空面板，未接入任何页面） |
 | 导航栏 | `application-shell.md` 第 3 节（`NavigationWidget.cpp`） |
 | 菜单栏 | `application-shell.md` 第 4 节（`MainWindow.cpp` `createMenuBar`） |
-| 工具栏 | `application-shell.md` 第 5 节（`MainWindow.cpp` `createToolBar`） |
+| 工具栏 | `application-shell.md` 第 5 节（`MainWindow.cpp` `createMapToolbar`） |
 | 状态栏 | `application-shell.md` 第 6 节（`StatusBarWidget.cpp`） |
 | 紧急停止 | `application-shell.md` 第 6.3 节（`StatusBarWidget.cpp` `onEmergencyStop`，`MainWindow` 未连接 `emergencyStopClicked`） |
 | 模拟数据类型 | `Types.h`（`DeviceInfo`/`DeviceStatus` 枚举） |

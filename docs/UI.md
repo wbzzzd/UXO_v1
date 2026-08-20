@@ -28,7 +28,7 @@ NEXT 使用单一指挥席用户，所有模拟操作和结果必须明确标注
 
 ## 3. CURRENT 主界面
 
-MainWindow 中心区由 `QStackedWidget` 承载，按导航索引切换页面：index0=态势（live）、index2=决策/MOS（live，P0 已实现）、index1/3/4/5=态势占位（未实现页面回退到态势视图）。导航栏点击同时切换高亮与堆栈页面。
+MainWindow 中心区由 `QStackedWidget` 承载，按导航索引切换页面：index0=态势（live）、index1=探测（live，`DetectionView`）、index2=决策/MOS（live，P0 已实现）、index3/4/5=态势占位（未实现页面回退到态势视图）。导航栏点击同时切换高亮与堆栈页面。
 
 ```text
 MainWindow
@@ -46,7 +46,7 @@ MainWindow
 └── StatusBarWidget
 ```
 
-> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已编译但未在 MainWindow 中实例化。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）。
+> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已编译但未在 MainWindow 中实例化。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页、探测页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 探测页（`DetectionView`，AI 检测结果自动填充 + 人工二次校验），index 2 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）。
 
 默认尺寸 1920×1080，最小尺寸 1280×720。决策页历史三视口几何证据见 `.omo/evidence/mos-p0-qt-closure-final/REPORT.md`；该证据采集于本轮单档位渲染修正之前，不能作为修正后的 fresh 多视口证据。1280×720 下决策面板存在约 5px 底部溢出，当前记录为已知问题。
 
@@ -74,7 +74,7 @@ MainWindow
 
 | 控件 | 状态 | 实际行为 | 缺口 |
 |------|------|----------|------|
-| 六项导航 | 部分完成 | 点击切换高亮并通过 `QStackedWidget` 路由：index0=态势（live）、index2=决策/MOS（live，P0 已实现）、index1/3/4/5=态势占位 | 仅态势与决策为 live 页面，其余四项回退到态势视图占位，未实现独立页面 |
+| 六项导航 | 部分完成 | 点击切换高亮并通过 `QStackedWidget` 路由：index0=态势（live）、index1=探测（live，AI 检测自动填充）、index2=决策/MOS（live，P0 已实现）、index3/4/5=态势占位 | 仅态势、探测与决策为 live 页面，其余三项回退到态势视图占位，未实现独立页面 |
 | 目标/任务/设备 Tab | 已完成 | QTabWidget 切换三张表 | 右侧上下文不会随任务/设备选择变化 |
 | 搜索框 | 已完成 | 按表格可见文本隐藏不匹配目标行 | 只搜索目标表 |
 | 筛选按钮 | 占位 | 连接到空函数 | 无类型、威胁或状态筛选 |
@@ -89,8 +89,9 @@ MainWindow
 | 区域 | 状态 | 实际行为 | 缺口 |
 |------|------|----------|------|
 | 2D 战术地图 | 部分完成 | 卫星底图（用户提供 2000×1800 北朝上 PNG）aspect-fit 铺放，不裁剪，与 WGS84 叠加层共享同一显示矩形（机场边界四角对齐底图四角）；WGS84 经纬度本地线性映射，非真实 GIS；无人机沿观察到的跑道轴向 out-and-back 巡航（本地模拟航点，非真实飞控）；目标红点 + 脉冲动画 + ID 标签，目标坐标由检测画面偏移按 UAV 航向旋转后转 WGS84 推算；点击红点与目标表双向高亮 | 设备/路径渲染；多目标重叠处理；无真实 GIS/相机姿态+DEM 精确投影 |
-| 探测阶段视频面板 | 部分完成 | QMediaPlayer + QVideoWidget 播放本地演示视频；探测工具栏 [开始]/[结束]/[重置] 控制视频与模拟器 | 真实视频分析；多路分屏 |
-| 视频叠加层 | 已完成 | HUD-only（十字准星、REC 指示、遥测 LAT/LON/ALT/HDG、时间码）；不绘制检测框；鼠标事件透传给下层视频控件 | 真实检测算法接入 |
+| 探测阶段视频面板 | 部分完成 | QMediaPlayer + QVideoWidget 播放本地演示视频，每 3 秒抽帧送 `DetectionEngine` ONNX 推理；探测工具栏 [开始]/[结束]/[重置] 控制视频与检测引擎 | 本地文件回放非真实视频流；多路分屏 |
+| 视频叠加层 | 已完成 | HUD-only（十字准星、REC 指示、遥测 LAT/LON/ALT/HDG、时间码）；不绘制检测框；鼠标事件透传给下层视频控件 | 检测算法已由 `DetectionEngine` 接入，HUD 按设计保持 HUD-only |
+| 探测页（DetectionView） | 已完成 | 导航 index 1 独立页面：AI 检测结果表自动填充（每抽帧分析一行，标注“AI 分析”来源），中心区干净原图 + 分类结果、右栏异常热力图模块，确认/拒绝（误报）人工二次校验联动目标状态机 | 无结果筛选/检索；无历史回看 |
 | 模拟告警列表 | 部分完成 | 启动时 3 条模拟告警 + 探测阶段每目标追加 1 条 [模拟] 告警，计数同步 | 条目点击 TODO；无确认和检索 |
 | 模拟确认/处置/完成 | 已完成 | 按目标状态启用按钮，推进四状态工作流 | 不联动任务和设备 |
 | 模拟操作日志 | 部分完成 | 显示目标选择、状态变化和拒绝操作；探测阶段目标注入追加日志 | 仅内存；无筛选、导出或回放 |
