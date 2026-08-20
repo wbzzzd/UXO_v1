@@ -94,6 +94,7 @@ DetectionView::DetectionView(QWidget *parent)
     , m_splitter(nullptr)
     , m_confirmBtn(nullptr)
     , m_rejectBtn(nullptr)
+    , m_removeBtn(nullptr)
     , m_statusLabel(nullptr)
     , m_summaryLabel(nullptr)
     , m_detailLabel(nullptr)
@@ -323,6 +324,11 @@ void DetectionView::setupUi()
     m_rejectBtn->setStyleSheet(GlobalStyle::getButtonStyle(false));
     m_rejectBtn->setEnabled(false);
 
+    m_removeBtn = new QPushButton(QStringLiteral("移除记录"), actionBar);
+    m_removeBtn->setObjectName(QStringLiteral("detectionRemoveButton"));
+    m_removeBtn->setStyleSheet(GlobalStyle::getButtonStyle(false));
+    m_removeBtn->setEnabled(false);
+
     m_statusLabel = new QLabel(actionBar);
     m_statusLabel->setStyleSheet(
         QString("color: %1; font-size: 12px; border: none;")
@@ -330,6 +336,7 @@ void DetectionView::setupUi()
 
     actionLayout->addWidget(m_confirmBtn);
     actionLayout->addWidget(m_rejectBtn);
+    actionLayout->addWidget(m_removeBtn);
     actionLayout->addSpacing(16);
     actionLayout->addWidget(m_statusLabel, 1);
 
@@ -341,6 +348,8 @@ void DetectionView::setupUi()
             this, &DetectionView::onConfirmClicked);
     connect(m_rejectBtn, &QPushButton::clicked,
             this, &DetectionView::onRejectClicked);
+    connect(m_removeBtn, &QPushButton::clicked,
+            this, &DetectionView::onRemoveClicked);
 
     showEmptyState();
     updateSummaryLabel();
@@ -409,6 +418,7 @@ void DetectionView::clearResults()
     updateSummaryLabel();
     m_confirmBtn->setEnabled(false);
     m_rejectBtn->setEnabled(false);
+    m_removeBtn->setEnabled(false);
 }
 
 void DetectionView::onResultSelected(int row, int column)
@@ -532,11 +542,42 @@ void DetectionView::onRejectClicked()
     displayRecord(m_currentIndex);
 }
 
+// 单项移除: 仅从记录表移除当前行（列表管理），已生成的目标/证据/校验状态不受影响；
+// 区别于 [重置] 的全量清空（clearResults 由 MainWindow 重置流程调用）
+void DetectionView::onRemoveClicked()
+{
+    if (m_currentIndex < 0 || m_currentIndex >= m_records.size()) {
+        return;
+    }
+
+    const int removed = m_currentIndex;
+    m_records.removeAt(removed);
+    m_resultTable->removeRow(removed);
+
+    if (m_records.isEmpty()) {
+        m_currentIndex = -1;
+        m_currentImage = QImage();
+        m_currentHeatmap = QImage();
+        showEmptyState();
+        m_confirmBtn->setEnabled(false);
+        m_rejectBtn->setEnabled(false);
+        m_removeBtn->setEnabled(false);
+    } else {
+        // 显示原位置的后续记录（若移除的是末行则回退一行）；
+        // selectRow 仅同步高亮，不触发 cellClicked，避免重复联动
+        const int next = qMin(removed, m_records.size() - 1);
+        m_resultTable->selectRow(next);
+        displayRecord(next);
+    }
+    updateSummaryLabel();
+}
+
 void DetectionView::updateActionBar()
 {
     if (m_currentIndex < 0 || m_currentIndex >= m_records.size()) {
         m_confirmBtn->setEnabled(false);
         m_rejectBtn->setEnabled(false);
+        m_removeBtn->setEnabled(false);
         m_statusLabel->setText(QStringLiteral("未选中结果"));
         return;
     }
@@ -546,6 +587,8 @@ void DetectionView::updateActionBar()
         && record.review == DetectionReview::Pending;
     m_confirmBtn->setEnabled(reviewable);
     m_rejectBtn->setEnabled(reviewable);
+    // 移除记录属列表管理: 任意已选中行可移除（含正常帧），不受校验状态限制
+    m_removeBtn->setEnabled(true);
 
     m_statusLabel->setText(
         QStringLiteral("当前目标: %1 · 状态: %2")
