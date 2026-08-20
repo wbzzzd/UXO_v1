@@ -464,7 +464,9 @@ normalized_threshold = (image_threshold - image_min) / (image_max - image_min)
 
 建议方案 A，由用户确认。
 
-> 实现阶段（commit 1860e6e）演示视频已更换为 `perth_airport_drone_uxo.mp4`（1920×1080, 96s, 30fps），部分时段（如约 15s 处）合成了 UXO 目标（航弹），实际效果等同方案 B：可演示异常检出与四区同步。
+> 实现阶段（commit 1860e6e）演示视频已更换为 `perth_airport_drone_uxo.mp4`（1920×1080, 96s, 30fps），部分时段合成了 UXO 目标，实际效果等同方案 B：可演示异常检出与四区同步。
+>
+> 当前视频为 v3 运动补偿合成版（制作方案见 `uxo-detection-bench` 仓库 `reports/demo_video_composite_v3.md`）：四段目标为反跑道雷（8-14s）、迫击炮弹（37-43s）、投射物（46-52s）、火箭弹（64-69.5s），演示场景检测触发时刻对应 10s/40s/49s/66s（`DemoScenarioProvider`）。
 
 ### 9.3 抽帧间隔配置
 
