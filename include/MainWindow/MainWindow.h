@@ -133,6 +133,9 @@ private:
 
     QWidget *m_mapContainer;
     VideoStreamPanel *m_videoPiP;
+    // 浮动面板阴影底衬（PiP 与目标详情浮层的投影层，见 MainWindow.cpp 匿名命名空间）
+    QWidget *m_pipShadowLayer;
+    QWidget *m_overlayShadowLayer;
     QWidget *m_mapToolbar;
     QPushButton *m_resetViewBtn;
     QPushButton *m_startBtn;       // 探测工具栏 [开始]

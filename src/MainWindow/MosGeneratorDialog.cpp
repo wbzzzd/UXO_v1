@@ -15,6 +15,7 @@
 #include <QSpinBox>
 #include <QDoubleSpinBox>
 #include <QVBoxLayout>
+#include <QGraphicsDropShadowEffect>
 #include <climits>
 
 MosGeneratorDialog::MosGeneratorDialog(QWidget *parent)
@@ -23,6 +24,9 @@ MosGeneratorDialog::MosGeneratorDialog(QWidget *parent)
     setObjectName(QStringLiteral("DEC-GEN-MODAL"));
     setWindowTitle(QStringLiteral("模拟损毁分布生成器 [模拟 · MOS-015]"));
     setModal(true);
+    // 无边框模态 + 透明背景：为内容卡片四周留出投影渲染区（REQ-010 阶段3 深度投影）
+    setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground);
     setupUi();
     revalidate();
 }
@@ -31,21 +35,35 @@ MosGeneratorDialog::~MosGeneratorDialog() = default;
 
 void MosGeneratorDialog::setupUi()
 {
-    resize(520, 360);
-    auto *root = new QVBoxLayout(this);
+    // 对话框整体外扩：左/右/上 24px、下 36px，为 Modal 档投影（blur 24 + offsetY 8）留出渲染边距
+    setFixedSize(568, 424);
+    // 内容卡片：内区保持 520 宽参考尺寸，高度在原 360 上加 4px 余量吸收卡片描边的盒模型占用
+    auto *card = new QWidget(this);
+    card->setObjectName(QStringLiteral("DEC-GEN-CARD"));
+    card->setGeometry(24, 24, 520, 364);
+    card->setAttribute(Qt::WA_StyledBackground, true);
+    card->setStyleSheet(QStringLiteral("background-color:%1; border:1px solid %2; border-radius:3px;")
+                            .arg(GlobalStyle::Colors::PanelBackground, GlobalStyle::Colors::Border));
+    // 深度 token（design-system.md §9）：模态档投影直接挂卡片（纯栅格内容，无原生子窗口风险）
+    auto *cardShadow = new QGraphicsDropShadowEffect(card);
+    cardShadow->setBlurRadius(GlobalStyle::Elevation::ModalBlurRadius);
+    cardShadow->setOffset(0, GlobalStyle::Elevation::ModalOffsetY);
+    cardShadow->setColor(QColor(0, 0, 0, GlobalStyle::Elevation::ModalShadowAlpha));
+    card->setGraphicsEffect(cardShadow);
+    auto *root = new QVBoxLayout(card);
     root->setContentsMargins(16, 12, 16, 12);
     // 行间距收紧到 6：为独立的模拟说明行留出垂直空间，保证 520x360 参考尺寸下不裁剪
     root->setSpacing(6);
 
     // 头部：标题 + 关闭按钮
     auto *header = new QHBoxLayout();
-    auto *title = new QLabel(QStringLiteral("模拟损毁分布生成器 [模拟 · MOS-015]"), this);
+    auto *title = new QLabel(QStringLiteral("模拟损毁分布生成器 [模拟 · MOS-015]"), card);
     QFont tf = title->font();
     tf.setBold(true);
     title->setFont(tf);
     header->addWidget(title);
     header->addStretch();
-    auto *closeBtn = new QPushButton(QStringLiteral("×"), this);
+    auto *closeBtn = new QPushButton(QStringLiteral("×"), card);
     closeBtn->setObjectName(QStringLiteral("DEC-GEN-CLOSE"));
     closeBtn->setFixedSize(28, 28);
     header->addWidget(closeBtn);
@@ -56,7 +74,7 @@ void MosGeneratorDialog::setupUi()
     // 表单行距收紧到 4：配合 root 间距缩减，为新增模拟说明行腾出垂直空间
     form->setSpacing(4);
     auto mkInt = [&](int min, int max, int val) {
-        auto *sb = new QSpinBox(this);
+        auto *sb = new QSpinBox(card);
         sb->setRange(min, max);
         sb->setValue(val);
         sb->setFixedHeight(26);
@@ -64,7 +82,7 @@ void MosGeneratorDialog::setupUi()
         return sb;
     };
     auto mkDouble = [&](double min, double max, int decimals, double val) {
-        auto *sb = new QDoubleSpinBox(this);
+        auto *sb = new QDoubleSpinBox(card);
         sb->setRange(min, max);
         sb->setDecimals(decimals);
         sb->setValue(val);
@@ -91,7 +109,7 @@ void MosGeneratorDialog::setupUi()
     m_uxoYMax = mkDouble(0.0, 10000.0, 2, 50.0);
     m_uxoYMax->setObjectName(QStringLiteral("DEC-GEN-UXO-YMAX"));
     form->addRow(QStringLiteral("当量最大 (kg)"), m_uxoYMax);
-    m_seed = new QSpinBox(this);
+    m_seed = new QSpinBox(card);
     m_seed->setRange(INT_MIN, INT_MAX);
     m_seed->setValue(42);
     m_seed->setFixedHeight(26);
@@ -101,14 +119,14 @@ void MosGeneratorDialog::setupUi()
     root->addLayout(form);
 
     // 校验横幅 DEC-GEN-BANNER
-    m_banner = new QLabel(this);
+    m_banner = new QLabel(card);
     m_banner->setObjectName(QStringLiteral("DEC-GEN-BANNER"));
     m_banner->setWordWrap(true);
     m_banner->setFixedHeight(28);
     root->addWidget(m_banner);
 
     // 模拟说明：独立换行行，置于按钮行之上，避免与操作按钮挤占水平空间
-    auto *note = new QLabel(QStringLiteral("[模拟] 当量为模拟处理假设，非真实装药"), this);
+    auto *note = new QLabel(QStringLiteral("[模拟] 当量为模拟处理假设，非真实装药"), card);
     note->setWordWrap(true);
     note->setStyleSheet(QStringLiteral("color:%1;").arg(GlobalStyle::Colors::TextSecondary));
     root->addWidget(note);
@@ -116,13 +134,13 @@ void MosGeneratorDialog::setupUi()
     // 底部按钮行：JSON/取消/应用 单独成行，右对齐保持与原布局视觉一致
     auto *bottom = new QHBoxLayout();
     bottom->addStretch();
-    auto *jsonBtn = new QPushButton(QStringLiteral("⬇ 下载模拟场景 JSON"), this);
+    auto *jsonBtn = new QPushButton(QStringLiteral("⬇ 下载模拟场景 JSON"), card);
     jsonBtn->setObjectName(QStringLiteral("DEC-GEN-JSON"));
     bottom->addWidget(jsonBtn);
-    auto *cancelBtn = new QPushButton(QStringLiteral("取消"), this);
+    auto *cancelBtn = new QPushButton(QStringLiteral("取消"), card);
     cancelBtn->setObjectName(QStringLiteral("DEC-GEN-CANCEL"));
     bottom->addWidget(cancelBtn);
-    m_applyBtn = new QPushButton(QStringLiteral("应用生成"), this);
+    m_applyBtn = new QPushButton(QStringLiteral("应用生成"), card);
     m_applyBtn->setObjectName(QStringLiteral("DEC-GEN-APPLY"));
     // 统一使用 token 替代 CSS 命名色 white，与 RightPanelWidget 等文件保持一致
     m_applyBtn->setStyleSheet(QStringLiteral("background:%1; color:%2; padding:4px 12px;")

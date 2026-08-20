@@ -390,3 +390,18 @@ HTML 原型本轮未接入 FA 字体，维持既有文本字形方案（如导�
   - 导航：未选中 `--color-text-secondary`，选中与悬停（color-active）`--color-text-primary`，与 navBtn QSS 文本色对齐（计划 2.2 草案曾拟"选中态主色"，实现取 QSS 文本色对齐以与按钮文字一致）。
   - 地图工具栏 flat 按钮与紧急停止占位钮：常规 `--color-text-primary`、禁用 `--color-text-disabled`（不设 color-active），与 flat/占位 QSS 文字色对齐；紧急停止恒为禁用态，实际渲染禁用色（计划 2.2 草案"危险操作红色"不适用于禁用占位钮，红色仅存在于其启用态样式表）。
 - **语义约束**：图标不得作为唯一信息载体，挂载点均保留文字标签（导航双行、工具栏图标与文字并排）；紧急停止为模拟占位（禁用、不可点击），`fa_hand` 仅作视觉标记，不改变安全边界（见 `docs/ui/README.md` 第 5 节）。
+
+## 9. 深度投影（REQ-010 阶段3，CURRENT Qt 登记）
+
+**实现事实**：QSS 不支持 `box-shadow`，投影由 `QGraphicsDropShadowEffect` 消费 `GlobalStyle::Elevation` 常量实现。六页 HTML 原型本轮无 box-shadow/elevation 消费点，无原型同步项。
+
+| Token | 值 | GlobalStyle 常量 | 消费端 |
+|---|---|---|---|
+| `--elevation-overlay` | `0 4px 12px rgba(0,0,0,0.4)` | `Elevation::OverlayBlurRadius=12 / OverlayOffsetY=4 / OverlayShadowAlpha=102` | 态势页 PiP（`videoPiP`）与目标详情浮层（`targetDetailOverlay`）的阴影底衬 |
+| `--elevation-modal` | `0 8px 24px rgba(0,0,0,0.5)` | `Elevation::ModalBlurRadius=24 / ModalOffsetY=8 / ModalShadowAlpha=128` | 模拟损毁分布生成器对话框内容卡片 `DEC-GEN-CARD` |
+
+### 9.1 实现方式与已知限制
+
+- **浮动面板阴影底衬（`FloatingShadowLayer`，`MainWindow.cpp` 匿名命名空间）**：`VideoStreamPanel` 子树含原生 `QVideoWidget`，effect 的栅格渲染路径无法捕获原生子窗口内容（视频黑屏风险），故投影由与浮层同几何的底衬承载：底衬挂 Overlay 档 effect，浮层完全遮盖底衬本体，仅四周投影可见。底衬几何与显隐由 `repositionFloatingWidgets` 同步；浮层自行隐藏（关闭按钮/重置）经 `MainWindow::eventFilter` 的 Hide 事件同步隐藏底衬。
+- **交换模式已知限制**：视频全屏、地图浮窗（`m_videoIsMain`）时，底衬位于原生视频窗口之下会被遮挡，浮窗此轮不投影。
+- **模态对话框**：`DEC-GEN-MODAL` 无边框化（`Qt::FramelessWindowHint` + `WA_TranslucentBackground`，去掉系统浅灰标题栏），窗口 `568x424` 四周留 24/36px 投影泄露区（左/右/上 24px、下 36px，Modal 档 blur 24 + offsetY 8），内容卡片 `DEC-GEN-CARD`（内区宽 520 参考尺寸不变，高 364 = 原 360 加 4px 余量吸收卡片 1px 描边的盒模型占用，`PanelBackground` 底 + 1px `Border` + 3px 圆角）挂 Modal 档 effect。不支持拖拽移动（模态居中展示），记录为已知限制。视口缩放：窗口与卡片几何随 `viewportScale` 等比缩放（窗口 568x424、卡片边距/内区 24/520/364 × scale，由 `DecisionViewLayout.cpp` 的 `applyViewportScale` 统一消费，遵循 §7 三视口规则）。

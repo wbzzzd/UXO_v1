@@ -148,6 +148,20 @@ namespace Animation {
 }
 
 /**
+ * @brief 深度/投影规范（浮动面板与模态对话框的阴影层级）
+ * @details 对应 design-system.md §9 深度 token；QSS 不支持 box-shadow，
+ *          由 QGraphicsDropShadowEffect 消费这些常量
+ */
+namespace Elevation {
+    const int OverlayBlurRadius = 12;    ///< 浮动面板投影模糊半径 (px)
+    const int OverlayOffsetY = 4;        ///< 浮动面板投影垂直偏移 (px)
+    const int OverlayShadowAlpha = 102;  ///< 浮动面板投影不透明度 (0.4 * 255)
+    const int ModalBlurRadius = 24;      ///< 模态对话框投影模糊半径 (px)
+    const int ModalOffsetY = 8;          ///< 模态对话框投影垂直偏移 (px)
+    const int ModalShadowAlpha = 128;    ///< 模态对话框投影不透明度 (0.5 * 255)
+}
+
+/**
  * @brief 获取完整的QSS样式表
  * @return QString 完整的QSS样式表
  */
