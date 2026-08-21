@@ -36,6 +36,20 @@ if(EXISTS "/home/lin/.local/share/mamba/envs/uxo-dev/lib/libstdc++.so")
     link_directories("/home/lin/.local/share/mamba/envs/uxo-dev/lib")
 endif()
 
+# 链接器缺陷规避：系统 GNU ld 2.38 对 R_X86_64_GOTPCRELX 重定位存在错误松弛，
+# 会把 `push 符号@GOTPCREL(%rip)`（ff 35，语义为把符号地址压栈作为实参，
+# 见 MosPlanningController 构造函数中向 connectImpl 传 staticMetaObject）
+# 错误改写成 `addr32 call 符号`（67 e8），把"压栈数据"变成"跳转执行"，
+# 导致跳进只读数据段 .data.rel.ro 触发 SIGSEGV。
+# 证据（2026-08-21 合并 main 后回归排查）：
+#   1. MosPlanningController.cpp.o 中该处为正确的 push + GOTPCRELX 重定位；
+#   2. 同一 .o 经默认链接产出的全部二进制（含主程序）含 67 e8 坏指令，
+#      所有构造 MainWindow 的测试在 setupUi 阶段崩溃（ctest 9/17）；
+#   3. 按 link.txt 原样重链并附加 -Wl,--no-relax 后坏指令消失，探针验证通过。
+# --no-relax 仅关闭链接期指令松弛优化（如 mov@GOTPCREL->lea），
+# 无正确性影响，运行时代价可忽略；必须在所有 add_subdirectory 之前设置。
+add_link_options(-Wl,--no-relax)
+
 set(HEADERS_DIR ${CMAKE_SOURCE_DIR}/include)
 set(SOURCES_DIR ${CMAKE_SOURCE_DIR}/src)
 
