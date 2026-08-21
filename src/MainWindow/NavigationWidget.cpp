@@ -1,23 +1,26 @@
 #include "MainWindow/NavigationWidget.h"
 
-#include <QVBoxLayout>
-#include <QPushButton>
 #include <QLabel>
 #include <QPainter>
 #include <QPaintEvent>
 #include <QStyle>
+#include <QToolButton>
+#include <QVBoxLayout>
+
+#include "Common/GlobalStyle.h"
+#include "MainWindow/UiIcons.h"
 
 NavigationWidget::NavigationWidget(QWidget *parent)
     : QWidget(parent)
     , m_currentIndex(0)
 {
     m_navItems = {
-        {"situation", "态势", "◎"},
-        {"detect",    "探测", "◎"},
-        {"decision",  "决策", "◎"},
-        {"device",    "设备", "◎"},
-        {"stats",     "统计", "◎"},
-        {"config",    "配置", "◎"}
+        {"situation", "态势"},
+        {"detect",    "探测"},
+        {"decision",  "决策"},
+        {"device",    "设备"},
+        {"stats",     "统计"},
+        {"config",    "配置"}
     };
 
     setupUi();
@@ -55,10 +58,14 @@ void NavigationWidget::setupUi()
 
     layout->addSpacing(16);
 
-    // 导航按钮样式由全局 QSS navBtn/selected 属性提供（原两套内联样式已迁移至 GlobalStyle）
+    // 导航按钮样式由全局 QSS navBtn/selected 属性提供（原两套内联样式已迁移至 GlobalStyle）；
+    // 图标采用 FA 字形 + QToolButton TextUnderIcon，替代原“◎+\n+文字”文本拼接近似
     for (int i = 0; i < m_navItems.size(); ++i) {
-        QPushButton *btn = new QPushButton(
-            m_navItems[i].icon + "\n" + m_navItems[i].label, this);
+        QToolButton *btn = new QToolButton(this);
+        btn->setText(m_navItems[i].label);
+        // 图标在上、文字在下的双行布局（批次9 图标体系接入）
+        btn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+        btn->setIconSize(QSize(16, 16));
         // 稳定对象名 DEC-NAV-01..06 供集成 UI 测试与可访问性工具定位
         btn->setObjectName(QStringLiteral("DEC-NAV-%1").arg(i + 1, 2, 10, QLatin1Char('0')));
         btn->setFixedHeight(56);
@@ -66,8 +73,9 @@ void NavigationWidget::setupUi()
         btn->setProperty("navBtn", true);
         // 构造期设置属性，首次 polish 前生效，无需 repolish
         btn->setProperty("selected", i == 0);
+        applyNavIcon(i);
 
-        connect(btn, &QPushButton::clicked, this, [this, i]() {
+        connect(btn, &QToolButton::clicked, this, [this, i]() {
             setCurrentIndex(i);
             emit navigationChanged(i);
         });
@@ -98,5 +106,18 @@ void NavigationWidget::updateSelection()
         // 运行期属性变化需 repolish，触发全局 QSS 按新属性重算样式
         m_navButtons[i]->style()->unpolish(m_navButtons[i]);
         m_navButtons[i]->style()->polish(m_navButtons[i]);
+        // 图标状态色无法由 QSS 驱动，随选中态一并重建
+        applyNavIcon(i);
     }
+}
+
+void NavigationWidget::applyNavIcon(int index)
+{
+    if (index < 0 || index >= m_navButtons.size()) return;
+    // 状态色与 navBtn QSS 文本色对齐：未选=TextSecondary(%18)、选中/悬停=TextPrimary(%3)
+    const QColor base = (index == m_currentIndex)
+                            ? GlobalStyle::Colors::TextPrimary
+                            : GlobalStyle::Colors::TextSecondary;
+    m_navButtons[index]->setIcon(
+        UiIcons::icon(UiIcons::navGlyph(index), base, GlobalStyle::Colors::TextPrimary));
 }

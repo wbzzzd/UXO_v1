@@ -28,6 +28,28 @@ find_package(Qt5 REQUIRED COMPONENTS
 find_package(ZeroMQ QUIET)
 find_package(PostgreSQL QUIET)
 
+# 链接环境修正：本项目用系统 GCC11（/usr/bin/c++）作为编译驱动，而 Qt5 取自本机
+# conda 环境 uxo-dev；环境中 ICU 78 依赖 __cxa_call_terminate@CXXABI_1.3.15，
+# 该符号仅存在于较新 libstdc++（环境 6.0.34 有、系统 6.0.30 无）。把环境 lib 目录
+# 前置到链接搜索路径，使驱动隐式追加的 -lstdc++ 解析到环境版本；路径不存在时为空操作。
+if(EXISTS "/home/lin/.local/share/mamba/envs/uxo-dev/lib/libstdc++.so")
+    link_directories("/home/lin/.local/share/mamba/envs/uxo-dev/lib")
+endif()
+
+# 链接器缺陷规避：系统 GNU ld 2.38 对 R_X86_64_GOTPCRELX 重定位存在错误松弛，
+# 会把 `push 符号@GOTPCREL(%rip)`（ff 35，语义为把符号地址压栈作为实参，
+# 见 MosPlanningController 构造函数中向 connectImpl 传 staticMetaObject）
+# 错误改写成 `addr32 call 符号`（67 e8），把"压栈数据"变成"跳转执行"，
+# 导致跳进只读数据段 .data.rel.ro 触发 SIGSEGV。
+# 证据（2026-08-21 合并 main 后回归排查）：
+#   1. MosPlanningController.cpp.o 中该处为正确的 push + GOTPCRELX 重定位；
+#   2. 同一 .o 经默认链接产出的全部二进制（含主程序）含 67 e8 坏指令，
+#      所有构造 MainWindow 的测试在 setupUi 阶段崩溃（ctest 9/17）；
+#   3. 按 link.txt 原样重链并附加 -Wl,--no-relax 后坏指令消失，探针验证通过。
+# --no-relax 仅关闭链接期指令松弛优化（如 mov@GOTPCREL->lea），
+# 无正确性影响，运行时代价可忽略；必须在所有 add_subdirectory 之前设置。
+add_link_options(-Wl,--no-relax)
+
 set(HEADERS_DIR ${CMAKE_SOURCE_DIR}/include)
 set(SOURCES_DIR ${CMAKE_SOURCE_DIR}/src)
 
@@ -36,6 +58,9 @@ set(CMAKE_BUILD_RPATH "${CMAKE_SOURCE_DIR}/third_party/onnxruntime/lib")
 # 安装期 RPATH: 安装版按 $ORIGIN/../lib 相对解析 onnxruntime。
 # 必须在 add_subdirectory 之前设置——该变量仅在目标创建时初始化 INSTALL_RPATH 属性
 set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+
+# 第三方库：QtAwesome 字体图标（批次9 图标体系，来源与裁剪说明见其目录内 CMakeLists）
+add_subdirectory(third_party/QtAwesome)
 
 add_subdirectory(src/Common)
 add_subdirectory(src/Core)

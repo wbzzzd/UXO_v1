@@ -108,13 +108,23 @@ void DecisionView::applyViewportScale()
     // 随缩放，其余停在 14px 默认态。已显式赋值 caption/title/field 等角色的控件保持原角色，
     // 仅对未设角色的控件默认 "body"；标题/说明标签在循环后覆盖。
     for (QWidget *child : findChildren<QWidget *>()) {
+        // 步进框高度必须每次缩放重算都重设：mosFontRole 守卫只在首次赋角色，
+        // 若首次运行发生在低缩放档（如主窗显示期决策页仍隐藏于默认 640x480 时的提前
+        // 布局，scale=1.0），后续高缩放重算会因角色已设而跳过 setFixedHeight，
+        // 4K 下行高将永久停留在 1.0 档（REQ-010 阶段3 4K 回归根因；探针实证：
+        // 首跑 1.0 后 4K spinbox 卡 30px 而非 58px，参数栏矮 112px）。
+        // 故步进框分支先于角色守卫处理：角色未设才赋值，高度无条件按当前 scale 重设（幂等）。
+        if (auto *sb = qobject_cast<QAbstractSpinBox *>(child)) {
+            if (!child->property("mosFontRole").isValid()) {
+                child->setProperty("mosFontRole", QLatin1String("body"));
+            }
+            sb->setFixedHeight(scaledSpinBoxHeight);
+            continue;
+        }
         if (child->property("mosFontRole").isValid()) {
             continue;
         }
-        if (auto *sb = qobject_cast<QAbstractSpinBox *>(child)) {
-            child->setProperty("mosFontRole", QLatin1String("body"));
-            sb->setFixedHeight(scaledSpinBoxHeight);
-        } else if (qobject_cast<QAbstractItemView *>(child)) {
+        if (qobject_cast<QAbstractItemView *>(child)) {
             child->setProperty("mosFontRole", QLatin1String("body"));
         } else if (qobject_cast<QLabel *>(child) || qobject_cast<QPushButton *>(child)) {
             child->setProperty("mosFontRole", QLatin1String("body"));
@@ -137,14 +147,21 @@ void DecisionView::applyViewportScale()
         planStateBanner->setFixedHeight(scaledBannerHeight);
     }
 
-    // 模态生成器对话框按视口缩放：参考尺寸 520x360 × scale，并设置缩放后最小尺寸；
+    // 模态生成器对话框按视口缩放：REQ-010 阶段3 深度投影改版后基准为 568x424
+    // （卡片 520x364 + 投影泄露边距 24/24/24/36，见 design-system.md §9.1），此块按
+    // 同一基准等比缩放并同步重设内容卡片几何，消除“窗口按旧 520x360 基准缩放、
+    // 卡片停留 1.0 几何”的混合态（1.0 档卡片右/下被裁、4K 档卡片不随内容放大）；
     // 关闭按钮/校验横幅的固定高度同步缩放；步进框高度已由上方通用
     // QAbstractSpinBox 循环按 30*scale 缩放，此处不重复处理
     if (m_generatorDialog) {
-        const int dialogW = static_cast<int>(520 * scale);
-        const int dialogH = static_cast<int>(360 * scale);
-        m_generatorDialog->setMinimumSize(dialogW, dialogH);
-        m_generatorDialog->resize(dialogW, dialogH);
+        const int dialogW = static_cast<int>(568 * scale);
+        const int dialogH = static_cast<int>(424 * scale);
+        m_generatorDialog->setFixedSize(dialogW, dialogH);
+        // DEC-GEN-CARD 内容卡片：几何随 scale 重设（边距与内区同基准 24/520/364 × scale）
+        if (auto *genCard = m_generatorDialog->findChild<QWidget *>(QStringLiteral("DEC-GEN-CARD"))) {
+            genCard->setGeometry(static_cast<int>(24 * scale), static_cast<int>(24 * scale),
+                                 static_cast<int>(520 * scale), static_cast<int>(364 * scale));
+        }
         // DEC-GEN-CLOSE 关闭按钮：基础 28x28 × scale
         if (auto *genClose = m_generatorDialog->findChild<QPushButton *>(QStringLiteral("DEC-GEN-CLOSE"))) {
             const int closeSize = static_cast<int>(28 * scale);

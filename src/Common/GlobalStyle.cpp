@@ -70,13 +70,13 @@ QString getMainWindowStyle()
             margin: 4px 8px;
         }
 
-        /* 按钮 */
+        /* 按钮（阶段2 批次8：--radius-control 4->6px、--space-button-pad-y 6->7px，令牌登记同步 docs/ui/design-system.md） */
         QPushButton {
             background-color: %6;
             color: %3;
             border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
+            border-radius: 6px;
+            padding: 7px 16px;
             font-size: %5px;
             min-width: %7px;
         }
@@ -113,12 +113,13 @@ QString getMainWindowStyle()
             background-color: %12;
         }
 
-        /* 输入框与数值步进框（QSpinBox/QDoubleSpinBox 共用同一组令牌） */
+        /* 输入框与数值步进框（QSpinBox/QDoubleSpinBox 共用同一组令牌；
+           阶段2 批次8 --radius-control 4->6px，--space-input-pad-y 维持 6px） */
         QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox {
             background-color: %1;
             color: %3;
             border: 1px solid %4;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 6px 8px;
             font-size: %5px;
             selection-background-color: %6;
@@ -155,12 +156,12 @@ QString getMainWindowStyle()
             color: %10;
         }
 
-        /* 下拉框 */
+        /* 下拉框（阶段2 批次8：--radius-control 4->6px） */
         QComboBox {
             background-color: %1;
             color: %3;
             border: 1px solid %4;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 6px 8px;
             font-size: %5px;
         }
@@ -424,7 +425,7 @@ QString getMainWindowStyle()
             background-color: %2;
             color: %18;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: %20px;
         }
         QPushButton[btnVariant="subtle"]:hover { background-color: %4; }
@@ -469,22 +470,23 @@ QString getMainWindowStyle()
         QPushButton[btnVariant="flat"]:disabled { color: %10; }
 
         /* 导航按钮（navBtn）：配合 selected 属性；
-           hover/选中底色复用 RowHover/SelectionBackground 令牌（原内联硬编码 #2A2A2A/#2A3F54 与令牌值一致） */
-        QPushButton[navBtn="true"] {
+           hover/选中底色复用 RowHover/SelectionBackground 令牌（原内联硬编码 #2A2A2A/#2A3F54 与令牌值一致）
+           批次9：QPushButton -> QToolButton（TextUnderIcon 图标+文字双行布局），图标由 UiIcons 提供状态色 */
+        QToolButton[navBtn="true"] {
             background-color: transparent;
             color: %18;
             border: none;
             border-left: 3px solid transparent;
             min-width: 0px;
-            padding: 12px 0px;
+            padding: 8px 0px;
             font-size: %20px;
             text-align: center;
         }
-        QPushButton[navBtn="true"]:hover {
+        QToolButton[navBtn="true"]:hover {
             background-color: %14;
             color: %3;
         }
-        QPushButton[navBtn="true"][selected="true"] {
+        QToolButton[navBtn="true"][selected="true"] {
             background-color: %16;
             color: %3;
             border-left: 3px solid %6;
@@ -497,7 +499,7 @@ QString getMainWindowStyle()
             background-color: %1;
             color: %3;
             border: 1px solid %4;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 4px 8px;
         }
         QLineEdit[fieldVariant="compact"]:focus { border: 1px solid %6; }
@@ -584,7 +586,7 @@ QString getMainWindowStyle()
             background-color: %2;
             color: %3;
             border: 1px solid %4;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 4px 10px;
             min-width: 30px;
         }
@@ -595,7 +597,7 @@ QString getMainWindowStyle()
             background-color: %2;
             color: %3;
             border: 1px solid %4;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 4px 10px;
         }
 
@@ -658,8 +660,8 @@ QString getButtonStyle(bool isPrimary)
             background-color: %1;
             color: %2;
             border: 1px solid %3;
-            border-radius: 4px;
-            padding: 6px 16px;
+            border-radius: 6px;
+            padding: 7px 16px;
             font-size: %4px;
         }
         QPushButton:hover {
@@ -683,7 +685,7 @@ QString getLineEditStyle()
             background-color: %1;
             color: %2;
             border: 1px solid %3;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 6px 8px;
             font-size: %4px;
         }
@@ -705,7 +707,7 @@ QString getComboBoxStyle()
             background-color: %1;
             color: %2;
             border: 1px solid %3;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 6px 8px;
             font-size: %4px;
         }

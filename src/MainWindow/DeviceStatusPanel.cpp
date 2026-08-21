@@ -36,7 +36,7 @@ void DeviceStatusPanel::setupUi()
 
     // 设备区仅展示本地模拟数据，不提供设备控制入口。
     m_titleLabel = new QLabel("模拟设备状态（只读）", header);
-    // 标题走 labelRole="h1"（%3 TextPrimary + %19 TitleSize=16px + bold，逐值等价原内联）
+    // 标题走 labelRole="h1"（%3 TextPrimary + %19 TitleSize=17px + bold；转换时逐值等价原内联 16px，批次7 token 提升至 17px 后随全局值）
     m_titleLabel->setProperty("labelRole", QStringLiteral("h1"));
     headerLayout->addWidget(m_titleLabel);
     headerLayout->addStretch();

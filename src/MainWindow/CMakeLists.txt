@@ -21,6 +21,7 @@ set(MAINWINDOW_SOURCES
     MosGeneratorDialog.cpp
     TargetCardWidget.cpp
     PlanCardWidget.cpp
+    UiIcons.cpp
 )
 
 set(MAINWINDOW_HEADERS
@@ -42,6 +43,7 @@ set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/MosGeneratorDialog.h
     ${HEADERS_DIR}/MainWindow/TargetCardWidget.h
     ${HEADERS_DIR}/MainWindow/PlanCardWidget.h
+    ${HEADERS_DIR}/MainWindow/UiIcons.h
 )
 
 set(CMAKE_AUTOMOC ON)
@@ -60,5 +62,6 @@ target_link_libraries(MainWindow
     Qt5::3DExtras
     Common
     Core
+    QtAwesome
     Detection
 )

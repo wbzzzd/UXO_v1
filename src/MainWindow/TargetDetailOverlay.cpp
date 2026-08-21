@@ -141,7 +141,7 @@ void TargetDetailOverlay::setupUi()
         rowLayout->setContentsMargins(0, 0, 0, 0);
         rowLayout->setSpacing(8);
         auto *label = new QLabel(labelText, row);
-        // 属性转换：证据行标签交由 labelRole="caption"（TextSecondary/CaptionSize 12px/transparent）；
+        // 属性转换：证据行标签交由 labelRole="caption"（TextSecondary/CaptionSize 13px/transparent）；
         // 原 border:none 为 QLabel 默认，完整移除内联样式
         label->setProperty("labelRole", "caption");
         label->setFixedWidth(64);
@@ -174,7 +174,7 @@ void TargetDetailOverlay::setupUi()
     headerLayout->setSpacing(8);
     headerLayout->setContentsMargins(0, 0, 24, 0);  // 右侧给关闭按钮留位
     m_idLabel = new QLabel(headerWidget);
-    // 属性转换：ID 标题交由 labelRole="h1"（TextPrimary/TitleSize 16px/bold/transparent）词汇表规则；
+    // 属性转换：ID 标题交由 labelRole="h1"（TextPrimary/TitleSize 17px/bold/transparent）词汇表规则；
     // 原 border:none 为 QLabel 默认（全局 QLabel 规则无 border），完整移除内联样式
     m_idLabel->setProperty("labelRole", "h1");
     m_idLabel->setObjectName(QStringLiteral("targetDetailIdLabel"));
@@ -205,7 +205,7 @@ void TargetDetailOverlay::setupUi()
         rowLayout->setSpacing(8);
 
         auto *label = new QLabel(labelText, row);
-        // 属性转换：详情行标签交由 labelRole="caption"（TextSecondary/CaptionSize 12px/transparent）；
+        // 属性转换：详情行标签交由 labelRole="caption"（TextSecondary/CaptionSize 13px/transparent）；
         // 原 border:none 为 QLabel 默认，完整移除内联样式
         label->setProperty("labelRole", "caption");
         label->setFixedWidth(64);
@@ -272,7 +272,7 @@ void TargetDetailOverlay::setupUi()
 
     // 待检测提示
     m_pendingMsg = new QLabel(this);
-    // 属性转换：待检测提示交由 labelRole="caption"（TextSecondary/CaptionSize 12px/transparent）；
+    // 属性转换：待检测提示交由 labelRole="caption"（TextSecondary/CaptionSize 13px/transparent）；
     // 原 border:none 为 QLabel 默认，完整移除内联样式
     m_pendingMsg->setProperty("labelRole", "caption");
     m_pendingMsg->setObjectName(QStringLiteral("targetDetailPendingMsg"));
@@ -282,7 +282,7 @@ void TargetDetailOverlay::setupUi()
 
     // 操作反馈
     m_feedback = new QLabel(this);
-    // 属性转换：操作反馈标签组合 labelRole="caption"（CaptionSize 12px/transparent 排版）
+    // 属性转换：操作反馈标签组合 labelRole="caption"（CaptionSize 13px/transparent 排版）
     // + textColor="online"（=StatusOnline，语义色声明在后、优先生效）；
     // 原 border:none 为 QLabel 默认，完整移除内联样式
     m_feedback->setProperty("labelRole", "caption");

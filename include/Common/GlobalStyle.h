@@ -45,7 +45,7 @@ namespace Colors {
 
     // 文本色
     const QString TextPrimary = "#FFFFFF";         ///< 主文本色 - 正文
-    const QString TextSecondary = "#AAAAAA";      ///< 辅助文本色
+    const QString TextSecondary = "#B8B8B8";      ///< 辅助文本色（阶段2 批次7：#AAAAAA->#B8B8B8，对 #1E1E1E 底对比度 4.8:1->约6.3:1，达 WCAG AA）
     const QString TextDisabled = "#888888";        ///< 禁用文本色
 
     // 交互态扩展色
@@ -92,9 +92,9 @@ namespace Fonts {
     const QString Family = "Microsoft YaHei, Source Han Sans SC, SimHei, sans-serif";  ///< 字体族 - 微软雅黑/思源黑体
     const QStringList FamilyList = {"Microsoft YaHei", "Source Han Sans SC", "SimHei", "sans-serif"};  ///< 字体族回退链 - 供 QFont::setFamilies 使用
 
-    const int TitleSize = 16;     ///< 标题字号 - 窗口标题、模块标题
-    const int BodySize = 14;       ///< 正文字号 - 主要文本内容
-    const int CaptionSize = 12;    ///< 辅助信息字号 - 时间戳、状态说明、小字提示
+    const int TitleSize = 17;     ///< 标题字号 - 窗口标题、模块标题（阶段2 批次7：16->17 提升可读性）
+    const int BodySize = 15;       ///< 正文字号 - 主要文本内容（阶段2 批次7：14->15 提升可读性）
+    const int CaptionSize = 13;    ///< 辅助信息字号 - 时间戳、状态说明、小字提示（阶段2 批次7：12->13 提升可读性）
 
     const QString TitleWeight = "bold";   ///< 标题字重
     const QString BodyWeight = "normal";   ///< 正文字重
@@ -145,6 +145,20 @@ namespace Animation {
     const int DurationNormal = 200;     ///< 标准动画 - 200ms
     const int DurationLong = 300;       ///< 长动画 - 300ms
     const QString Easing = "ease-in-out";  ///< 动画曲线
+}
+
+/**
+ * @brief 深度/投影规范（浮动面板与模态对话框的阴影层级）
+ * @details 对应 design-system.md §9 深度 token；QSS 不支持 box-shadow，
+ *          由 QGraphicsDropShadowEffect 消费这些常量
+ */
+namespace Elevation {
+    const int OverlayBlurRadius = 12;    ///< 浮动面板投影模糊半径 (px)
+    const int OverlayOffsetY = 4;        ///< 浮动面板投影垂直偏移 (px)
+    const int OverlayShadowAlpha = 102;  ///< 浮动面板投影不透明度 (0.4 * 255)
+    const int ModalBlurRadius = 24;      ///< 模态对话框投影模糊半径 (px)
+    const int ModalOffsetY = 8;          ///< 模态对话框投影垂直偏移 (px)
+    const int ModalShadowAlpha = 128;    ///< 模态对话框投影不透明度 (0.5 * 255)
 }
 
 /**

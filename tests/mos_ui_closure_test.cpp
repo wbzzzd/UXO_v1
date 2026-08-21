@@ -106,8 +106,11 @@ void MosUiClosureTest::generatorResizesAfterFourKTransition()
     QCoreApplication::processEvents();
 
     // Then: minimum 先降低，resize 能恢复 1x 参考尺寸。
-    QCOMPARE(dialog->minimumSize(), QSize(520, 360));
-    QCOMPARE(dialog->size(), QSize(520, 360));
+    // 1x 参考基准自 3.1 深度投影批次起为 568x424（DEC-GEN-MODAL 无边框模态窗口，
+    // 内含 520x364 DEC-GEN-CARD，见计划 3.1 执行记录与 S5 探针基准）；
+    // 旧值 520x360 为重设计前的对话框几何。
+    QCOMPARE(dialog->minimumSize(), QSize(568, 424));
+    QCOMPARE(dialog->size(), QSize(568, 424));
 }
 
 void MosUiClosureTest::exportButtonUsesControllerCanonicalSnapshot()

@@ -79,7 +79,7 @@ CURRENT 主区域为 `QHBoxLayout`：导航 | 左面板 | 中心区 | 右面板�
 
 CURRENT 通过 `QStackedWidget` 路由：index0=态势 live、index1=探测 live（`DetectionView`）、index2=决策 live（`DecisionView`），index3/4/5 未实现独立页面，回退到态势页。`onNavigationChanged` 不再仅 `qDebug`，而是切换 `QStackedWidget` 当前页。本试点原型保持与 CURRENT 一致的路由行为。
 
-每个导航项为一个 `QPushButton`，固定高 56px，无外边距，左侧 3px 透明边框。图标与文字双行显示，字号 `--font-size-caption`，居中对齐。
+每个导航项为一个按钮，固定高 56px，无外边距，左侧 3px 透明边框。图标与文字双行显示，字号 `--font-size-caption`，居中对齐。TARGET 原型以文本字形 ◎ 近似图标；CURRENT Qt 自阶段2 批次9 起为 `QToolButton`（`Qt::ToolButtonTextUnderIcon`，objectName `DEC-NAV-01`..`06`）配 Font Awesome 实心图标，图标映射与状态色见 `design-system.md` 第 8 节。
 
 | ID | 标签 | 图标 | CURRENT index | 用途 | 默认态 | hover | 选中态 |
 |----|------|------|------|------|--------|-------|--------|
@@ -98,7 +98,7 @@ CURRENT 通过 `QStackedWidget` 路由：index0=态势 live、index1=探测 live
 | 点击结果 | 切换该项为选中态，左侧 3px 主色边框出现，背景变为 `--color-selection`；CURRENT 通过 `QStackedWidget` 路由：`SIT-NAV-01` -> index0（态势 live）、`SIT-NAV-02` -> index1（探测 live `DetectionView`）、`SIT-NAV-03` -> index2（决策 live `DecisionView`）、其余 -> 回退态势页。 |
 | 键盘 | Tab 聚焦到按钮；Enter/Space 触发点击。 |
 | 原型行为 | 同 CURRENT：选中 + 路由。`SIT-NAV-04`/`05`/`06` 选中后中心区回退到态势占位，并在信息面板头标注"该页面为占位，未实现"。 |
-| CURRENT 映射 | `NavigationWidget.cpp` `setupUi`、`setCurrentIndex`、`updateSelection`；`MainWindow.cpp` `onNavigationChanged`（切换 `QStackedWidget` 当前页） |
+| CURRENT 映射 | `NavigationWidget.cpp` `setupUi`、`setCurrentIndex`、`updateSelection`、`applyNavIcon`（批次9 图标状态色重建）；`MainWindow.cpp` `onNavigationChanged`（切换 `QStackedWidget` 当前页） |
 | 安全 | 无设备控制、无副作用 |
 
 ## 4. 菜单栏
@@ -162,7 +162,7 @@ CURRENT 工具栏全部以 `QLabel` 占位，仅“视角复位”是真实 `QAc
 | `SIT-TB-BOOKMARK` | 书签 | QLabel 占位 | 仅展示文字 | 省略 |
 | `SIT-TB-CONSOLE` | 设备控制台 | QLabel 占位 | 仅展示文字 | **省略**（占位且无实际效果，详见第 7 节） |
 
-CURRENT 标签样式为 `color: #AAAAAA; padding: 4px; font-size: 12px;`，对应 `--color-text-secondary`、`--font-size-caption`。
+CURRENT 标签样式为 `color: #B8B8B8; padding: 4px; font-size: 13px;`，对应 `--color-text-secondary`、`--font-size-caption`（阶段2 批次7 token 提升后值）。
 
 ### 5.2 工具栏交互
 
@@ -188,7 +188,7 @@ CURRENT 标签样式为 `color: #AAAAAA; padding: 4px; font-size: 12px;`，对�
 | `SIT-SB-BATTERY` | `最低电量: 85%` | QLabel（只读） | 来自 `loadMockData` | 显示最低电量百分比 | 颜色随电量变化：>60% `--color-status-online`、20–60% `--color-status-busy`、<20% `--color-status-error`；字号 `--font-size-caption` |
 | `SIT-SB-SIM` | `[模拟模式]` | QLabel（只读） | 默认隐藏，`setSimulationMode(true)` 后显示 | 标注当前为本地模拟 | `--color-status-busy` 文本，字号 `--font-size-caption`，加粗 |
 | `SIT-SB-ALARM` | 告警滚动区 | QScrollArea（只读） | 来自 `addAlarm` | 横向滚动展示告警 | 透明背景，最小宽 400px，高 18px；告警条样式见下 |
-| `SIT-SB-EMERGENCY` | `紧急停止` | QPushButton | - | **危险占位**，详见第 7 节 | 见 6.3 |
+| `SIT-SB-EMERGENCY` | `紧急停止（模拟占位）` | QPushButton | 恒禁用 | **危险占位**，详见第 6.3 与第 7 节 | 见 6.3 |
 
 ### 6.2 告警条样式（`SIT-SB-ALARM` 内子项）
 
@@ -196,25 +196,26 @@ CURRENT 标签样式为 `color: #AAAAAA; padding: 4px; font-size: 12px;`，对�
 
 ### 6.3 紧急停止按钮 `SIT-SB-EMERGENCY`
 
-固定 80x20px，字号 11px（小于 `--font-size-caption`，CURRENT 字面量），加粗。
+CURRENT 为恒禁用占位钮：固定 128x20px（宽度容纳完整“紧急停止（模拟占位）”文本），字号 11px（小于 `--font-size-caption`，CURRENT 字面量），加粗，tooltip“模拟占位，无实际效果”。阶段2 批次9 起附 `fa_hand` 图标（12px；按钮为禁用占位态，图标渲染 `--color-text-disabled`，映射见 `design-system.md` 第 8 节）。
 
 | 状态 | 背景 | 文本 | 边框 |
 |------|------|------|------|
-| 默认 | `--color-danger` | `--color-text-primary` | 无，圆角 3px |
-| hover | `--color-danger-hover` | 同上 | 同上 |
-| pressed | `#C62828`（CURRENT 字面量） | 同上 | 同上 |
+| 禁用（恒禁用，唯一可见态） | `--color-toolbar` | `--color-text-disabled` | 1px `--color-border`，圆角 3px |
+| 启用基础样式（代码保留，不可达） | `--color-danger` | `--color-text-disabled` | 同上 |
 
-CURRENT 行为：点击弹出 `QMessageBox::warning`，文案为“确定要执行紧急停止吗？所有设备将立即停止！”，选 Yes 后发出 `emergencyStopClicked` 信号。`MainWindow` 没有连接该信号，因此实际不会停止任何设备。
+现行内联样式表仅含基础与 `:disabled` 两组规则（历史 hover/pressed 变体已随禁用占位改造移除）。
 
-TARGET 原型行为：**按钮禁用并标注“模拟占位，无实际效果”**，不弹确认框，不发信号。原因详见第 7 节。
+CURRENT 行为：按钮恒禁用（`setEnabled(false)`），点击与键盘均无响应。`onEmergencyStop` 槽（`QMessageBox::warning` 确认框 + `emergencyStopClicked` 信号）与 `clicked` 连接仍保留在源码中，但因恒禁用不可达；`MainWindow` 亦无该信号消费者，不会停止任何设备。
+
+TARGET 原型行为：**按钮禁用并标注“模拟占位，无实际效果”**，不弹确认框，不发信号。CURRENT 已按此落地（见上）。原因详见第 7 节。
 
 | 字段 | 值 |
 |------|----|
 | 点击结果 | 禁用，无响应 |
 | 键盘 | 不可聚焦 |
-| 原型行为 | 显示为禁用态，附 tooltip“危险占位：CURRENT 仅弹确认框，无设备停止效果，本试点禁用” |
-| CURRENT 映射 | `StatusBarWidget.cpp` `onEmergencyStop`、`MainWindow.cpp`（无 `emergencyStopClicked` 连接） |
-| 安全 | **危险占位**：文案“所有设备将立即停止”会误导用户认为有真实停止效果。本试点禁用此按钮以避免误导。 |
+| 原型行为 | 显示为禁用态，附 tooltip“模拟占位，无实际效果” |
+| CURRENT 映射 | `StatusBarWidget.cpp` `setupUi`（恒禁用 + 占位标注 + tooltip）、`onEmergencyStop`（不可达遗留）、`MainWindow.cpp`（无 `emergencyStopClicked` 消费者） |
+| 安全 | **危险占位**：历史可点击版本的确认框文案“所有设备将立即停止”会误导用户认为有真实停止效果；现已恒禁用并标注“模拟占位”，该误导路径不可达。 |
 
 ## 7. 遗漏与禁用清单
 
@@ -222,7 +223,7 @@ TARGET 原型行为：**按钮禁用并标注“模拟占位，无实际效果�
 
 | 控件 | 问题 | 处理 |
 |------|------|------|
-| 紧急停止按钮 `SIT-SB-EMERGENCY` | CURRENT 弹确认框并发出信号，但无消费者；文案“所有设备将立即停止”暗示真实停止效果，违反安全边界 | 禁用并标注“模拟占位，无实际效果” |
+| 紧急停止按钮 `SIT-SB-EMERGENCY` | 历史版本可点击、弹确认框并发出无消费者信号，文案“所有设备将立即停止”暗示真实停止效果，违反安全边界；CURRENT 已改为恒禁用占位，确认框路径不可达（见 6.3） | 禁用并标注“模拟占位，无实际效果”（CURRENT 已落地对齐） |
 | 设备菜单“打开设备控制台”（无 ID，省略） | lambda 空，无实际效果，且暗示真实设备控制 | 省略菜单项 |
 | 工具栏“设备控制台”标签 `SIT-TB-CONSOLE` | QLabel 占位，无实际效果 | 省略 |
 | 工具栏“同步状态”“书签”标签 `SIT-TB-SYNC`/`SIT-TB-BOOKMARK` | QLabel 占位，无实际效果 | 省略 |
@@ -247,13 +248,13 @@ CURRENT 在 1280x720 下态势页右面板旧 `DecisionSuggestionPanel` 仍存�
 
 | 壳元素 | CURRENT 源码位置 |
 |--------|------------------|
-| 窗口尺寸与标题 | `MainWindow.cpp` `setupUi`（第 101-103 行：标题“排弹抢修指挥系统 V1.0”、最小 1280x720、默认 1920x1080） |
-| 菜单栏构造 | `MainWindow.cpp` `createMenuBar`（第 133-161 行） |
-| 地图工具栏构造 | `MainWindow.cpp` `createMapToolbar`（第 249-312 行：重置/开始/结束/视角复位/图层/测量/坐标拾取 按钮与 `[模拟]` 角标，部分为禁用占位；全局工具栏未实现） |
-| 主布局与页面栈 | `MainWindow.cpp` `createMainLayout`（第 162-248 行，含态势页装配与 `pageStack` 三页：0 态势/1 探测/2 决策） |
-| 状态栏宿主 | `MainWindow.cpp` `createStatusBar`（第 314-324 行） |
-| 状态栏内容 | `StatusBarWidget.cpp` `setupUi`（第 38-110 行） |
-| 紧急停止槽 | `StatusBarWidget.cpp` `onEmergencyStop`（第 151-161 行） |
+| 窗口尺寸与标题 | `MainWindow.cpp` `setupUi`（第 108-110 行：标题“排弹抢修指挥系统 V1.0”、最小 1280x720、默认 1920x1080） |
+| 菜单栏构造 | `MainWindow.cpp` `createMenuBar`（第 140-167 行） |
+| 地图工具栏构造 | `MainWindow.cpp` `createMapToolbar`（第 256-340 行：重置/开始/结束/视角复位/图层/测量/坐标拾取 按钮与 `[模拟]` 角标，部分为禁用占位，按钮图标为批次9 Font Awesome 实心图标；全局工具栏未实现） |
+| 主布局与页面栈 | `MainWindow.cpp` `createMainLayout`（第 169-254 行，含态势页装配与 `pageStack` 三页：0 态势/1 探测/2 决策） |
+| 状态栏宿主 | `MainWindow.cpp` `createStatusBar`（第 342-351 行） |
+| 状态栏内容 | `StatusBarWidget.cpp` `setupUi`（第 46-156 行） |
+| 紧急停止槽 | `StatusBarWidget.cpp` `onEmergencyStop`（第 200-211 行，恒禁用不可达） |
 | 导航栏 | `NavigationWidget.cpp` 全文 |
 | 导航切换槽 | `MainWindow.cpp` `onNavigationChanged`（切换 `QStackedWidget` 当前页：index1=探测 live、index2=决策 live、其余回退态势页） |
 | 信号连接 | `MainWindow.cpp` `createConnections`（第 325-414 行） |

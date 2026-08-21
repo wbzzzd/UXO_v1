@@ -1,5 +1,9 @@
 #include "MainWindow/StatusBarWidget.h"
 #include "Common/GlobalStyle.h"
+#include "MainWindow/UiIcons.h"
+
+// FA 图标枚举码点（vendored third_party/QtAwesome）
+#include "QtAwesome.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -141,6 +145,12 @@ void StatusBarWidget::setupUi()
         .arg(GlobalStyle::Colors::TextDisabled)
         .arg(GlobalStyle::Colors::Border)
         .arg(GlobalStyle::Colors::ToolbarBackground));
+    // 禁用态图标色与占位按钮灰字一致（TextDisabled）
+    m_emergencyStopBtn->setIconSize(QSize(12, 12));
+    m_emergencyStopBtn->setIcon(UiIcons::icon(fa::fa_hand,
+                                              GlobalStyle::Colors::TextPrimary,
+                                              QColor(),
+                                              GlobalStyle::Colors::TextDisabled));
     connect(m_emergencyStopBtn, &QPushButton::clicked, this, &StatusBarWidget::onEmergencyStop);
     mainLayout->addWidget(m_emergencyStopBtn);
 }

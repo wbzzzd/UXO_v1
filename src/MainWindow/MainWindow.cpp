@@ -17,6 +17,10 @@
 #include "Detection/DetectionEngine.h"
 #include "Core/MOS/MosFixtureGenerator.h"
 #include "Common/GlobalStyle.h"
+#include "MainWindow/UiIcons.h"
+
+// FA 图标枚举码点（vendored third_party/QtAwesome）
+#include "QtAwesome.h"
 
 #include <QMenuBar>
 #include <QMenu>
@@ -32,6 +36,7 @@
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QGraphicsDropShadowEffect>
 #include <QEvent>
 #include <QResizeEvent>
 #include <QDebug>
@@ -57,6 +62,31 @@ constexpr double kVideoDurationSec = 96.0;
 // 简化模型：300m 高度时覆盖约 600m x 400m
 constexpr double kFootprintWidthM = 600.0;
 constexpr double kFootprintHeightM = 400.0;
+
+/**
+ * @brief 浮动面板阴影层（REQ-010 阶段3 纵深 token 的消费端）
+ * @details 与浮动面板同几何的无边框底衬：绘制一块与面板同色的矩形并挂
+ *          QGraphicsDropShadowEffect，底衬被浮动面板完全遮盖，仅四周投影可见。
+ *          不直接给浮动面板本体挂 effect：VideoStreamPanel 子树内的 QVideoWidget
+ *          是原生窗口，effect 的栅格渲染路径无法捕获原生子窗口内容（视频
+ *          黑屏风险），故用底衬旁路，完全不触碰视频渲染路径。
+ */
+class FloatingShadowLayer : public QWidget {
+public:
+    explicit FloatingShadowLayer(QWidget *parent, const QString &fillColor)
+        : QWidget(parent)
+    {
+        // 纯栅格底衬 + QSS 背景填充（WA_StyledBackground，同 TargetDetailOverlay 根容器做法）
+        setAttribute(Qt::WA_StyledBackground, true);
+        setStyleSheet(QStringLiteral("background-color:%1;").arg(fillColor));
+        // 深度 token（design-system.md §9）：浮动面板档投影
+        auto *effect = new QGraphicsDropShadowEffect(this);
+        effect->setBlurRadius(GlobalStyle::Elevation::OverlayBlurRadius);
+        effect->setOffset(0, GlobalStyle::Elevation::OverlayOffsetY);
+        effect->setColor(QColor(0, 0, 0, GlobalStyle::Elevation::OverlayShadowAlpha));
+        setGraphicsEffect(effect);
+    }
+};
 }
 
 MainWindow::MainWindow(QWidget *parent)
@@ -69,6 +99,8 @@ MainWindow::MainWindow(QWidget *parent)
     , m_targetDetailOverlay(nullptr)
     , m_mapContainer(nullptr)
     , m_videoPiP(nullptr)
+    , m_pipShadowLayer(nullptr)
+    , m_overlayShadowLayer(nullptr)
     , m_mapToolbar(nullptr)
     , m_resetViewBtn(nullptr)
     , m_startBtn(nullptr)
@@ -90,6 +122,9 @@ MainWindow::MainWindow(QWidget *parent)
     , m_pipVisible(true)
     , m_videoIsMain(false)
 {
+    // 字体图标库初始化（幂等）：必须先于 setupUi 中的图标创建；失败时控件降级为纯文本
+    UiIcons::init();
+
     setupUi();
     loadMockData();
 }
@@ -233,6 +268,17 @@ void MainWindow::createMainLayout()
     m_targetDetailOverlay = new TargetDetailOverlay(m_mapContainer);
     m_targetDetailOverlay->setObjectName(QStringLiteral("targetDetailOverlay"));
 
+    // 浮动面板阴影层（深度 token 消费端）：PiP 与目标详情浮层的投影底衬，
+    // 默认隐藏，由 repositionFloatingWidgets 按可见性同步几何与显隐
+    m_pipShadowLayer = new FloatingShadowLayer(m_mapContainer, GlobalStyle::Colors::Background);
+    m_pipShadowLayer->setObjectName(QStringLiteral("pipShadowLayer"));
+    m_pipShadowLayer->hide();
+    m_overlayShadowLayer = new FloatingShadowLayer(m_mapContainer, GlobalStyle::Colors::PanelBackground);
+    m_overlayShadowLayer->setObjectName(QStringLiteral("overlayShadowLayer"));
+    m_overlayShadowLayer->hide();
+    // 浮层经关闭按钮自行隐藏不经过 reposition，需事件过滤同步其阴影层
+    m_targetDetailOverlay->installEventFilter(this);
+
     centerLayout->addWidget(m_mapContainer, 1);
 
     // 中心区加入态势工作区布局
@@ -262,19 +308,32 @@ void MainWindow::createMapToolbar()
 
     // 探测控制按钮: [重置] [开始] [结束]
     // 扁平工具栏按钮：全局 QSS btnVariant="flat"（替代原共享 btnStyle 内联，下方 7 个按钮同款）
+    // 图标状态色对齐 flat QSS 文字色：常规=TextPrimary(%3)、禁用=TextDisabled(%10)
+    const auto flatIcon = [](int glyph) {
+        return UiIcons::icon(glyph,
+                             GlobalStyle::Colors::TextPrimary,
+                             QColor(),
+                             GlobalStyle::Colors::TextDisabled);
+    };
     m_resetBtn = new QPushButton(QStringLiteral("重置"), m_mapToolbar);
     m_resetBtn->setObjectName(QStringLiteral("mapToolbarReset"));
     m_resetBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    m_resetBtn->setIconSize(QSize(12, 12));
+    m_resetBtn->setIcon(flatIcon(fa::fa_rotate_right));
     layout->addWidget(m_resetBtn);
 
     m_startBtn = new QPushButton(QStringLiteral("开始"), m_mapToolbar);
     m_startBtn->setObjectName(QStringLiteral("mapToolbarStart"));
     m_startBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    m_startBtn->setIconSize(QSize(12, 12));
+    m_startBtn->setIcon(flatIcon(fa::fa_play));
     layout->addWidget(m_startBtn);
 
     m_stopBtn = new QPushButton(QStringLiteral("结束"), m_mapToolbar);
     m_stopBtn->setObjectName(QStringLiteral("mapToolbarStop"));
     m_stopBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    m_stopBtn->setIconSize(QSize(12, 12));
+    m_stopBtn->setIcon(flatIcon(fa::fa_stop));
     layout->addWidget(m_stopBtn);
 
     layout->addSpacing(8);
@@ -283,24 +342,32 @@ void MainWindow::createMapToolbar()
     m_resetViewBtn->setObjectName(QStringLiteral("mapToolbarResetView"));
     m_resetViewBtn->setEnabled(false);
     m_resetViewBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    m_resetViewBtn->setIconSize(QSize(12, 12));
+    m_resetViewBtn->setIcon(flatIcon(fa::fa_expand));
     layout->addWidget(m_resetViewBtn);
 
     auto *layerBtn = new QPushButton(QStringLiteral("图层"), m_mapToolbar);
     layerBtn->setObjectName(QStringLiteral("mapToolbarLayer"));
     layerBtn->setEnabled(false);
     layerBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    layerBtn->setIconSize(QSize(12, 12));
+    layerBtn->setIcon(flatIcon(fa::fa_layer_group));
     layout->addWidget(layerBtn);
 
     auto *measureBtn = new QPushButton(QStringLiteral("测量"), m_mapToolbar);
     measureBtn->setObjectName(QStringLiteral("mapToolbarMeasure"));
     measureBtn->setEnabled(false);
     measureBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    measureBtn->setIconSize(QSize(12, 12));
+    measureBtn->setIcon(flatIcon(fa::fa_ruler));
     layout->addWidget(measureBtn);
 
     auto *pickCoordBtn = new QPushButton(QStringLiteral("坐标拾取"), m_mapToolbar);
     pickCoordBtn->setObjectName(QStringLiteral("mapToolbarPickCoord"));
     pickCoordBtn->setEnabled(false);
     pickCoordBtn->setProperty("btnVariant", QStringLiteral("flat"));
+    pickCoordBtn->setIconSize(QSize(12, 12));
+    pickCoordBtn->setIcon(flatIcon(fa::fa_location_crosshairs));
     layout->addWidget(pickCoordBtn);
 
     layout->addStretch();
@@ -909,6 +976,19 @@ void MainWindow::repositionFloatingWidgets()
         pipWidget->raise();
     }
 
+    // PiP 阴影层同步：仅常规模式（视频为浮窗）投影；交换模式下地图浮于原生
+    // 视频之上，底衬投影会被原生窗口遮挡，此轮不投影（design-system.md §9 已知限制）
+    if (m_pipShadowLayer != nullptr) {
+        if (pipWidget == m_videoPiP && m_pipVisible) {
+            m_pipShadowLayer->setGeometry(pipWidget->geometry());
+            m_pipShadowLayer->show();
+            m_pipShadowLayer->raise();
+            pipWidget->raise();
+        } else {
+            m_pipShadowLayer->hide();
+        }
+    }
+
     if (m_targetDetailOverlay != nullptr && m_targetDetailOverlay->isVisible()) {
         const int overlayW = m_targetDetailOverlay->width();
         const int overlayH = m_targetDetailOverlay->sizeHint().height();
@@ -916,7 +996,15 @@ void MainWindow::repositionFloatingWidgets()
                                              kPipMargin,
                                              overlayW,
                                              overlayH);
+        // 详情浮层阴影层：同几何跟随，先抬阴影层再抬浮层，保证浮层盖在投影之上
+        if (m_overlayShadowLayer != nullptr) {
+            m_overlayShadowLayer->setGeometry(m_targetDetailOverlay->geometry());
+            m_overlayShadowLayer->show();
+            m_overlayShadowLayer->raise();
+        }
         m_targetDetailOverlay->raise();
+    } else if (m_overlayShadowLayer != nullptr) {
+        m_overlayShadowLayer->hide();
     }
 }
 
@@ -924,6 +1012,13 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == m_mapContainer && event->type() == QEvent::Resize) {
         repositionFloatingWidgets();
+    }
+    // 详情浮层经关闭按钮/重置自行隐藏时不经过 repositionFloatingWidgets，
+    // 在 Hide 事件同步隐藏其阴影层，避免残留无面板的悬浮投影
+    if (watched == m_targetDetailOverlay && event->type() == QEvent::Hide) {
+        if (m_overlayShadowLayer != nullptr) {
+            m_overlayShadowLayer->hide();
+        }
     }
     return QMainWindow::eventFilter(watched, event);
 }
