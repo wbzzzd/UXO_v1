@@ -75,3 +75,6 @@ logs/
 # UI prototype npm dependencies (Playwright 等，本地安装不提交)
 docs/ui/prototypes/node_modules/
 docs/ui/prototypes/package-lock.json
+
+# 已废弃的 PatchCore 实验模型（2026-08-14，已被 patchcore_512.onnx 取代，全库零引用）
+assets/models/patchcore_128.onnx

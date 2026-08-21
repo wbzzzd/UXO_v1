@@ -3,7 +3,8 @@
 
 // 探测页：AI 自动检测工作区。
 // 三栏布局：左侧检测结果表(自动填充) + 中心证据查看器(干净原图) + 右侧异常热力图/目标详情/状态时间线。
-// 底部确认操作条：[确认] [拒绝] 人工二次校验，状态机 Detected -> Confirmed/Rejected。
+// 底部确认操作条：[确认] [拒绝] 人工二次校验，状态机 Detected -> Confirmed/Rejected；
+// [移除记录] 单项移除当前行（仅列表管理，不撤回已生成的目标与证据）。
 // 检测结果由 MainWindow 从 DetectionEngine 转发，本类不拥有 Engine。
 // 探测源标注"AI 分析"，与态势页遥测"模拟"标识区分（功能文档 §6.6）。
 
@@ -55,6 +56,7 @@ private slots:
     void onResultSelected(int row, int column);
     void onConfirmClicked();
     void onRejectClicked();
+    void onRemoveClicked();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -73,6 +75,7 @@ private:
     QSplitter *m_splitter;
     QPushButton *m_confirmBtn;
     QPushButton *m_rejectBtn;
+    QPushButton *m_removeBtn;
     QLabel *m_statusLabel;
     QLabel *m_summaryLabel;
     QLabel *m_detailLabel;

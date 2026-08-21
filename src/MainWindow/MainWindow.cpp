@@ -32,6 +32,8 @@
 #include <QCloseEvent>
 #include <QShowEvent>
 #include <QStackedWidget>
+#include <QCoreApplication>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QGraphicsDropShadowEffect>
@@ -157,7 +159,13 @@ void MainWindow::setupUi()
 
     // AI 检测引擎: 加载 ONNX 模型（createConnections 之后 error 信号已接线，
     // 失败时 initialize 返回 false 并 emit error -> 状态栏告警）
-    const QString modelsDir = QStringLiteral(DETECTION_ASSETS_DIR) + QStringLiteral("/models");
+    // 模型目录: 优先编译期源码树路径（开发期）；源码树不在时回退安装布局
+    // bin/../share/uxo/assets/models（对应根 CMakeLists 的 install 规则）
+    QString modelsDir = QStringLiteral(DETECTION_ASSETS_DIR) + QStringLiteral("/models");
+    if (!QFileInfo::exists(modelsDir + QStringLiteral("/patchcore_params.json"))) {
+        modelsDir = QCoreApplication::applicationDirPath()
+                        + QStringLiteral("/../share/uxo/assets/models");
+    }
     m_detectionEngine->initialize(modelsDir + QStringLiteral("/patchcore_512.onnx"),
                                   modelsDir + QStringLiteral("/yolov8_cls_224.onnx"),
                                   modelsDir + QStringLiteral("/patchcore_params.json"));

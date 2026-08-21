@@ -40,14 +40,14 @@ DemoScenario DemoScenarioProvider::create()
     // 公开接口只输出 DetectionResult{类型, 红框, 置信度}，不暴露时间点
     // 红框位置/尺寸为视频画面归一化坐标（0.0-1.0），基于视频帧分析标注
     scenario.detections = {
-        { 5000, TargetType::AntiRunwayMine, QStringLiteral("模拟反跑道雷"),
-            QPointF(0.20, 0.30), QSizeF(0.15, 0.20), 0.88},
-        {20000, TargetType::AirBomb, QStringLiteral("模拟航弹"),
-            QPointF(0.55, 0.20), QSizeF(0.18, 0.22), 0.82},
-        {40000, TargetType::ClusterBomb, QStringLiteral("模拟子母弹"),
-            QPointF(0.40, 0.55), QSizeF(0.20, 0.18), 0.79},
-        {65000, TargetType::IED, QStringLiteral("模拟简易爆炸装置"),
-            QPointF(0.15, 0.65), QSizeF(0.22, 0.15), 0.91},
+        {10000, TargetType::AntiRunwayMine, QStringLiteral("模拟反跑道雷"),
+            QPointF(0.347, 0.396), QSizeF(0.111, 0.111), 0.88},
+        {40000, TargetType::Mortar, QStringLiteral("模拟迫击炮弹"),
+            QPointF(0.340, 0.472), QSizeF(0.230, 0.170), 0.82},
+        {49000, TargetType::Projectile, QStringLiteral("模拟投射物"),
+            QPointF(0.428, 0.460), QSizeF(0.254, 0.064), 0.79},
+        {66000, TargetType::Rocket, QStringLiteral("模拟火箭弹"),
+            QPointF(0.308, 0.400), QSizeF(0.244, 0.055), 0.91},
     };
 
     // === 模拟设备（用于设备资源条显示）===

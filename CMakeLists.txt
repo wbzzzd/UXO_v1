@@ -41,6 +41,9 @@ set(SOURCES_DIR ${CMAKE_SOURCE_DIR}/src)
 
 # 构建期 RPATH: 让可执行文件在构建树中能找到 libonnxruntime.so（绝对路径注入，仅开发期用）
 set(CMAKE_BUILD_RPATH "${CMAKE_SOURCE_DIR}/third_party/onnxruntime/lib")
+# 安装期 RPATH: 安装版按 $ORIGIN/../lib 相对解析 onnxruntime。
+# 必须在 add_subdirectory 之前设置——该变量仅在目标创建时初始化 INSTALL_RPATH 属性
+set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
 
 # 第三方库：QtAwesome 字体图标（批次9 图标体系，来源与裁剪说明见其目录内 CMakeLists）
 add_subdirectory(third_party/QtAwesome)
@@ -50,6 +53,27 @@ add_subdirectory(src/Core)
 add_subdirectory(src/Detection)
 add_subdirectory(src/MainWindow)
 add_subdirectory(src/App)
+
+# ---- 安装规则（cmake --install）----
+# 布局: bin/UXOMissionControl + lib/onnxruntime + share/uxo/assets/models
+
+# onnxruntime: 取带版本号的真实库文件（跳过 .so / .so.1 符号链），
+# 按 SONAME(libonnxruntime.so.1) 安装，避免符号链被解引用成多份拷贝
+file(GLOB ONNXRUNTIME_VERSIONED_LIB
+    "${CMAKE_SOURCE_DIR}/third_party/onnxruntime/lib/libonnxruntime.so.*.*.*")
+install(FILES ${ONNXRUNTIME_VERSIONED_LIB}
+    RENAME libonnxruntime.so.1
+    DESTINATION lib)
+install(FILES
+    "${CMAKE_SOURCE_DIR}/third_party/onnxruntime/lib/libonnxruntime_providers_shared.so"
+    DESTINATION lib)
+
+# 运行时模型资产（不含已废弃的 patchcore_128.onnx 与 *.bak 实验备份）
+install(FILES
+    assets/models/patchcore_512.onnx
+    assets/models/yolov8_cls_224.onnx
+    assets/models/patchcore_params.json
+    DESTINATION share/uxo/assets/models)
 
 # 测试配置
 enable_testing()
