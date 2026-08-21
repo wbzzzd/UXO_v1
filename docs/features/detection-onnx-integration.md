@@ -1,7 +1,7 @@
 # UXO 检测算法嵌入
 
 状态：Implemented
-关联产品需求：REQ-009（requirements/REQ-009.md，Approved）
+关联产品需求：REQ-009（requirements/REQ-009.md）
 关联版本：待确认
 
 ## 1. 问题与目标
