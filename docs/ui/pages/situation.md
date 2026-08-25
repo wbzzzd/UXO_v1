@@ -430,23 +430,23 @@ CURRENT 中 `setSelectedCount` 是唯一显示入口，但目标表已移除复�
 
 | ID | 标签 | 类型 | 位置 | 用途 | 样式 | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
 |----|------|------|------|------|------|---------|------|---------|---------------|------|
-| `SIT-RP-FULLSCREEN` | 全 | QPushButton | 地图头右，24x24 | 全屏查看（CURRENT 占位） | 透明背景、`--color-text-secondary` 文本、16px；hover 白字 | 无连接（CURRENT 无槽） | Tab 聚焦，Enter 触发 | **禁用并标注“占位”**，附 tooltip“全屏功能未实现” | `RightPanelWidget.cpp` `mapFullscreenBtn` | 无 |
-| `SIT-RP-MAP` | - | SituationView（Qt3DWindow） | 地图头下方，弹性 | 三维机场场景与目标标记显示 | 背景天空色 `#87CEEB`（CURRENT `QForwardRenderer::setClearColor`）；容器背景 `--color-bg` | 鼠标拖拽旋转相机（`QOrbitCameraController`）；CURRENT 3D 标记**无拾取路径**：`targetClicked`/`targetDoubleClicked` 信号在 `SituationView.h` 声明、`RightPanelWidget` 转发、`MainWindow` 连接为 `qDebug`，但 `SituationView.cpp` 从未 `emit`，点击标记无响应 | - | 同 CURRENT：3D 标记仅渲染，不可交互；原型如需点击选中左表目标，属 HTML-only 增量，CURRENT 缺失 | `SituationView.h` 第 46-47 行信号声明；`RightPanelWidget.cpp` 第 108-109 行转发；`MainWindow.cpp` 第 270-273 行连接（仅 `qDebug`）；`SituationView.cpp` 无 `emit` | 仅本地相机操作，无设备控制 |
+| `SIT-RP-FULLSCREEN` | 全 | QPushButton | 地图头右，24x24 | 全屏查看（CURRENT 占位） | 透明背景、`--color-text-secondary` 文本、16px；hover 白字 | 无连接（CURRENT 无槽） | Tab 聚焦，Enter 触发 | **禁用并标注“占位”**，附 tooltip“全屏功能未实现”；原型无地图头，按钮置于三维视角工具条顶部（位置适配） | `RightPanelWidget.cpp` `mapFullscreenBtn` | 无 |
+| `SIT-RP-MAP` | - | SituationView（Qt3DWindow） | 地图头下方，弹性 | 三维机场场景与目标标记显示 | 背景天空色 `#87CEEB`（CURRENT `QForwardRenderer::setClearColor`）；容器背景 `--color-bg` | 鼠标拖拽旋转相机（`QOrbitCameraController`）；CURRENT 3D 标记**无拾取路径**：`targetClicked`/`targetDoubleClicked` 信号在 `SituationView.h` 声明、`RightPanelWidget` 转发、`MainWindow` 连接为 `qDebug`，但 `SituationView.cpp` 从未 `emit`，点击标记无响应 | - | 原型为 2D 战术地图承载此 ID（非 Qt3D）：目标标记可点击选中（HTML-only 增量，CURRENT 缺失）、设备标记可点击切换 PiP；无 3D 渲染 | `SituationView.h` 第 46-47 行信号声明；`RightPanelWidget.cpp` 第 108-109 行转发；`MainWindow.cpp` 第 270-273 行连接（仅 `qDebug`）；`SituationView.cpp` 无 `emit` | 仅本地相机操作，无设备控制 |
 
 目标标记为 `QCuboidMesh`，缩放 3.0。`TargetMarkerEntity` 构造时按 `target.threatLevel` 着色（高=`--color-threat-high`、中=`--color-threat-medium`、低=`--color-threat-low`、未知=`--color-text-disabled`），高亮时 specular 设为白色、shininess 128。**CURRENT 注意**：`SituationView::addTargetMarker`（`SituationView.cpp` 第 261-280 行）在创建 `TargetInfo` 时硬编码 `target.threatLevel = Core::ThreatLevel::Medium`，因此所有标记实际渲染为橙色，fixture 中的目标威胁等级不会传递到 3D 颜色。原型如需显示 fixture 真实威胁色，属 HTML-only 增量，CURRENT 缺失。
 
 #### 5.1.1 三维视图工具栏
 
-CURRENT 在 `SituationView` 右侧叠加一个 60px 宽的竖直工具栏，背景 `rgba(30,30,30,200)`，左边框 1px `#3D3D3D`。从上到下：标题“视角”+ 俯/侧/3D/复位 四按钮 + 缩放标签 + 位置标签 + 弹性留白。
+CURRENT 在 `SituationView` 右侧叠加一个 60px 宽的竖直工具栏，背景 `rgba(30,30,30,200)`，左边框 1px `#3D3D3D`。从上到下：标题“视角”+ 俯/侧/3D/复位 四按钮 + 缩放标签 + 位置标签 + 弹性留白。原型在 2D 战术地图右缘以相同样式通高放置该工具条，顶部含全屏占位按钮（见 §5.1 `SIT-RP-FULLSCREEN`）；地图右缘其余浮层（指北针/比例尺/视频小窗/目标详情浮层）右移避让（`right:16px`->`76px`，坐标角标 `right:4px`->`64px`）。
 
 | ID | 标签 | 尺寸 | 用途 | 样式 | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
 |----|------|------|------|------|---------|------|---------|---------------|------|
-| `SIT-RP-TOP` | 俯 | 40x28 | 切换俯视图 | 背景 `#0078D7`（CURRENT 蓝色字面量）、白字、12px；hover `#1984D8`；pressed `#005A9E` | 相机移至 `(target.x, 1500, target.z)`，viewCenter 设为 target | Tab 聚焦，Enter 触发 | 同 CURRENT | `SituationView.cpp` `btnTop`、`setCameraView("top")` | 仅本地相机 |
-| `SIT-RP-SIDE` | 侧 | 40x28 | 切换侧视图 | 背景 `#4A4A4A`、`#DDDDDD` 文本、1px `#5A5A5A` 边框；hover `#5A5A5A` | 相机移至 `(100, 200, target.z)` | 同上 | 同 CURRENT | `SituationView.cpp` `btnSide`、`setCameraView("side")` | 同上 |
-| `SIT-RP-3D` | 3D | 40x28 | 切换 3D 视角 | 同侧视样式 | 相机移至 `(target.x+500, 500, target.z+700)` | 同上 | 同 CURRENT | `SituationView.cpp` `btn3D`、`setCameraView("3d")` | 同上 |
-| `SIT-RP-RESET` | 复位 | 40x28 | 复位相机到默认 | 背景 `#D9534F`（CURRENT 红色字面量）、白字、11px；hover `#E74C3C` | 调 `m_sceneFactory->setupCamera` 复位 | 同上 | 同 CURRENT；与工具栏 `SIT-TB-RESET` 等价 | `SituationView.cpp` `btnReset`、`resetCameraView` | 同上 |
-| `SIT-RP-ZOOM` | 缩放: 100% | QLabel | 只读，20px 高 | `--color-text-disabled`，10px | 无 | 不可聚焦 | 同 CURRENT；相机移动时更新 | `SituationView.cpp` `m_zoomLabel`、`updateZoomLabel` | 无 |
-| `SIT-RP-POS` | X:n Y:n Z:n | QLabel | 只读，40px 高 | `#666666`（CURRENT 字面量），9px，自动换行 | 无 | 不可聚焦 | 同 CURRENT；显示相机坐标 | `SituationView.cpp` `m_positionLabel` | 无 |
+| `SIT-RP-TOP` | 俯 | 40x28 | 切换俯视图 | 背景 `#0078D7`（CURRENT 蓝色字面量）、白字、12px；hover `#1984D8`；pressed `#005A9E` | 相机移至 `(target.x, 1500, target.z)`，viewCenter 设为 target | Tab 聚焦，Enter 触发 | 原型 2D 地图模拟：点击切至俯视位姿 `(f.x,1500,f.y)`（f=选中目标或地图中心），联动更新缩放/位置标签；无真实 3D 场景 | `SituationView.cpp` `btnTop`、`setCameraView("top")` | 仅本地相机 |
+| `SIT-RP-SIDE` | 侧 | 40x28 | 切换侧视图 | 背景 `#4A4A4A`、`#DDDDDD` 文本、1px `#5A5A5A` 边框；hover `#5A5A5A` | 相机移至 `(100, 200, target.z)` | 同上 | 同 `SIT-RP-TOP`，切至侧视位姿 `(100,200,f.y)` | `SituationView.cpp` `btnSide`、`setCameraView("side")` | 同上 |
+| `SIT-RP-3D` | 3D | 40x28 | 切换 3D 视角 | 同侧视样式 | 相机移至 `(target.x+500, 500, target.z+700)` | 同上 | 同 `SIT-RP-TOP`，切至 3D 斜视位姿 `(f.x+500,500,f.y+700)` | `SituationView.cpp` `btn3D`、`setCameraView("3d")` | 同上 |
+| `SIT-RP-RESET` | 复位 | 40x28 | 复位相机到默认 | 背景 `#D9534F`（CURRENT 红色字面量）、白字、11px；hover `#E74C3C` | 调 `m_sceneFactory->setupCamera` 复位 | 同上 | 原型复位模拟相机与标签，并镜像 `SIT-TB-RESET` 的模拟复位（退出 PiP 主画面/隐藏详情浮层/清除选中/复位 PiP） | `SituationView.cpp` `btnReset`、`resetCameraView` | 同上 |
+| `SIT-RP-ZOOM` | 缩放: 100% | QLabel | 只读，20px 高 | `--color-text-disabled`，10px | 无 | 不可聚焦 | 原型显示模拟缩放（按相机高度折算，600m=100%），视角切换/复位时更新 | `SituationView.cpp` `m_zoomLabel`、`updateZoomLabel` | 无 |
+| `SIT-RP-POS` | X:n Y:n Z:n | QLabel | 只读，40px 高 | `#666666`（CURRENT 字面量），9px，自动换行 | 无 | 不可聚焦 | 原型显示模拟相机坐标 X/Y/Z，视角切换/复位时更新 | `SituationView.cpp` `m_positionLabel` | 无 |
 
 ### 5.2 模拟设备状态（只读）
 
@@ -654,22 +654,22 @@ CURRENT 在 1280x720 下决策面板末两行（指派设备、模拟声明）�
 
 | 页面元素 | CURRENT 源码位置 |
 |---------|------------------|
-| 左面板构造 | `LeftPanelWidget.cpp` `setupUi`（第 65-194 行） |
-| 目标表填充 | `LeftPanelWidget.cpp` `populateTargetList`（第 314-348 行） |
-| 任务表填充 | `LeftPanelWidget.cpp` `populateMissionList`、`updateStatusTabs`（第 350-417 行） |
-| 设备表填充 | `LeftPanelWidget.cpp` `populateDeviceList`（第 419-454 行） |
-| 搜索过滤 | `LeftPanelWidget.cpp` `onSearchTextChanged`（第 501-514 行） |
-| 刷新请求 | `LeftPanelWidget.cpp` `onRefreshTargets`（第 492-495 行） |
-| 告警面板 | `AlertPanel.cpp` 全文 |
-| 探测控制面板 | `DetectionControlPanel.cpp` 全文 |
-| 批量操作条 | `BatchOperationBar.cpp` 全文 |
-| 右面板构造 | `RightPanelWidget.cpp` `setupUi`（第 26-110 行） |
-| 三维视图 | `SituationView.cpp` 全文 |
-| 设备状态面板 | `DeviceStatusPanel.cpp` 全文 |
-| 决策建议面板 | `DecisionSuggestionPanel.cpp` 全文 |
-| 模拟数据注入 | `MainWindow.cpp` `loadMockData`（第 290-347 行） |
-| 目标选择槽 | `MainWindow.cpp` `onTargetSelected`（第 354-364 行） |
-| 模拟处置槽 | `MainWindow.cpp` `requestSelectedTargetStatus`（第 398-412 行） |
+| 左面板构造 | `LeftPanelWidget.cpp` `setupUi`（第 72-200 行） |
+| 目标表填充 | `LeftPanelWidget.cpp` `populateTargetList`（第 276-285 行；逐行构造见 `appendTargetRow` 第 312-347 行） |
+| 任务表填充 | `LeftPanelWidget.cpp` `populateMissionList` 不存在（未实现）；状态页签统计 `updateStatusTabs`（第 288-310 行） |
+| 设备表填充 | `LeftPanelWidget.cpp` `populateDeviceList` 不存在（未实现） |
+| 搜索过滤 | `LeftPanelWidget.cpp` `onSearchTextChanged`（第 440-453 行） |
+| 刷新请求 | `LeftPanelWidget.cpp` `onRefreshTargets`（第 435-438 行） |
+| 告警面板 | `AlertPanel.cpp` 全文（未被任何窗口实例化） |
+| 探测控制面板 | `DetectionControlPanel.cpp` 全文（未被任何窗口实例化） |
+| 批量操作条 | `BatchOperationBar.cpp` 全文（未被任何窗口实例化） |
+| 右面板构造 | `RightPanelWidget.cpp` `setupUi`（第 26-112 行；`RightPanelWidget` 未被主窗口实例化） |
+| 三维视图 | `SituationView.cpp` 全文（仅 `RightPanelWidget.cpp` 第 72 行内部创建，未挂接主窗口） |
+| 设备状态面板 | `DeviceStatusPanel.cpp` 全文（仅 `RightPanelWidget.cpp` 第 82 行内部创建，未挂接主窗口） |
+| 决策建议面板 | `DecisionSuggestionPanel.cpp` 全文（仅 `RightPanelWidget.cpp` 第 92 行内部创建，未挂接主窗口） |
+| 模拟数据注入 | `MainWindow.cpp` `loadMockData`（第 493-538 行） |
+| 目标选择槽 | `MainWindow.cpp` `onSelectTargetEverywhere`（第 659-688 行；信号连接见第 436、461 行） |
+| 模拟处置槽 | `SimulationWorkflow.cpp` `requestSelectedTargetStatus`（第 61-110 行；`MainWindow.cpp` 第 858 行调用） |
 | 数据类型枚举 | `Types.h`（TargetType/ThreatLevel/TargetStatus/MissionStatus/DeviceStatus/AlarmLevel） |
 
 ## 12. SIT-* ID 索引
