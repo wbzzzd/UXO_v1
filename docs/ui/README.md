@@ -44,9 +44,9 @@
 | `pages/index.md` | 六页一览表，每页一段：定位、关键区域、控件 ID 前缀、截图路径、原型路径 |
 | `pages/situation.md` | 态势页面完整设计契约、逐控件 `SIT-*` 清单、状态、交互、安全与 CURRENT 对照（详细样板） |
 | `prototypes/<page>/index.html` | 各页 HTML 原型（内联 CSS+JS，单文件，本地模拟 fixture）；六页目录平级，每目录仅含 `index.html` |
-| `images/<page>/overview-1920x1080.png` | 各页 1920×1080 权威整体设计图 |
+| `images/<page>/overview-<宽x高>.png` | 各页整体设计图，三视口各一张：overview-1920x1080.png（权威）、overview-1280x720.png、overview-3840x2160.png |
 | `prototypes/assets/fa-solid-900.otf` | Font Awesome 7 Free Solid 字体（vendored 自 `third_party/QtAwesome`，六页原型 `@font-face` 以相对路径 `../assets/` 引用） |
-| `prototypes/screenshot.js` | Playwright 截图脚本（参数化，`node screenshot.js [page]`，无参数跑全部六页） |
+| `prototypes/screenshot.js` | Playwright 截图脚本（参数化，`node screenshot.js [page] [宽x高]`；省略页面跑全部六页，省略视口默认 1920x1080） |
 | `prototypes/package.json` | 原型工具链 npm 配置（依赖 playwright，本地安装不提交） |
 
 ## 4. 阅读顺序
@@ -78,7 +78,7 @@ HTML 原型已通过 GitHub Pages 托管，无需 clone 仓库，点击下方链
 | 统计 | https://wbzzzd.github.io/UXO_v1/ui/prototypes/statistics/index.html |
 | 配置 | https://wbzzzd.github.io/UXO_v1/ui/prototypes/configuration/index.html |
 
-静态截图见 `images/<page>/overview-1920x1080.png`，逐控件规格见 `pages/<page>.md`。本地开发时也可直接用浏览器打开 `prototypes/<page>/index.html`。
+静态截图见 `images/<page>/overview-<宽x高>.png`（1920×1080 权威版与 1280×720、3840×2160 辅助版），逐控件规格见 `pages/<page>.md`。原型为固定 1920×1080 设计画布，无响应式缩放，1280×720 与 3840×2160 下的实际表现见第 7 节。本地开发时也可直接用浏览器打开 `prototypes/<page>/index.html`。
 
 ## 5. 安全边界
 
@@ -126,12 +126,14 @@ HTML 原型已通过 GitHub Pages 托管，无需 clone 仓库，点击下方链
 
 CURRENT 在 1280×720 下态势页右面板旧 `DecisionSuggestionPanel` 仍存在约 5px 底部溢出（见 `UI.md` 第 3 节已知问题）。该问题属于态势页壳，与决策页 `DecisionView` 无关：`DecisionView` 三视口（1280×720/1920×1080/3840×2160）几何 TSV 全部 `overflow_rows=0`，证据见 `.omo/evidence/mos-p0-qt-final/REPORT.md`。TARGET 将态势页溢出纳入设计修正目标。
 
+HTML 原型是固定 1920×1080 设计画布，未实现上表三视口规则中的缩放与密度适配（该规则是 Qt 实现阶段的目标，原型阶段以 1920×1080 为准）。三视口截图实测：1280×720 下内容按原尺寸从右、下直接裁切，右侧约 640px（含态势页右缘工具条、各页右侧面板）与底部约 360px（含状态栏）不可见；3840×2160 下内容保持原尺寸锚定左上角，右侧约 1920px、下方约 1080px 为深色留空。三视口截图仅如实记录该现状，不构成"最小可用"或"4K 适配"达标的证据。
+
 ## 8. 后续任务
 
 本目录当前交付到"六页 HTML 原型+截图+六页详细控件清单"为止。后续未完成任务（不属本轮交付）：
 
 - 为六页 HTML 原型补齐 Playwright 契约测试。
-- 完成 1280×720 与 3840×2160 两视口的截图与验证（当前只交付 1920×1080）。
+- 让六页 HTML 原型达到三视口规则（三视口截图已交付并如实记录现状：固定 1920×1080 画布，1280×720 裁切右/下，3840×2160 左上锚定留空，见第 7 节）。
 
 ## 9. 维护规则
 
@@ -149,7 +151,7 @@ CURRENT 在 1280×720 下态势页右面板旧 `DecisionSuggestionPanel` 仍存�
 | 修改颜色/字体/间距/动画 token | `design-system.md` 的 token 表 |
 | 修改导航栏/菜单栏/工具栏/状态栏 | `application-shell.md` 对应章节 |
 | 新增页面 | `README.md` 范围表、`pages/index.md` 总览表 |
-| 修改页面截图或重新截图 | 确认截图与原型一致，无需改文档 |
+| 修改页面截图或重新截图 | 确认截图与原型一致；若三视口裁切/留白行为变化，同步更新 `README.md` 第 7 节现状说明 |
 
 ### 9.2 同步更新流程
 
@@ -157,7 +159,7 @@ CURRENT 在 1280×720 下态势页右面板旧 `DecisionSuggestionPanel` 仍存�
 2. 再改对应 `pages/<page>.md` 的控件规格、ID 索引、状态规则。
 3. 如涉及共用元素（导航、菜单、工具栏、状态栏、token），再改 `application-shell.md` 或 `design-system.md`。
 4. 如涉及页面增减或关键区域变化，再改 `pages/index.md` 和 `README.md`。
-5. 运行 `node prototypes/screenshot.js <page>` 重新生成截图。
+5. 运行 `node prototypes/screenshot.js <page>` 重新生成 1920×1080 权威截图；如需更新三视口记录，再以 `node prototypes/screenshot.js <page> 1280x720`、`node prototypes/screenshot.js <page> 3840x2160` 补拍。
 6. 检查所有 `data-testid` 与文档 ID 索引一一对应。
 
 ### 9.3 禁止事项
