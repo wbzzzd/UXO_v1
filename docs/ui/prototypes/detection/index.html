@@ -18,12 +18,18 @@
   --font-weight-title:bold;--font-weight-body:normal;
   --size-nav-width:80px;--size-left-panel-width:360px;--size-right-panel-width:380px;
   --size-status-bar-height:22px;--size-toolbar-height:32px;--size-menu-bar-height:30px;
+  /* 探测页专用尺寸（镜像 CURRENT DetectionView：顶栏/底部操作条/中栏最小宽，见 src/MainWindow/DetectionView.cpp） */
+  --size-topbar-height:32px;--size-actionbar-height:44px;--size-center-min-width:400px;
   --size-button-min-width:80px;--size-button-height:32px;--size-icon-button:24px;--size-toolbar-button-height:32px;
   --space-button-pad-y:7px;--space-button-pad-x:16px;--space-input-pad-y:6px;--space-input-pad-x:8px;
   --space-tab-pad-y:8px;--space-tab-pad-x:16px;--space-table-item-pad:8px;--space-toolbar-gap:8px;--space-toolbar-pad:8px;
   --radius-control:6px;--radius-scroll-handle:5px;--size-checkbox:16px;--size-scrollbar:10px;--min-scroll-handle:30px;
   --anim-short:150ms;--anim-normal:200ms;--anim-long:300ms;--anim-easing:ease-in-out;
+  /* 图标 token（design-system.md §3.2/§9；FA 字形与 Qt QtAwesome 对齐） */
+  --size-icon-nav:16px;--size-icon-action:12px;
 }
+/* Font Awesome 7 Solid：与 Qt 侧 QtAwesome 同源（third_party 字体 vendored 至 prototypes/assets/）；图标仅作辅助识别，不作唯一信息载体 */
+@font-face{font-family:"Font Awesome 7 Free";src:url("../assets/fa-solid-900.otf") format("opentype");font-weight:900;font-style:normal;font-display:block;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-family)}
 html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body);font-weight:var(--font-weight-body)}
 button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;font-size:inherit}
@@ -35,24 +41,25 @@ button:disabled{cursor:not-allowed}
 
 .app{display:flex;flex-direction:column;width:1920px;height:1080px}
 
-/* 菜单栏 */
+/* ============ 菜单栏（沿用 application-shell.md §4，与态势页一致） ============ */
 .menu-bar{height:var(--size-menu-bar-height);background:var(--color-menu);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 4px}
 .menu-bar button{padding:6px 12px;font-size:var(--font-size-body);color:var(--color-text-primary);background:transparent;border-radius:0;transition:background var(--anim-short) var(--anim-easing)}
 .menu-bar button:hover{background:var(--color-border)}
 .menu-bar button[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
 .menu-bar button[data-disabled="true"]:hover{background:transparent}
 
-/* 工具栏 */
-.toolbar{height:var(--size-toolbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:var(--space-toolbar-gap);padding:0 var(--space-toolbar-pad)}
-.toolbar .tb-label{color:var(--color-text-secondary);font-size:var(--font-size-caption);padding:4px}
-.toolbar .tb-label[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
-.toolbar .tb-btn{padding:4px 8px;color:var(--color-text-secondary);font-size:var(--font-size-caption);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control);transition:all var(--anim-short) var(--anim-easing)}
-.toolbar .tb-btn:hover{background:var(--color-border);color:var(--color-text-primary)}
+/* ============ 顶栏（镜像 CURRENT DetectionView m_topBar：AI 检测开关 + 帧统计文本） ============ */
+.det-topbar{height:var(--size-topbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:12px;padding:0 12px}
+.ai-toggle{padding:3px 12px;font-size:var(--font-size-caption);font-weight:bold;color:var(--color-text-secondary);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control);transition:all var(--anim-short) var(--anim-easing)}
+.ai-toggle:hover{border-color:var(--color-border-focus);color:var(--color-text-primary)}
+/* 开关激活态（镜像 CURRENT m_aiCheckBox 默认勾选） */
+.ai-toggle.active{background:var(--color-primary);border-color:var(--color-primary);color:var(--color-text-primary)}
+.topbar-summary{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
 
-/* 主区域 */
+/* ============ 主区域 ============ */
 .main-area{flex:1;display:flex;overflow:hidden}
 
-/* 导航栏 */
+/* ============ 导航栏（沿用 application-shell.md §3，与态势页一致；01/03 为真实链接路由） ============ */
 .nav-bar{width:var(--size-nav-width);background:var(--color-bg);border-right:1px solid var(--color-border);display:flex;flex-direction:column;align-items:stretch}
 .nav-logo{height:40px;display:flex;align-items:center;justify-content:center;color:var(--color-primary);font-size:18px;font-weight:bold;letter-spacing:2px}
 .nav-spacer-1{height:16px}
@@ -60,140 +67,107 @@ button:disabled{cursor:not-allowed}
 .nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
 .nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
 .nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
-.nav-item .nav-icon{font-size:18px;line-height:1}
+/* 已实现页面的导航项为真实链接（<a>），去掉默认下划线 */
+a.nav-item{text-decoration:none}
+/* 导航图标（fa 字形，--size-icon-nav），与 Qt 导航栏 QtAwesome 图标对齐 */
+.nav-item .nav-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-nav);line-height:1}
 .nav-spacer-2{flex:1}
 
-/* 左面板 */
-.left-panel{width:var(--size-left-panel-width);background:var(--color-panel);padding:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
-.search-toolbar{background:var(--color-toolbar);border-radius:var(--radius-control);padding:8px 6px;display:flex;gap:8px;align-items:center}
-.search-input{flex:1;height:28px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:0 8px;color:var(--color-text-primary);font-size:var(--font-size-body)}
-.search-input:focus{outline:none;border-color:var(--color-border-focus)}
-.search-input::placeholder{color:var(--color-text-disabled)}
-.btn-icon{width:50px;height:28px;font-size:var(--font-size-caption);background:var(--color-toolbar);color:var(--color-text-secondary);border:1px solid var(--color-border);border-radius:var(--radius-control)}
-.btn-icon:hover{background:var(--color-border);color:var(--color-text-primary)}
-.btn-primary{height:28px;padding:0 12px;font-size:var(--font-size-caption);background:var(--color-primary);color:var(--color-text-primary);border:none;border-radius:var(--radius-control)}
-.btn-primary:hover{background:var(--color-primary-hover)}
-
-/* 筛选器组 */
-.filter-group{background:var(--color-toolbar);border-radius:var(--radius-control);padding:8px 6px;display:flex;flex-direction:column;gap:6px}
-.filter-row{display:flex;align-items:center;gap:6px}
-.filter-label{width:52px;color:var(--color-text-secondary);font-size:var(--font-size-caption);flex-shrink:0}
-.filter-chips{display:flex;flex-wrap:wrap;gap:4px}
-.chip{padding:3px 8px;font-size:11px;background:var(--color-bg);color:var(--color-text-secondary);border:1px solid var(--color-border);border-radius:10px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing)}
-.chip:hover{background:var(--color-border);color:var(--color-text-primary)}
-.chip.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
-.chip.threat-high.active{background:var(--color-threat-high);border-color:var(--color-threat-high)}
-.chip.threat-medium.active{background:var(--color-threat-medium);color:#000;border-color:var(--color-threat-medium)}
-.chip.threat-low.active{background:var(--color-threat-low);color:#000;border-color:var(--color-threat-low)}
-
-/* 表格 */
-.table-widget{flex:1;display:flex;flex-direction:column;background:var(--color-panel);overflow:hidden;border:1px solid var(--color-border);border-radius:var(--radius-control)}
-.table-header-bar{height:32px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;gap:8px}
-.table-header-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
-.table-header-count{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
-.table-sort-btn{padding:2px 6px;font-size:11px;color:var(--color-text-secondary);background:transparent;border:1px solid var(--color-border);border-radius:3px;cursor:pointer}
-.table-sort-btn:hover{background:var(--color-border)}
-.table-sort-btn.active{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
-.table-content{flex:1;overflow:auto}
+/* ============ 左侧结果面板（镜像 CURRENT DetectionView m_targetTable：7 列结果表） ============ */
+.results-panel{width:var(--size-left-panel-width);background:var(--color-panel);display:flex;flex-direction:column;overflow:hidden}
+.panel-header{height:32px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;flex-shrink:0}
+.panel-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
+.table-wrap{flex:1;position:relative;overflow:auto}
 .data-table{width:100%;border-collapse:collapse;font-size:var(--font-size-caption)}
-.data-table th{background:var(--color-toolbar);color:var(--color-text-primary);padding:6px 4px;text-align:left;border-bottom:1px solid var(--color-border);font-weight:normal;position:sticky;top:0;cursor:pointer}
-.data-table th:hover{background:var(--color-border)}
-.data-table th .sort-arrow{font-size:9px;margin-left:2px;color:var(--color-text-disabled)}
-.data-table th.sorted .sort-arrow{color:var(--color-primary)}
-.data-table td{padding:6px 8px;border-bottom:1px solid var(--color-border);color:var(--color-text-primary)}
-.data-table tbody tr{height:36px;cursor:pointer}
+.data-table th{background:var(--color-toolbar);color:var(--color-text-primary);padding:6px 4px;text-align:left;border-bottom:1px solid var(--color-border);font-weight:normal;position:sticky;top:0;white-space:nowrap}
+.data-table td{padding:6px 8px;border-bottom:1px solid var(--color-border);color:var(--color-text-primary);white-space:nowrap}
+.data-table tbody tr{height:32px;cursor:pointer;transition:background var(--anim-short) var(--anim-easing)}
 .data-table tbody tr:hover{background:var(--color-row-hover)}
 .data-table tbody tr.selected{background:var(--color-selection)}
-.data-table tbody tr:nth-child(even){background:var(--color-panel)}
-.data-table tbody tr:nth-child(even):hover{background:var(--color-row-hover)}
-.data-table tbody tr:nth-child(even).selected{background:var(--color-selection)}
-.threat-tag{padding:1px 6px;border-radius:3px;font-size:10px;font-weight:bold}
-.threat-tag.high{background:rgba(255,82,82,0.2);color:var(--color-threat-high)}
-.threat-tag.medium{background:rgba(255,183,77,0.2);color:var(--color-threat-medium)}
-.threat-tag.low{background:rgba(255,241,118,0.2);color:var(--color-threat-low)}
-.status-tag{padding:1px 6px;border-radius:3px;font-size:10px}
-.status-tag.detected{background:rgba(255,183,77,0.15);color:var(--color-threat-medium)}
-.status-tag.confirmed{background:rgba(74,122,76,0.2);color:var(--color-primary)}
-.status-tag.disposing{background:rgba(255,82,82,0.15);color:var(--color-threat-high)}
-.status-tag.disposed{background:rgba(136,136,136,0.15);color:var(--color-text-disabled)}
+/* 表空态遮罩（镜像 CURRENT 空表提示"等待检测结果"） */
+.table-empty{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;color:var(--color-text-secondary);font-size:var(--font-size-caption)}
 
-/* 中心区 */
-.center-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* ============ 中心区（镜像 CURRENT DetectionView：视频帧画面 + 分类文本条） ============ */
+.center-area{flex:1;min-width:var(--size-center-min-width);display:flex;flex-direction:column;gap:8px;padding:8px;overflow:hidden}
+/* 视频画面（镜像 CURRENT m_videoLabel 显示视频帧；视觉沿用态势页 PiP 视频区） */
+.det-viewer{flex:1;position:relative;background:linear-gradient(135deg,#1a2a1a 0%,#2a3a2a 50%,#1a2a1a 100%);border:1px solid var(--color-border);border-radius:var(--radius-control);overflow:hidden}
+.viewer-frame-lines{position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,0.02) 0 2px,transparent 2px 4px)}
+.viewer-crosshair{position:absolute;left:50%;top:50%;width:40px;height:40px;transform:translate(-50%,-50%);pointer-events:none}
+.viewer-crosshair::before,.viewer-crosshair::after{content:'';position:absolute;background:rgba(255,255,255,0.5)}
+.viewer-crosshair::before{left:50%;top:0;bottom:0;width:1px;transform:translateX(-50%)}
+.viewer-crosshair::after{top:50%;left:0;right:0;height:1px;transform:translateY(-50%)}
+/* 录制指示（REC 闪烁） */
+.rec-indicator{position:absolute;top:6px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px;font-size:10px;color:var(--color-danger);font-weight:bold;pointer-events:none}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:var(--color-danger);animation:rec-blink 1.2s ease-in-out infinite}
+@keyframes rec-blink{0%,100%{opacity:1}50%{opacity:0.3}}
+/* 帧时间码（右下角，镜像 CURRENT 视频时间显示） */
+.viewer-time{position:absolute;right:8px;bottom:6px;font-family:monospace;font-size:12px;color:rgba(255,255,255,0.85);pointer-events:none}
+/* 目标检测红框（仅异常帧显示，标签取自 data-label 属性） */
+.detection-box{position:absolute;left:34%;top:28%;width:180px;height:120px;border:2px solid var(--color-threat-high);animation:detect-blink 1s ease-in-out infinite;pointer-events:none}
+.detection-box::after{content:attr(data-label);position:absolute;top:-18px;left:0;font-size:11px;color:var(--color-threat-high);font-family:monospace;white-space:nowrap}
+@keyframes detect-blink{0%,100%{opacity:1}50%{opacity:0.3}}
+/* 空态遮罩（镜像 CURRENT showEmptyState"等待检测结果"） */
+.viewer-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--color-text-secondary);font-size:var(--font-size-body);background:rgba(30,30,30,0.6)}
+/* 分类文本条（镜像 CURRENT m_top3ClassificationText："分类: X xx%  |  Y yy%  |  Z zz%"） */
+.det-class-bar{height:var(--size-toolbar-height);background:var(--color-toolbar);border:1px solid var(--color-border);border-radius:var(--radius-control);display:flex;align-items:center;padding:0 12px;flex-shrink:0}
+.det-class-text{color:var(--color-text-primary);font-size:var(--font-size-caption);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* 证据 Tab 区 */
-.evidence-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--color-bg)}
-.evidence-header{height:36px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 12px;gap:12px}
-.evidence-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
-.evidence-target{color:var(--color-text-secondary);font-size:var(--font-size-caption)}
-.evidence-tab-bar{display:flex;border-bottom:1px solid var(--color-border);background:var(--color-toolbar)}
-.evidence-tab{padding:8px 20px;font-size:var(--font-size-body);color:var(--color-text-secondary);background:transparent;border-bottom:2px solid transparent;cursor:pointer;transition:all var(--anim-short) var(--anim-easing)}
-.evidence-tab:hover{background:var(--color-border);color:var(--color-text-primary)}
-.evidence-tab.selected{background:var(--color-bg);color:var(--color-text-primary);border-bottom-color:var(--color-primary)}
-.evidence-tab:focus-visible{outline:2px solid var(--color-border-focus);outline-offset:-2px}
-.evidence-content{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
-
-/* 证据卡片 */
-.evidence-card{background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:12px;display:flex;flex-direction:column;gap:8px}
-.evidence-card-header{display:flex;align-items:center;gap:8px}
-.evidence-card-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
-.evidence-card-source{color:var(--color-text-secondary);font-size:var(--font-size-caption);margin-left:auto}
-.evidence-card-body{color:var(--color-text-secondary);font-size:var(--font-size-caption);line-height:1.6}
-.evidence-card-meta{display:flex;gap:16px;font-size:11px;color:var(--color-text-disabled)}
-.evidence-card-meta span{display:flex;align-items:center;gap:4px}
-
-/* 确认控制 */
-.confirm-bar{height:56px;background:var(--color-toolbar);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:16px}
-.confirm-info{color:var(--color-text-primary);font-size:var(--font-size-body)}
-.confirm-info .sim-label{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold;margin-right:8px}
-.confirm-btn{height:36px;padding:0 20px;font-size:var(--font-size-body);background:var(--color-primary);color:var(--color-text-primary);border:none;border-radius:var(--radius-control);transition:background var(--anim-short) var(--anim-easing)}
-.confirm-btn:hover:not(:disabled){background:var(--color-primary-hover)}
-.confirm-btn:disabled{background:var(--color-border);color:var(--color-text-disabled)}
-.confirm-reject-msg{color:var(--color-danger);font-size:var(--font-size-caption);flex:1}
-
-/* 右面板 */
+/* ============ 右面板（镜像 CURRENT DetectionView 右侧：详情/热力图/时间线三段） ============ */
 .right-panel{width:var(--size-right-panel-width);background:var(--color-panel);display:flex;flex-direction:column;overflow:hidden}
 .rp-section{display:flex;flex-direction:column;overflow:hidden}
-.rp-section-header{height:32px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;gap:8px}
+.rp-section-header{height:32px;background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 8px;flex-shrink:0}
 .rp-section-title{flex:1;font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold}
 .rp-section.detail{flex:3}
-.rp-section.history{flex:2}
+.rp-section.heatmap{flex:2}
+.rp-section.timeline{flex:2}
 .rp-section-content{flex:1;overflow:auto;padding:8px}
+/* 热力图段内容不加内边距，由画布自带边距 */
+.rp-section-content.no-pad{display:flex;padding:0}
+/* 目标详情键值行（镜像 CURRENT populateDetail 8 行） */
+.kv-row{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;font-size:var(--font-size-caption)}
+.kv-label{width:80px;flex-shrink:0;color:var(--color-text-secondary)}
+.kv-value{color:var(--color-text-primary)}
+.kv-value.danger{color:var(--color-danger);font-weight:bold}
+/* 异常热力图（仅异常帧有热斑数据；模拟热斑） */
+.heatmap-canvas{flex:1;position:relative;margin:8px;background:var(--color-bg);border:1px solid var(--color-border);overflow:hidden}
+.heatmap-hot{position:absolute;border-radius:50%;filter:blur(6px);pointer-events:none}
+.heatmap-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--color-text-secondary);font-size:var(--font-size-caption);background:var(--color-bg)}
+/* 状态时间线（镜像 CURRENT populateTimeline：纯文本行"HH:mm:ss  事件"） */
+.timeline-entry{color:var(--color-text-primary);font-size:var(--font-size-caption);line-height:1.6;white-space:pre-wrap}
 
-/* 目标详情 */
-.detail-field{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
-.detail-label{color:var(--color-text-secondary);font-size:11px}
-.detail-value{color:var(--color-text-primary);font-size:var(--font-size-body)}
-.detail-value.highlight{color:var(--color-primary);font-weight:bold}
+/* ============ 底部操作条（镜像 CURRENT DetectionView m_actionBar：确认/拒绝/移除 + 状态文本） ============ */
+.det-actionbar{height:var(--size-actionbar-height);background:var(--color-toolbar);border-top:1px solid var(--color-border);display:flex;align-items:center;gap:12px;padding:0 16px;flex-shrink:0}
+.act-btn{height:30px;padding:0 16px;font-size:var(--font-size-caption);border-radius:var(--radius-control);transition:all var(--anim-short) var(--anim-easing)}
+/* 主按钮（确认）：镜像 CURRENT GlobalStyle::getButtonStyle(true) */
+.act-btn.primary{background:var(--color-primary);color:var(--color-text-primary)}
+.act-btn.primary:hover:not(:disabled){background:var(--color-primary-hover)}
+.act-btn.primary:disabled{background:var(--color-border);color:var(--color-text-disabled)}
+/* 次级按钮（拒绝/移除）：镜像 CURRENT GlobalStyle::getButtonStyle(false) */
+.act-btn.secondary{background:transparent;border:1px solid var(--color-border);color:var(--color-text-primary)}
+.act-btn.secondary:hover:not(:disabled){background:var(--color-border)}
+.act-btn.secondary:disabled{color:var(--color-text-disabled);cursor:not-allowed}
+/* 状态文本（镜像 CURRENT m_statusLabel："当前目标: X · 状态: Y"，12px 次要色） */
+.action-status{flex:1;text-align:right;font-size:12px;color:var(--color-text-secondary)}
 
-/* 历史状态时间线 */
-.timeline{display:flex;flex-direction:column;gap:8px}
-.timeline-item{display:flex;gap:8px;align-items:flex-start}
-.timeline-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:2px}
-.timeline-dot.detected{background:var(--color-threat-medium)}
-.timeline-dot.confirmed{background:var(--color-primary)}
-.timeline-dot.disposing{background:var(--color-threat-high)}
-.timeline-dot.disposed{background:var(--color-text-disabled)}
-.timeline-line{width:2px;flex-shrink:0;background:var(--color-border);margin-left:5px;flex:1;min-height:20px}
-.timeline-content{flex:1}
-.timeline-time{color:var(--color-text-disabled);font-size:10px}
-.timeline-label{color:var(--color-text-primary);font-size:var(--font-size-caption)}
-
-/* 状态栏 */
-.status-bar{height:28px;background:var(--color-bg);border-top:1px solid var(--color-border);display:flex;align-items:center;padding:0 16px;gap:16px}
-.status-label{color:var(--color-text-primary);font-size:var(--font-size-caption)}
-.status-sim{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
-.status-separator{width:1px;height:18px;background:var(--color-border)}
-.status-alarm{flex:1;min-width:400px;height:18px;overflow:hidden;display:flex;align-items:center}
-.status-alarm-item{height:18px;color:var(--color-status-busy);font-size:var(--font-size-caption);background:var(--color-toolbar);padding:2px 8px;border-radius:var(--radius-control);margin-right:10px;white-space:nowrap}
-.emergency-btn{width:80px;height:20px;font-size:11px;font-weight:bold;background:var(--color-danger);color:var(--color-text-primary);border:none;border-radius:3px}
-.emergency-btn:disabled{background:var(--color-border);color:var(--color-text-disabled);cursor:not-allowed}
-.sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
+/* ============ 状态栏（镜像 CURRENT StatusBarWidget 绿色主色条，与态势页一致） ============ */
+.status-bar{height:var(--size-status-bar-height);background:var(--color-primary);display:flex;align-items:center;padding:0 8px;gap:8px;font-size:var(--font-size-caption);color:var(--color-text-primary)}
+.status-label{white-space:nowrap}
+.status-separator{width:1px;height:14px;background:rgba(255,255,255,0.3)}
+.status-sim{background:rgba(0,0,0,0.3);padding:1px 6px;border-radius:var(--radius-control);font-weight:bold}
+.status-alarm{flex:1;overflow:hidden;position:relative;height:100%;display:flex;align-items:center}
+.status-alarm-track{display:flex;gap:32px;white-space:nowrap;animation:alarm-scroll 18s linear infinite}
+.status-alarm-item{color:var(--color-text-primary)}
+@keyframes alarm-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.emergency-btn{height:18px;padding:0 8px;font-size:11px;background:var(--color-danger);color:var(--color-text-primary);border-radius:var(--radius-control);font-weight:bold}
+.emergency-btn:disabled{background:var(--color-text-disabled);cursor:not-allowed}
+/* 急停图标（fa-hand f256，--size-icon-action）：随按钮文本色渲染，禁用态同色；恒禁用占位 */
+.emergency-btn .em-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-action);line-height:1;margin-right:3px}
 </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- 菜单栏 -->
+  <!-- ============ 菜单栏 ============ -->
   <div class="menu-bar">
     <button data-testid="DET-MENU-FILE">文件(&amp;F)</button>
     <button data-testid="DET-MENU-VIEW">视图(&amp;V)</button>
@@ -201,386 +175,379 @@ button:disabled{cursor:not-allowed}
     <button data-testid="DET-MENU-HELP">帮助(&amp;H)</button>
   </div>
 
-  <!-- 工具栏 -->
-  <div class="toolbar">
-    <span class="tb-label" data-disabled="true" title="占位控件，未实现" data-testid="DET-TB-EXPORT">导出列表</span>
-    <button class="tb-btn" data-testid="DET-TB-REFRESH" title="刷新模拟探测数据">刷新探测</button>
-    <span style="flex:1"></span>
-    <span class="tb-label" data-testid="DET-TB-COUNT">模拟目标: 5</span>
+  <!-- ============ 顶栏（镜像 CURRENT DetectionView m_topBar） ============ -->
+  <div class="det-topbar">
+    <!-- AI 检测开关（镜像 CURRENT m_aiCheckBox 勾选态；本地模拟，无真实推理） -->
+    <button class="ai-toggle active" data-testid="DET-TB-AI" id="aiToggle" title="AI 自动检测开关（镜像 CURRENT m_aiCheckBox，本地模拟）">[AI] 自动检测</button>
+    <!-- 帧统计（镜像 CURRENT "已分析 X 帧 · 异常 Y" 汇总文本） -->
+    <span class="topbar-summary" data-testid="DET-TB-SUMMARY" id="tbSummary">已分析 5 帧 · 异常 3</span>
   </div>
 
-  <!-- 主区域 -->
+  <!-- ============ 主区域 ============ -->
   <div class="main-area">
 
-    <!-- 导航栏 -->
+    <!-- ============ 导航栏（已实现页面 01/02/03 真实链接路由；04-06 占位仅高亮） ============ -->
     <div class="nav-bar">
       <div class="nav-logo" data-testid="DET-NAV-LOGO">UXO</div>
       <div class="nav-spacer-1"></div>
       <div class="nav-items">
-        <div class="nav-item" data-testid="DET-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
-        <div class="nav-item selected" data-testid="DET-NAV-02"><span class="nav-icon">◎</span><span>探测</span></div>
-        <div class="nav-item" data-testid="DET-NAV-03"><span class="nav-icon">◎</span><span>决策</span></div>
-        <div class="nav-item" data-testid="DET-NAV-04"><span class="nav-icon">◎</span><span>设备</span></div>
-        <div class="nav-item" data-testid="DET-NAV-05"><span class="nav-icon">◎</span><span>统计</span></div>
-        <div class="nav-item" data-testid="DET-NAV-06"><span class="nav-icon">◎</span><span>配置</span></div>
+        <a class="nav-item" data-testid="DET-NAV-01" href="../situation/index.html"><span class="nav-icon">&#xf5a0;</span><span>态势</span></a>
+        <div class="nav-item selected" data-testid="DET-NAV-02"><span class="nav-icon">&#xf7c0;</span><span>探测</span></div>
+        <a class="nav-item" data-testid="DET-NAV-03" href="../decision/index.html"><span class="nav-icon">&#xf24e;</span><span>决策</span></a>
+        <div class="nav-item" data-testid="DET-NAV-04" title="未实现页面（占位）"><span class="nav-icon">&#xf2db;</span><span>设备</span></div>
+        <div class="nav-item" data-testid="DET-NAV-05" title="未实现页面（占位）"><span class="nav-icon">&#xe0e3;</span><span>统计</span></div>
+        <div class="nav-item" data-testid="DET-NAV-06" title="未实现页面（占位）"><span class="nav-icon">&#xf013;</span><span>配置</span></div>
       </div>
       <div class="nav-spacer-2"></div>
     </div>
 
-    <!-- 左面板：搜索+筛选+目标表 -->
-    <div class="left-panel">
-      <!-- 搜索栏 -->
-      <div class="search-toolbar">
-        <input type="text" class="search-input" placeholder="搜索目标 ID 或类型..." data-testid="DET-LP-SEARCH">
-        <button class="btn-icon" data-testid="DET-LP-CLEAR" title="清除搜索">清除</button>
-        <button class="btn-primary" data-testid="DET-LP-REFRESH" title="刷新模拟数据">刷新</button>
-      </div>
-      <!-- 筛选器 -->
-      <div class="filter-group">
-        <div class="filter-row">
-          <span class="filter-label">类型</span>
-          <div class="filter-chips" data-testid="DET-LP-FILTER-TYPE">
-            <span class="chip active" data-filter="type" data-value="all">全部</span>
-            <span class="chip" data-filter="type" data-value="反跑道雷">反跑道雷</span>
-            <span class="chip" data-filter="type" data-value="航弹">航弹</span>
-            <span class="chip" data-filter="type" data-value="火箭弹">火箭弹</span>
-            <span class="chip" data-filter="type" data-value="集束弹">集束弹</span>
-          </div>
-        </div>
-        <div class="filter-row">
-          <span class="filter-label">威胁</span>
-          <div class="filter-chips" data-testid="DET-LP-FILTER-THREAT">
-            <span class="chip threat-high active" data-filter="threat" data-value="all">全部</span>
-            <span class="chip threat-high" data-filter="threat" data-value="高">高</span>
-            <span class="chip threat-medium" data-filter="threat" data-value="中">中</span>
-            <span class="chip threat-low" data-filter="threat" data-value="低">低</span>
-          </div>
-        </div>
-        <div class="filter-row">
-          <span class="filter-label">状态</span>
-          <div class="filter-chips" data-testid="DET-LP-FILTER-STATUS">
-            <span class="chip active" data-filter="status" data-value="all">全部</span>
-            <span class="chip" data-filter="status" data-value="Detected">已发现</span>
-            <span class="chip" data-filter="status" data-value="Confirmed">已确认</span>
-            <span class="chip" data-filter="status" data-value="Disposing">处置中</span>
-            <span class="chip" data-filter="status" data-value="Disposed">已完成</span>
-          </div>
-        </div>
-      </div>
-      <!-- 目标表 -->
-      <div class="table-widget">
-        <div class="table-header-bar">
-          <span class="table-header-title">探测目标列表</span>
-          <span class="table-header-count" data-testid="DET-LP-TABLE-COUNT">5 个目标</span>
-          <span style="flex:1"></span>
-          <span class="table-sort-btn" data-testid="DET-LP-SORT-THREAT" title="按威胁排序">威胁排序</span>
-          <span class="table-sort-btn" data-testid="DET-LP-SORT-CONF" title="按置信度排序">置信度排序</span>
-        </div>
-        <div class="table-content">
-          <table class="data-table" data-testid="DET-LP-TARGET-TABLE">
-            <thead>
-              <tr>
-                <th style="width:80px">目标 ID</th>
-                <th style="width:70px" class="sorted" data-sort="type">类型 <span class="sort-arrow">▲</span></th>
-                <th style="width:50px" data-sort="threat">威胁 <span class="sort-arrow"></span></th>
-                <th style="width:50px" data-sort="confidence">置信度 <span class="sort-arrow"></span></th>
-                <th style="width:80px">位置</th>
-                <th style="width:60px" data-sort="status">状态 <span class="sort-arrow"></span></th>
-                <th style="width:60px">探测源</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="selected" data-target="target-001">
-                <td>target-001</td>
-                <td style="color:var(--color-threat-high)">反跑道雷</td>
-                <td><span class="threat-tag high">高</span></td>
-                <td>86%</td>
-                <td>X:109 Y:34</td>
-                <td><span class="status-tag detected">已发现</span></td>
-                <td>UAV-1</td>
-              </tr>
-              <tr data-target="target-002">
-                <td>target-002</td>
-                <td style="color:var(--color-threat-high)">航弹</td>
-                <td><span class="threat-tag high">高</span></td>
-                <td>72%</td>
-                <td>X:87 Y:52</td>
-                <td><span class="status-tag detected">已发现</span></td>
-                <td>UAV-2</td>
-              </tr>
-              <tr data-target="target-003">
-                <td>target-003</td>
-                <td style="color:var(--color-threat-medium)">火箭弹</td>
-                <td><span class="threat-tag medium">中</span></td>
-                <td>91%</td>
-                <td>X:45 Y:78</td>
-                <td><span class="status-tag confirmed">已确认</span></td>
-                <td>GPR-1</td>
-              </tr>
-              <tr data-target="target-004">
-                <td>target-004</td>
-                <td style="color:var(--color-threat-low)">集束弹</td>
-                <td><span class="threat-tag low">低</span></td>
-                <td>65%</td>
-                <td>X:23 Y:90</td>
-                <td><span class="status-tag detected">已发现</span></td>
-                <td>UAV-1</td>
-              </tr>
-              <tr data-target="target-005">
-                <td>target-005</td>
-                <td style="color:var(--color-threat-medium)">反跑道雷</td>
-                <td><span class="threat-tag medium">中</span></td>
-                <td>78%</td>
-                <td>X:156 Y:12</td>
-                <td><span class="status-tag disposing">处置中</span></td>
-                <td>UAV-2</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+    <!-- ============ 左侧结果面板（镜像 CURRENT m_targetTable：检测结果 7 列表） ============ -->
+    <div class="results-panel">
+      <div class="panel-header"><span class="panel-title">检测结果</span></div>
+      <div class="table-wrap">
+        <table class="data-table" data-testid="DET-LP-TARGET-TABLE">
+          <thead>
+            <tr><th>目标 ID</th><th>类型</th><th>威胁</th><th>置信度</th><th>时间</th><th>状态</th><th>探测源</th></tr>
+          </thead>
+          <!-- 静态行与 JS 渲染一致（无 JS 时的兜底展示）；列格式镜像 CURRENT populateTargetTable -->
+          <tbody id="targetTbody">
+            <tr class="selected" data-index="0">
+              <td>target-001</td>
+              <td style="color:var(--color-danger)">反跑道雷</td>
+              <td style="color:var(--color-danger)">高</td>
+              <td>86%</td>
+              <td>00:03</td>
+              <td style="color:var(--color-danger)">已发现</td>
+              <td>AI 分析</td>
+            </tr>
+            <tr data-index="1">
+              <td>target-002</td>
+              <td style="color:var(--color-danger)">航弹</td>
+              <td style="color:var(--color-danger)">高</td>
+              <td>72%</td>
+              <td>00:47</td>
+              <td style="color:var(--color-danger)">已发现</td>
+              <td>AI 分析</td>
+            </tr>
+            <tr data-index="2">
+              <td>target-003</td>
+              <td style="color:var(--color-danger)">火箭弹</td>
+              <td style="color:var(--color-danger)">高</td>
+              <td>91%</td>
+              <td>01:12</td>
+              <td style="color:var(--color-danger)">已发现</td>
+              <td>AI 分析</td>
+            </tr>
+            <tr data-index="3">
+              <td>--</td>
+              <td style="color:var(--color-status-online)">正常</td>
+              <td>--</td>
+              <td>--</td>
+              <td>01:40</td>
+              <td>--</td>
+              <td>AI 分析</td>
+            </tr>
+            <tr data-index="4">
+              <td>--</td>
+              <td style="color:var(--color-status-online)">正常</td>
+              <td>--</td>
+              <td>--</td>
+              <td>02:05</td>
+              <td>--</td>
+              <td>AI 分析</td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- 空态遮罩（表无记录时显示） -->
+        <div class="table-empty" id="tableEmpty" style="display:none">等待检测结果</div>
       </div>
     </div>
 
-    <!-- 中心区：证据 Tab -->
+    <!-- ============ 中心区：视频画面（镜像 CURRENT m_videoLabel） + 分类文本条（m_top3ClassificationText） ============ -->
     <div class="center-area">
-      <div class="evidence-panel">
-        <div class="evidence-header">
-          <span class="evidence-title">目标详情</span>
-          <span class="evidence-target" data-testid="DET-CE-TARGET">target-001 · 反跑道雷 · 高威胁</span>
-        </div>
-        <div class="evidence-tab-bar">
-          <div class="evidence-tab selected" data-testid="DET-CE-TAB-RECOG" tabindex="0">识别证据</div>
-          <div class="evidence-tab" data-testid="DET-CE-TAB-SOURCE" tabindex="0">探测来源</div>
-          <div class="evidence-tab" data-testid="DET-CE-TAB-STATE" tabindex="0">状态历史</div>
-        </div>
-        <div class="evidence-content" data-testid="DET-CE-CONTENT">
-          <!-- 识别证据 -->
-          <div class="evidence-card" data-testid="DET-CE-RECOG-1">
-            <div class="evidence-card-header">
-              <span class="evidence-card-title">[模拟] 识别结果</span>
-              <span class="evidence-card-source">来源: 识别算法 v1.0（占位）</span>
-            </div>
-            <div class="evidence-card-body">
-              目标类型：反跑道雷（Anti-Runway Mine）<br>
-              识别置信度：86%<br>
-              尺寸估计：长 120cm × 直径 25cm<br>
-              材质特征：金属外壳，内含高爆装药<br>
-              <span class="sim-tag">[模拟数据，不连接真实识别系统]</span>
-            </div>
-            <div class="evidence-card-meta">
-              <span>● 采集: 14:30:02</span>
-              <span>● 处理: 14:30:03</span>
-              <span>● 确认: 待人工确认</span>
-            </div>
-          </div>
-          <div class="evidence-card" data-testid="DET-CE-RECOG-2">
-            <div class="evidence-card-header">
-              <span class="evidence-card-title">[模拟] 融合分析</span>
-              <span class="evidence-card-source">来源: 多源融合（占位）</span>
-            </div>
-            <div class="evidence-card-body">
-              融合来源：UAV-1 可见光 + GPR-1 地质雷达<br>
-              一致性评分：0.82<br>
-              冲突项：无<br>
-              建议处置方式：聚能引爆<br>
-              <span class="sim-tag">[模拟数据，不执行真实处置]</span>
-            </div>
-            <div class="evidence-card-meta">
-              <span>● 融合时间: 14:30:05</span>
-              <span>● 置信度: 82%</span>
-            </div>
-          </div>
-        </div>
-        <!-- 确认操作条 -->
-        <div class="confirm-bar">
-          <span class="confirm-info">
-            <span class="sim-label">[模拟]</span>
-            <span data-testid="DET-CE-CONFIRM-INFO">当前目标: target-001 · 状态: 已发现</span>
-          </span>
-          <span class="confirm-reject-msg" data-testid="DET-CE-REJECT-MSG" style="display:none"></span>
-          <button class="confirm-btn" data-testid="DET-CE-CONFIRM" title="模拟确认目标">模拟确认</button>
-          <button class="confirm-btn" data-testid="DET-CE-REJECT" disabled title="拒绝确认（需先选择目标）" style="background:var(--color-border);color:var(--color-text-disabled)">拒绝确认</button>
-        </div>
+      <div class="det-viewer" data-testid="DET-CE-VIEWER">
+        <div class="viewer-frame-lines"></div>
+        <div class="viewer-crosshair"></div>
+        <!-- 录制指示与时间码（有选中记录时显示） -->
+        <div class="rec-indicator" id="recIndicator"><span class="rec-dot"></span>REC</div>
+        <!-- 目标检测红框（仅异常帧显示，标签为"ID 类型 置信度"） -->
+        <div class="detection-box" id="detectionBox" data-label="target-001 反跑道雷 86%"></div>
+        <div class="viewer-time" id="viewerTime">00:03</div>
+        <!-- 空态遮罩（无选中记录时显示） -->
+        <div class="viewer-empty" id="viewerEmpty" style="display:none">等待检测结果</div>
+      </div>
+      <!-- 分类文本条（异常帧为 Top-3 分类，正常帧为"分类: 无（未达分类阈值或无异常）"） -->
+      <div class="det-class-bar" data-testid="DET-CE-CLASS">
+        <span class="det-class-text" id="classBar">分类: 反跑道雷 86%  |  航弹 9%  |  其他 5%</span>
       </div>
     </div>
 
-    <!-- 右面板：目标详情+状态历史 -->
+    <!-- ============ 右面板：目标详情 / 异常热力图 / 状态时间线 ============ -->
     <div class="right-panel">
-      <!-- 目标详情 -->
+      <!-- 目标详情（镜像 CURRENT populateDetail 8 行） -->
       <div class="rp-section detail">
-        <div class="rp-section-header">
-          <span class="rp-section-title">[模拟] 目标详情</span>
+        <div class="rp-section-header"><span class="rp-section-title">目标详情</span></div>
+        <div class="rp-section-content" data-testid="DET-RP-DETAIL" id="detailGrid">
+          <div class="kv-row"><span class="kv-label">目标 ID</span><span class="kv-value">target-001</span></div>
+          <div class="kv-row"><span class="kv-label">类型</span><span class="kv-value">反跑道雷</span></div>
+          <div class="kv-row"><span class="kv-label">威胁等级</span><span class="kv-value danger">高</span></div>
+          <div class="kv-row"><span class="kv-label">置信度</span><span class="kv-value">86%</span></div>
+          <div class="kv-row"><span class="kv-label">最大异常分</span><span class="kv-value">0.8734</span></div>
+          <div class="kv-row"><span class="kv-label">帧时间</span><span class="kv-value">00:03</span></div>
+          <div class="kv-row"><span class="kv-label">推理耗时</span><span class="kv-value">42 ms</span></div>
+          <div class="kv-row"><span class="kv-label">探测源</span><span class="kv-value">AI 分析</span></div>
         </div>
-        <div class="rp-section-content" data-testid="DET-RP-DETAIL">
-          <div class="detail-field">
-            <span class="detail-label">目标 ID</span>
-            <span class="detail-value">target-001</span>
-          </div>
-          <div class="detail-field">
-            <span class="detail-label">类型</span>
-            <span class="detail-value" style="color:var(--color-threat-high)">反跑道雷</span>
-          </div>
-          <div class="detail-field">
-            <span class="detail-label">威胁等级</span>
-            <span class="detail-value"><span class="threat-tag high">高</span></span>
-          </div>
-          <div class="detail-field">
-            <span class="detail-label">识别置信度</span>
-            <span class="detail-value highlight">86%</span>
-          </div>
-          <div class="detail-field">
-            <span class="detail-label">坐标位置</span>
-            <span class="detail-value">X:109 Y:34 Z:0</span>
-          </div>
-          <div class="detail-field">
-            <span class="detail-label">探测时间</span>
-            <span class="detail-value">14:30:02</span>
-          </div>
-          <div class="detail-field">
-            <span class="detail-label">探测源</span>
-            <span class="detail-value">UAV-1 侦察无人机</span>
-          </div>
-          <div class="detail-field">
-            <span class="detail-label">尺寸估计</span>
-            <span class="detail-value">120cm × 25cm</span>
-          </div>
-          <div class="detail-field">
-            <span class="detail-label">建议处置</span>
-            <span class="detail-value" style="color:var(--color-primary)">聚能引爆</span>
+      </div>
+      <!-- 异常热力图（仅异常帧有热斑数据，本地模拟） -->
+      <div class="rp-section heatmap">
+        <div class="rp-section-header"><span class="rp-section-title">异常热力图</span></div>
+        <div class="rp-section-content no-pad" data-testid="DET-RP-HEATMAP">
+          <div class="heatmap-canvas" id="heatmapCanvas">
+            <!-- 模拟热斑（径向渐变 + 模糊）：正常帧/空态由遮罩盖住 -->
+            <div class="heatmap-hot" style="left:18%;top:24%;width:110px;height:110px;background:radial-gradient(circle,rgba(255,82,82,0.75) 0%,rgba(255,82,82,0) 70%)"></div>
+            <div class="heatmap-hot" style="left:56%;top:14%;width:80px;height:80px;background:radial-gradient(circle,rgba(255,183,77,0.6) 0%,rgba(255,183,77,0) 70%)"></div>
+            <div class="heatmap-hot" style="left:38%;top:52%;width:130px;height:130px;background:radial-gradient(circle,rgba(255,82,82,0.5) 0%,rgba(255,241,118,0.2) 50%,rgba(255,241,118,0) 70%)"></div>
+            <div class="heatmap-empty" id="heatmapEmpty" style="display:none">无热力图</div>
           </div>
         </div>
       </div>
-      <!-- 状态历史时间线 -->
-      <div class="rp-section history">
-        <div class="rp-section-header">
-          <span class="rp-section-title">[模拟] 状态历史</span>
-        </div>
-        <div class="rp-section-content" data-testid="DET-RP-TIMELINE">
-          <div class="timeline">
-            <div class="timeline-item">
-              <div class="timeline-dot detected"></div>
-              <div class="timeline-content">
-                <div class="timeline-time">14:30:02</div>
-                <div class="timeline-label">已发现（Detected）</div>
-              </div>
-            </div>
-          </div>
-          <div class="sim-tag" style="margin-top:8px;font-size:11px">[模拟数据，待人工确认]</div>
+      <!-- 状态时间线（镜像 CURRENT populateTimeline：基线"已发现（AI）"+人工操作追加） -->
+      <div class="rp-section timeline">
+        <div class="rp-section-header"><span class="rp-section-title">状态时间线</span></div>
+        <div class="rp-section-content" data-testid="DET-RP-TIMELINE" id="timelineList">
+          <div class="timeline-entry">14:30:03  已发现（AI）</div>
         </div>
       </div>
     </div>
 
   </div>
 
-  <!-- 状态栏 -->
+  <!-- ============ 底部操作条（镜像 CURRENT DetectionView m_actionBar） ============ -->
+  <div class="det-actionbar">
+    <!-- 确认/拒绝仅对"异常且待复核"目标可用（镜像 CURRENT updateActionBar）；移除对任意选中行可用 -->
+    <button class="act-btn primary" data-testid="DET-CE-CONFIRM" id="btnConfirm" title="确认当前异常目标（镜像 CURRENT m_confirmBtn，本地模拟）">确认</button>
+    <button class="act-btn secondary" data-testid="DET-CE-REJECT" id="btnReject" title="拒绝当前异常目标（镜像 CURRENT m_rejectBtn，本地模拟）">拒绝</button>
+    <button class="act-btn secondary" data-testid="DET-CE-REMOVE" id="btnRemove" title="移除当前选中记录（镜像 CURRENT m_removeBtn，本地模拟）">移除记录</button>
+    <span class="action-status" data-testid="DET-CE-STATUS" id="actionStatus">当前目标: target-001 · 状态: 已发现</span>
+  </div>
+
+  <!-- ============ 状态栏 ============ -->
   <div class="status-bar">
     <span class="status-label" data-testid="DET-SB-DEVICE">设备: 2/2 在线</span>
+    <span class="status-separator"></span>
+    <span class="status-label" data-testid="DET-SB-BATTERY">最低电量: 74%</span>
     <span class="status-separator"></span>
     <span class="status-sim" data-testid="DET-SB-SIM">[模拟模式]</span>
     <span class="status-separator"></span>
     <div class="status-alarm" data-testid="DET-SB-ALARM">
-      <span class="status-alarm-item">模拟告警: target-001 待确认</span>
+      <div class="status-alarm-track">
+        <span class="status-alarm-item">[模拟] target-001 待人工确认</span>
+        <span class="status-alarm-item">[模拟] target-003 检测置信度 91%</span>
+        <span class="status-alarm-item">[模拟] UAV-1 电量 82%</span>
+        <span class="status-alarm-item">[模拟] Robot-1 待命中</span>
+        <!-- 复制一份用于无缝滚动 -->
+        <span class="status-alarm-item">[模拟] target-001 待人工确认</span>
+        <span class="status-alarm-item">[模拟] target-003 检测置信度 91%</span>
+        <span class="status-alarm-item">[模拟] UAV-1 电量 82%</span>
+        <span class="status-alarm-item">[模拟] Robot-1 待命中</span>
+      </div>
     </div>
-    <button class="emergency-btn" data-disabled="true" disabled title="危险占位：无设备停止效果，本原型禁用" data-testid="DET-SB-EMERGENCY">紧急停止</button>
+    <button class="emergency-btn" data-disabled="true" disabled title="模拟占位，无实际效果" data-testid="DET-SB-EMERGENCY"><span class="em-icon">&#xf256;</span>紧急停止</button>
   </div>
 
 </div>
 
 <script>
-// 探测页交互：搜索、筛选、排序、行选择、证据Tab切换、模拟确认
+// 探测页交互：结构 100% 镜像 CURRENT DetectionView（src/MainWindow/DetectionView.cpp）
+// 1. 结果表行选择  2. 详情/热力图/时间线联动  3. 确认/拒绝/移除  4. 顶栏统计与 AI 开关  5. 导航/菜单
+// 与旧原型差异：删除搜索/筛选/排序/证据Tab（CURRENT 未实现）；新增顶栏/操作条/热力图镜像。全部数据本地模拟。
 document.addEventListener('DOMContentLoaded',()=>{
-  const targets=[
-    {id:'target-001',type:'反跑道雷',threat:'高',threatClass:'high',confidence:86,x:109,y:34,status:'Detected',statusLabel:'已发现',source:'UAV-1'},
-    {id:'target-002',type:'航弹',threat:'高',threatClass:'high',confidence:72,x:87,y:52,status:'Detected',statusLabel:'已发现',source:'UAV-2'},
-    {id:'target-003',type:'火箭弹',threat:'中',threatClass:'medium',confidence:91,x:45,y:78,status:'Confirmed',statusLabel:'已确认',source:'GPR-1'},
-    {id:'target-004',type:'集束弹',threat:'低',threatClass:'low',confidence:65,x:23,y:90,status:'Detected',statusLabel:'已发现',source:'UAV-1'},
-    {id:'target-005',type:'反跑道雷',threat:'中',threatClass:'medium',confidence:78,x:156,y:12,status:'Disposing',statusLabel:'处置中',source:'UAV-2'},
+  // ===== 1. 模拟 fixture（镜像 CURRENT 推理结果：3 条异常 + 2 条正常帧） =====
+  // anomalous=false 为正常帧：目标 ID/威胁/置信度/状态均显示"--"，分类显示"无（未达分类阈值或无异常）"
+  const records=[
+    {targetId:'target-001',type:'反跑道雷',anomalous:true,review:'pending',conf:86,maxScore:0.8734,inferMs:42,time:'00:03',
+     clsText:'分类: 反跑道雷 86%  |  航弹 9%  |  其他 5%',
+     timeline:[{time:'14:30:03',label:'已发现（AI）'}]},
+    {targetId:'target-002',type:'航弹',anomalous:true,review:'pending',conf:72,maxScore:0.7412,inferMs:38,time:'00:47',
+     clsText:'分类: 航弹 72%  |  反跑道雷 18%  |  其他 10%',
+     timeline:[{time:'14:30:47',label:'已发现（AI）'}]},
+    {targetId:'target-003',type:'火箭弹',anomalous:true,review:'pending',conf:91,maxScore:0.9103,inferMs:45,time:'01:12',
+     clsText:'分类: 火箭弹 91%  |  航弹 6%  |  其他 3%',
+     timeline:[{time:'14:31:12',label:'已发现（AI）'}]},
+    {targetId:'',type:'正常',anomalous:false,review:'pending',conf:null,maxScore:0.0821,inferMs:27,time:'01:40',
+     clsText:'分类: 无（未达分类阈值或无异常）',
+     timeline:[{time:'14:31:40',label:'已发现（AI）'}]},
+    {targetId:'',type:'正常',anomalous:false,review:'pending',conf:null,maxScore:0.0648,inferMs:25,time:'02:05',
+     clsText:'分类: 无（未达分类阈值或无异常）',
+     timeline:[{time:'14:32:05',label:'已发现（AI）'}]}
   ];
-  const filters={type:'all',threat:'all',status:'all'};
-  let selectedTarget=targets[0];
-  const tbody=document.querySelector('.data-table tbody');
+  // 默认选中第一条（文档化分歧：CURRENT 初始为空态，原型静态展示选中态便于评审，见 pages/detection.md）
+  let selectedIndex=0;
 
-  // 搜索过滤
-  const search=document.querySelector('[data-testid="DET-LP-SEARCH"]');
-  search.addEventListener('input',e=>{const q=e.target.value.toLowerCase();tbody.querySelectorAll('tr').forEach(tr=>{const t=targets.find(x=>x.id===tr.dataset.target);if(!t)return;const match=!q||t.id.includes(q)||t.type.includes(q)||t.threat.includes(q);tr.style.display=match?'':'none'})});
+  // ===== 2. 工具函数 =====
+  // 复核状态文案（镜像 CURRENT reviewText 映射：pending->已发现/confirmed->已确认/rejected->已拒绝）
+  const reviewText={pending:'已发现',confirmed:'已确认',rejected:'已拒绝'};
+  // 当前时间 HH:mm:ss（人工操作追加时间线用）
+  function nowTime(){const d=new Date();return [d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':')}
 
-  // 清除搜索
-  document.querySelector('[data-testid="DET-LP-CLEAR"]').addEventListener('click',()=>{search.value='';search.dispatchEvent(new Event('input'))});
+  // ===== 3. DOM 引用 =====
+  const targetTbody=document.getElementById('targetTbody');
+  const tableEmpty=document.getElementById('tableEmpty');
+  const viewerEmpty=document.getElementById('viewerEmpty');
+  const recIndicator=document.getElementById('recIndicator');
+  const viewerTime=document.getElementById('viewerTime');
+  const detectionBox=document.getElementById('detectionBox');
+  const classBar=document.getElementById('classBar');
+  const detailGrid=document.getElementById('detailGrid');
+  const heatmapEmpty=document.getElementById('heatmapEmpty');
+  const timelineList=document.getElementById('timelineList');
+  const btnConfirm=document.getElementById('btnConfirm');
+  const btnReject=document.getElementById('btnReject');
+  const btnRemove=document.getElementById('btnRemove');
+  const actionStatus=document.getElementById('actionStatus');
+  const tbSummary=document.getElementById('tbSummary');
+  const aiToggle=document.getElementById('aiToggle');
 
-  // 筛选 chips
-  document.querySelectorAll('.chip').forEach(chip=>{
-    chip.addEventListener('click',()=>{
-      const f=chip.dataset.filter,v=chip.dataset.value;
-      document.querySelectorAll(`.chip[data-filter="${f}"]`).forEach(c=>c.classList.remove('active'));
-      chip.classList.add('active');
-      filters[f]=v;
-      applyFilters();
+  // ===== 4. 渲染左侧结果表（镜像 CURRENT populateTargetTable：7 列，异常红/正常绿） =====
+  function renderTable(){
+    targetTbody.innerHTML=records.map((r,i)=>`<tr data-index="${i}"${i===selectedIndex?' class="selected"':''}>
+      <td>${r.anomalous?r.targetId:'--'}</td>
+      <td style="color:${r.anomalous?'var(--color-danger)':'var(--color-status-online)'}">${r.anomalous?r.type:'正常'}</td>
+      <td${r.anomalous?' style="color:var(--color-danger)"':''}>${r.anomalous?'高':'--'}</td>
+      <td>${r.conf!==null?r.conf+'%':'--'}</td>
+      <td>${r.time}</td>
+      <td${r.anomalous?' style="color:var(--color-danger)"':''}>${r.anomalous?reviewText[r.review]:'--'}</td>
+      <td>AI 分析</td>
+    </tr>`).join('');
+    // 表空时显示空态遮罩
+    tableEmpty.style.display=records.length?'none':'flex';
+    // 行点击选中（镜像 CURRENT 表格行选择）
+    targetTbody.querySelectorAll('tr').forEach(tr=>{
+      tr.addEventListener('click',()=>{selectedIndex=Number(tr.dataset.index);refresh()});
     });
-  });
-  function applyFilters(){
-    tbody.querySelectorAll('tr').forEach(tr=>{
-      const t=targets.find(x=>x.id===tr.dataset.target);if(!t)return;
-      const typeOk=filters.type==='all'||t.type===filters.type;
-      const threatOk=filters.threat==='all'||t.threat===filters.threat;
-      const statusOk=filters.status==='all'||t.status===filters.status;
-      tr.style.display=(typeOk&&threatOk&&statusOk)?'':'none';
-    });
-    updateCount();
-  }
-  function updateCount(){
-    const visible=tbody.querySelectorAll('tr:not([style*="display: none"])').length;
-    document.querySelector('[data-testid="DET-LP-TABLE-COUNT"]').textContent=visible+' 个目标';
-  }
-
-  // 排序按钮
-  document.querySelectorAll('.table-sort-btn').forEach(b=>b.addEventListener('click',()=>{}));
-
-  // 行选择
-  tbody.querySelectorAll('tr').forEach(tr=>{
-    tr.addEventListener('click',()=>{
-      tbody.querySelectorAll('tr').forEach(r=>r.classList.remove('selected'));
-      tr.classList.add('selected');
-      selectedTarget=targets.find(t=>t.id===tr.dataset.target);
-      updateDetail();
-    });
-  });
-
-  function updateDetail(){
-    document.querySelector('[data-testid="DET-CE-TARGET"]').textContent=`${selectedTarget.id} · ${selectedTarget.type} · ${selectedTarget.threat}威胁`;
-    document.querySelector('[data-testid="DET-CE-CONFIRM-INFO"]').textContent=`当前目标: ${selectedTarget.id} · 状态: ${selectedTarget.statusLabel}`;
   }
 
-  // 证据 Tab 切换
-  document.querySelectorAll('.evidence-tab').forEach(t=>{
-    t.addEventListener('click',()=>{
-      document.querySelectorAll('.evidence-tab').forEach(x=>x.classList.remove('selected'));
-      t.classList.add('selected');
-    });
-  });
-
-  // 模拟确认
-  const btnConfirm=document.querySelector('[data-testid="DET-CE-CONFIRM"]');
-  const rejectMsg=document.querySelector('[data-testid="DET-CE-REJECT-MSG"]');
-  btnConfirm.addEventListener('click',()=>{
-    if(selectedTarget.status!=='Detected'){
-      rejectMsg.textContent='该目标已确认或正在处置，无法重复确认';
-      rejectMsg.style.display='block';
+  // ===== 5. 渲染中心区与右面板（镜像 CURRENT 详情/分类/热力图/时间线联动） =====
+  function renderPanels(){
+    const r=records[selectedIndex];
+    if(!r){
+      // 空态（镜像 CURRENT showEmptyState：视频区/详情/时间线占位，热力图清空）
+      viewerEmpty.style.display='flex';
+      recIndicator.style.display='none';
+      viewerTime.style.display='none';
+      detectionBox.style.display='none';
+      classBar.textContent='分类: --';
+      detailGrid.innerHTML=['目标 ID','类型','威胁等级','置信度','最大异常分','帧时间','推理耗时','探测源']
+        .map(k=>`<div class="kv-row"><span class="kv-label">${k}</span><span class="kv-value">--</span></div>`).join('');
+      timelineList.innerHTML='<div class="timeline-entry">--</div>';
+      heatmapEmpty.style.display='flex';
       return;
     }
-    rejectMsg.style.display='none';
-    selectedTarget.status='Confirmed';
-    selectedTarget.statusLabel='已确认';
-    updateDetail();
-    // 更新表格状态
-    const row=tbody.querySelector(`tr[data-target="${selectedTarget.id}"]`);
-    if(row){const cell=row.children[5];cell.innerHTML='<span class="status-tag confirmed">已确认</span>'}
+    viewerEmpty.style.display='none';
+    recIndicator.style.display='flex';
+    viewerTime.style.display='block';
+    viewerTime.textContent=r.time;
+    // 检测红框仅异常帧显示（标签"ID 类型 置信度"）
+    if(r.anomalous){
+      detectionBox.style.display='block';
+      detectionBox.dataset.label=r.targetId+' '+r.type+' '+r.conf+'%';
+    }else{
+      detectionBox.style.display='none';
+    }
+    // 分类文本条（Top-3 或"无（未达分类阈值或无异常）"）
+    classBar.textContent=r.clsText;
+    // 目标详情 8 行（镜像 CURRENT populateDetail）
+    const rows=[
+      ['目标 ID',r.anomalous?r.targetId:'--'],
+      ['类型',r.anomalous?r.type:'正常'],
+      ['威胁等级',r.anomalous?'高':'--',r.anomalous?'danger':''],
+      ['置信度',r.conf!==null?r.conf+'%':'--'],
+      ['最大异常分',r.maxScore.toFixed(4)],
+      ['帧时间',r.time],
+      ['推理耗时',r.inferMs+' ms'],
+      ['探测源','AI 分析']
+    ];
+    detailGrid.innerHTML=rows.map(([k,v,cls])=>`<div class="kv-row"><span class="kv-label">${k}</span><span class="kv-value${cls?' '+cls:''}">${v}</span></div>`).join('');
+    // 状态时间线（镜像 CURRENT populateTimeline：基线"已发现（AI）"+人工操作按时间追加）
+    timelineList.innerHTML=r.timeline.map(e=>`<div class="timeline-entry">${e.time}  ${e.label}</div>`).join('');
+    // 热力图仅异常帧可见，正常帧/空态显示"无热力图"
+    heatmapEmpty.style.display=r.anomalous?'none':'flex';
+  }
+
+  // ===== 6. 渲染底部操作条（镜像 CURRENT updateActionBar 启用规则） =====
+  function renderActionBar(){
+    const r=records[selectedIndex];
+    if(!records.length){
+      // 无记录：全部禁用 + 等待提示
+      btnConfirm.disabled=true;btnReject.disabled=true;btnRemove.disabled=true;
+      actionStatus.textContent='等待检测结果';
+      return;
+    }
+    if(!r){
+      // 有记录但未选中：全部禁用（防御分支，正常流程不可达）
+      btnConfirm.disabled=true;btnReject.disabled=true;btnRemove.disabled=true;
+      actionStatus.textContent='未选中结果';
+      return;
+    }
+    // 确认/拒绝仅对"异常且待复核"目标可用；移除对任意选中行可用
+    const reviewable=r.anomalous&&r.review==='pending';
+    btnConfirm.disabled=!reviewable;
+    btnReject.disabled=!reviewable;
+    btnRemove.disabled=false;
+    // 状态文本（镜像 CURRENT m_statusLabel："当前目标: X · 状态: Y"，正常帧显示"正常帧"）
+    actionStatus.textContent='当前目标: '+(r.anomalous?r.targetId:'--')+' · 状态: '+(r.anomalous?reviewText[r.review]:'正常帧');
+  }
+
+  // ===== 7. 顶栏帧统计（镜像 CURRENT "已分析 X 帧 · 异常 Y"） =====
+  function updateSummary(){
+    tbSummary.textContent='已分析 '+records.length+' 帧 · 异常 '+records.filter(r=>r.anomalous).length;
+  }
+  // 全量刷新（表格/面板/操作条）
+  function refresh(){renderTable();renderPanels();renderActionBar()}
+
+  // ===== 8. 确认/拒绝（镜像 CURRENT：写复核状态 + 时间线追加人工记录） =====
+  btnConfirm.addEventListener('click',()=>{
+    const r=records[selectedIndex];
+    if(!r||!r.anomalous||r.review!=='pending')return;
+    r.review='confirmed';
+    r.timeline.push({time:nowTime(),label:'已确认（人工）'});
+    refresh();
+  });
+  btnReject.addEventListener('click',()=>{
+    const r=records[selectedIndex];
+    if(!r||!r.anomalous||r.review!=='pending')return;
+    r.review='rejected';
+    r.timeline.push({time:nowTime(),label:'已拒绝（人工）'});
+    refresh();
   });
 
-  // 导航切换（仅高亮）
-  document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));n.classList.add('selected')}));
+  // ===== 9. 移除记录（镜像 CURRENT m_removeBtn：任意选中行可移除，删后自动选相邻行） =====
+  btnRemove.addEventListener('click',()=>{
+    if(btnRemove.disabled||selectedIndex<0||!records[selectedIndex])return;
+    records.splice(selectedIndex,1);
+    // 删空->空态；删末行->回退上一行；否则原位（下一行顶上）
+    if(!records.length)selectedIndex=-1;
+    else if(selectedIndex>=records.length)selectedIndex=records.length-1;
+    updateSummary();
+    refresh();
+  });
 
-  // 刷新
-  document.querySelector('[data-testid="DET-LP-REFRESH"]').addEventListener('click',()=>{});
+  // ===== 10. AI 检测开关（镜像 CURRENT m_aiCheckBox 勾选态切换，本地无真实推理） =====
+  aiToggle.addEventListener('click',()=>{aiToggle.classList.toggle('active')});
+
+  // ===== 11. 导航/菜单：已实现页面真实链接路由；占位项与菜单项仅高亮（与态势页一致） =====
+  document.querySelectorAll('.nav-item:not([href])').forEach(n=>n.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));
+    n.classList.add('selected');
+  }));
+  document.querySelectorAll('.menu-bar button:not([data-disabled="true"])').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.menu-bar button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+  }));
+
+  // ===== 初始化 =====
+  updateSummary();
+  refresh();
 });
 </script>
 </body>

@@ -35,25 +35,27 @@
 
 **CURRENT 主控件**：`LeftPanelWidget`、`VideoStreamPanel`、`AlertPanel`、`DetectionControlPanel`、`BatchOperationBar`、`RightPanelWidget`（含 `SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`）。
 
-**详细清单**：[`situation.md`](situation.md)（648 行，逐控件规格）。
+**详细清单**：[`situation.md`](situation.md)（751 行，逐控件规格）。
 
 ## 2. 探测页 Detection (DET)
 
-**定位**：探测目标管理页（导航 `DET-NAV-02`）。一屏呈现：左侧探测任务列表与扫描设备状态；中心目标表格（类型/威胁/置信度/状态/探测源），支持搜索、筛选、排序、行选择；右侧目标证据 Tab（图像/光谱/历史）与模拟确认/拒绝操作。所有数据为本地固定模拟场景。
+**定位**：探测结果人工复核工作区（导航 `DET-NAV-02` 默认选中）。一屏呈现：顶部 AI 自动检测开关与帧统计；左侧逐帧检测结果表（目标 ID/类型/威胁/置信度/时间/状态/探测源）；中心视频帧画面与 Top-3 分类文本条；右侧目标详情、异常热力图与状态时间线；底部人工复核操作条（确认/拒绝/移除记录）。所有数据为本地固定模拟场景，结构 100% 镜像 CURRENT `DetectionView`。
 
 **关键区域**：
 
 | 区域 | 位置 | 内容 |
 |------|------|------|
-| A 左面板 | 260px | 探测任务列表、扫描设备状态、新增目标（禁用占位） |
-| B 中心 | 弹性 | 目标表格（5 个模拟目标）、搜索栏、筛选、排序、行选择 |
-| C 右面板 | 320px | 目标证据 Tab（图像/光谱/历史）、模拟确认/拒绝、置信度详情 |
+| A 顶栏 | 高 32px | AI 检测开关（默认勾选）、帧统计文本（只读） |
+| B 左面板 | 360px 固定 | 检测结果 7 列表（3 条异常 + 2 条正常帧）、空态遮罩 |
+| C 中心 | 弹性（最小宽 400px） | 视频帧画面（REC/时间码/检测红框/空态）、Top-3 分类文本条 |
+| D 右面板 | 380px 固定 | 目标详情（8 行）、异常热力图、状态时间线（3:2:2） |
+| E 底部操作条 | 高 44px | 确认/拒绝/移除记录复核操作、复核状态文本 |
 
-**控件 ID 前缀**：`DET-`，包括 `DET-LP-TASK-*`、`DET-CE-TABLE`、`DET-CE-SEARCH`、`DET-RP-CONFIRM`、`DET-RP-REJECT` 等。
+**控件 ID 前缀**：`DET-`，包括 `DET-MENU-*`（4 枚）、`DET-TB-AI`/`DET-TB-SUMMARY`、`DET-NAV-*`（7 枚）、`DET-LP-TARGET-TABLE`、`DET-CE-VIEWER`/`DET-CE-CLASS`/`DET-CE-CONFIRM`/`DET-CE-REJECT`/`DET-CE-REMOVE`/`DET-CE-STATUS`、`DET-RP-DETAIL`/`DET-RP-HEATMAP`/`DET-RP-TIMELINE`、`DET-SB-*`（5 枚），共 28 个 ID。
 
-**HTML 原型**：[`../prototypes/detection/index.html`](../prototypes/detection/index.html)（单文件，内联 CSS+JS，5 个模拟目标）。
+**HTML 原型**：[`../prototypes/detection/index.html`](../prototypes/detection/index.html)（单文件，内联 CSS+JS，本地固定 fixture：3 条异常 + 2 条正常帧）。
 
-**详细清单**：[`detection.md`](detection.md)（492 行，逐控件规格）。
+**详细清单**：[`detection.md`](detection.md)（198 行，逐控件规格）。
 
 ## 3. 决策页 Decision (DEC)
 

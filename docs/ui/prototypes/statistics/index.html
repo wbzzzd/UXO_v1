@@ -20,7 +20,11 @@
   --space-toolbar-gap:8px;--space-toolbar-pad:8px;
   --radius-control:6px;--size-scrollbar:10px;--min-scroll-handle:30px;
   --anim-short:150ms;--anim-easing:ease-in-out;
+  /* 图标 token（design-system.md §3.2/§9；FA 字形与 Qt QtAwesome 对齐） */
+  --size-icon-nav:16px;--size-icon-action:12px;
 }
+/* Font Awesome 7 Solid：与 Qt 侧 QtAwesome 同源（third_party 字体 vendored 至 prototypes/assets/）；图标仅作辅助识别，不作唯一信息载体 */
+@font-face{font-family:"Font Awesome 7 Free";src:url("../assets/fa-solid-900.otf") format("opentype");font-weight:900;font-style:normal;font-display:block;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-family)}
 html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body)}
 button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;font-size:inherit}
@@ -48,7 +52,8 @@ button:disabled{cursor:not-allowed}
 .nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
 .nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
 .nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
-.nav-item .nav-icon{font-size:18px;line-height:1}
+/* 导航图标（fa 字形，--size-icon-nav），与 Qt 导航栏 QtAwesome 图标对齐 */
+.nav-item .nav-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-nav);line-height:1}
 .nav-spacer-2{flex:1}
 .left-panel{width:var(--size-left-panel-width);background:var(--color-panel);padding:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
 .lp-title{font-size:var(--font-size-body);color:var(--color-text-primary);font-weight:bold;padding:0 4px}
@@ -116,6 +121,8 @@ button:disabled{cursor:not-allowed}
 .status-alarm-item{height:18px;color:var(--color-status-busy);font-size:var(--font-size-caption);background:var(--color-toolbar);padding:2px 8px;border-radius:var(--radius-control);margin-right:10px;white-space:nowrap}
 .emergency-btn{width:80px;height:20px;font-size:11px;font-weight:bold;background:var(--color-danger);color:var(--color-text-primary);border:none;border-radius:3px}
 .emergency-btn:disabled{background:var(--color-border);color:var(--color-text-disabled);cursor:not-allowed}
+/* 急停图标（fa-hand f256，--size-icon-action）：随按钮文本色渲染，禁用态同色；恒禁用占位 */
+.emergency-btn .em-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-action);line-height:1;margin-right:3px}
 .sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
 </style>
 </head>
@@ -140,12 +147,12 @@ button:disabled{cursor:not-allowed}
       <div class="nav-logo" data-testid="STA-NAV-LOGO">UXO</div>
       <div class="nav-spacer-1"></div>
       <div class="nav-items">
-        <div class="nav-item" data-testid="STA-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
-        <div class="nav-item" data-testid="STA-NAV-02"><span class="nav-icon">◎</span><span>探测</span></div>
-        <div class="nav-item" data-testid="STA-NAV-03"><span class="nav-icon">◎</span><span>决策</span></div>
-        <div class="nav-item" data-testid="STA-NAV-04"><span class="nav-icon">◎</span><span>设备</span></div>
-        <div class="nav-item selected" data-testid="STA-NAV-05"><span class="nav-icon">◎</span><span>统计</span></div>
-        <div class="nav-item" data-testid="STA-NAV-06"><span class="nav-icon">◎</span><span>配置</span></div>
+        <div class="nav-item" data-testid="STA-NAV-01"><span class="nav-icon">&#xf5a0;</span><span>态势</span></div>
+        <div class="nav-item" data-testid="STA-NAV-02"><span class="nav-icon">&#xf7c0;</span><span>探测</span></div>
+        <div class="nav-item" data-testid="STA-NAV-03"><span class="nav-icon">&#xf24e;</span><span>决策</span></div>
+        <div class="nav-item" data-testid="STA-NAV-04"><span class="nav-icon">&#xf2db;</span><span>设备</span></div>
+        <div class="nav-item selected" data-testid="STA-NAV-05"><span class="nav-icon">&#xe0e3;</span><span>统计</span></div>
+        <div class="nav-item" data-testid="STA-NAV-06"><span class="nav-icon">&#xf013;</span><span>配置</span></div>
       </div>
       <div class="nav-spacer-2"></div>
     </div>
@@ -300,7 +307,7 @@ button:disabled{cursor:not-allowed}
     <div class="status-alarm" data-testid="STA-SB-ALARM">
       <span class="status-alarm-item">模拟告警: 统计数据为本地会话固定</span>
     </div>
-    <button class="emergency-btn" data-disabled="true" disabled title="危险占位：无设备停止效果，本原型禁用" data-testid="STA-SB-EMERGENCY">紧急停止</button>
+    <button class="emergency-btn" data-disabled="true" disabled title="危险占位：无设备停止效果，本原型禁用" data-testid="STA-SB-EMERGENCY"><span class="em-icon">&#xf256;</span>紧急停止</button>
   </div>
 </div>
 <script>

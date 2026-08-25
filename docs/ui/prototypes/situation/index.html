@@ -25,7 +25,11 @@
   --anim-short:150ms;--anim-normal:200ms;--anim-easing:ease-in-out;
   /* PiP 专用尺寸（16:9，参考 QGC/Auterion Mission Control） */
   --pip-width:480px;--pip-height:270px;--pip-titlebar-h:24px;
+  /* 图标与浮层投影 token（design-system.md §3.2/§9；浮层投影 var() 化，消除硬编码） */
+  --size-icon-nav:16px;--size-icon-action:12px;--elevation-overlay:0 4px 12px rgba(0,0,0,0.4);
 }
+/* Font Awesome 7 Solid：与 Qt 侧 QtAwesome 同源（third_party 字体 vendored 至 prototypes/assets/）；图标仅作辅助识别，不作唯一信息载体 */
+@font-face{font-family:"Font Awesome 7 Free";src:url("../assets/fa-solid-900.otf") format("opentype");font-weight:900;font-style:normal;font-display:block;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-family)}
 html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body)}
 button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;font-size:inherit}
@@ -44,12 +48,14 @@ button:disabled{cursor:not-allowed}
 .menu-bar button[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
 .menu-bar button[data-disabled="true"]:hover{background:transparent}
 
-/* ============ 工具栏（简化：去掉探测演示控制与阶段进度） ============ */
+/* ============ 工具栏（镜像 CURRENT createMapToolbar：探测控制组 + 地图工具组） ============ */
 .toolbar{height:var(--size-toolbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:8px;padding:0 8px}
 .toolbar .tb-btn{padding:4px 12px;color:var(--color-text-primary);font-size:var(--font-size-caption);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control);transition:all var(--anim-short) var(--anim-easing)}
 .toolbar .tb-btn:hover{background:var(--color-border);color:var(--color-text-primary)}
 .toolbar .tb-btn[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed;border-color:var(--color-border)}
 .toolbar .tb-btn[data-disabled="true"]:hover{background:transparent}
+/* 工具栏图标（--size-icon-action）：与 Qt 地图工具栏 FA 字形对齐（f2f9 重置/f04b 开始/f04d 结束/f065 视角复位/f5fd 图层/f545 测量/f601 坐标拾取） */
+.toolbar .tb-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-action);line-height:1;margin-right:4px}
 .toolbar .tb-separator{width:1px;height:20px;background:var(--color-border)}
 .toolbar .tb-spacer{flex:1}
 .toolbar .sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
@@ -65,7 +71,10 @@ button:disabled{cursor:not-allowed}
 .nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
 .nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
 .nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
-.nav-item .nav-icon{font-size:18px;line-height:1}
+/* 已实现页面的导航项为真实链接（<a>），去掉默认下划线 */
+a.nav-item{text-decoration:none}
+/* 导航图标（fa 字形，--size-icon-nav），与 Qt 导航栏 QtAwesome 图标对齐 */
+.nav-item .nav-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-nav);line-height:1}
 .nav-spacer-2{flex:1}
 
 /* ============ 内容列：设备资源条 + 中心区 ============ */
@@ -137,11 +146,32 @@ button:disabled{cursor:not-allowed}
 .map-runway::before{content:'';position:absolute;left:0;right:0;top:50%;height:2px;background:repeating-linear-gradient(90deg,var(--color-text-disabled) 0 20px,transparent 20px 40px);transform:translateY(-50%);opacity:0.6}
 .map-runway-label{position:absolute;left:50%;top:33%;transform:translate(-50%,-22px);color:var(--color-text-disabled);font-size:10px;letter-spacing:1px;pointer-events:none}
 /* 指北针（右上角） */
-.map-compass{position:absolute;right:16px;top:16px;width:40px;height:40px;border:1px solid var(--color-border);border-radius:50%;background:rgba(37,37,38,0.8);display:flex;align-items:center;justify-content:center;color:var(--color-text-primary);font-size:14px;font-weight:bold}
+.map-compass{position:absolute;right:76px;top:16px;width:40px;height:40px;border:1px solid var(--color-border);border-radius:50%;background:rgba(37,37,38,0.8);display:flex;align-items:center;justify-content:center;color:var(--color-text-primary);font-size:14px;font-weight:bold}
 .map-compass::before{content:'';position:absolute;left:50%;top:4px;width:2px;height:14px;background:var(--color-threat-high);transform:translateX(-50%)}
 /* 比例尺（左下角，避开 PiP 位置） */
-.map-scale{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;color:var(--color-text-secondary);font-size:10px;pointer-events:none}
+.map-scale{position:absolute;right:76px;bottom:16px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;color:var(--color-text-secondary);font-size:10px;pointer-events:none}
 .map-scale-bar{width:80px;height:4px;background:var(--color-text-primary);border:1px solid var(--color-bg)}
+
+/* ============ 三维视角工具条（地图右缘，契约 situation.md §5.1.1 SIT-RP-*；2D 地图模拟 Qt3D 工具栏） ============ */
+/* 容器：贴地图右缘通高 60px；背景/左边框为 §5.1.1 契约字面量（rgba(30,30,30,200)、#3D3D3D） */
+.view-toolbar{position:absolute;top:0;right:0;bottom:0;width:60px;background:rgba(30,30,30,0.785);border-left:1px solid #3D3D3D;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;z-index:10}
+/* 全屏占位按钮（§5.1 SIT-RP-FULLSCREEN：禁用并标注占位，tooltip“全屏功能未实现”） */
+.vt-fullscreen{width:24px;height:24px;background:transparent;color:var(--color-text-secondary);font-size:16px;cursor:not-allowed;opacity:0.5}
+.vt-title{color:var(--color-text-secondary);font-size:10px}
+/* 俯/侧/3D/复位四按钮：40x28；颜色为 §5.1.1 契约字面量（TOP #0078D7、SIDE/3D #4A4A4A、RESET #D9534F） */
+.vt-btn{width:40px;height:28px;font-size:12px;border-radius:3px}
+.vt-btn.top{background:#0078D7;color:var(--color-text-primary)}
+.vt-btn.top:hover{background:#1984D8}
+.vt-btn.top:active{background:#005A9E}
+.vt-btn.side,.vt-btn.three{background:#4A4A4A;color:#DDDDDD;border:1px solid #5A5A5A}
+.vt-btn.side:hover,.vt-btn.three:hover{background:#5A5A5A}
+.vt-btn.reset{background:#D9534F;color:var(--color-text-primary);font-size:11px}
+.vt-btn.reset:hover{background:#E74C3C}
+.vt-btn.active{outline:1px solid var(--color-text-primary)}
+/* 缩放标签（只读，20px 高）与位置标签（只读，40px 高，自动换行；#666666 为 §5.1.1 契约字面量） */
+.vt-zoom{height:20px;color:var(--color-text-disabled);font-size:10px;line-height:20px;white-space:nowrap;text-align:center}
+.vt-pos{height:40px;color:#666666;font-size:9px;text-align:center;word-break:break-all;line-height:1.2;padding:0 4px}
+.vt-spacer{flex:1}
 /* FOV 锥形（UAV-1 视场，半透明橙扇形向下） */
 .map-fov-cone{position:absolute;width:120px;height:90px;background:var(--color-threat-medium);opacity:0.22;clip-path:polygon(50% 0,0 100%,100% 100%);transform:translate(-50%,-2px);pointer-events:none}
 .map-fov-label{position:absolute;color:var(--color-threat-medium);font-size:10px;transform:translate(-50%,0);pointer-events:none;opacity:0.8}
@@ -163,7 +193,7 @@ button:disabled{cursor:not-allowed}
 .map-target-label.pending{color:var(--color-text-disabled)}
 
 /* ============ 视频 PiP 浮窗（左下角，16:9） ============ */
-.video-pip{position:absolute;left:16px;bottom:16px;width:var(--pip-width);height:calc(var(--pip-height) + var(--pip-titlebar-h));background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);box-shadow:0 4px 16px rgba(0,0,0,0.6);display:flex;flex-direction:column;z-index:20;overflow:hidden}
+.video-pip{position:absolute;left:16px;bottom:16px;width:var(--pip-width);height:calc(var(--pip-height) + var(--pip-titlebar-h));background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);box-shadow:var(--elevation-overlay);display:flex;flex-direction:column;z-index:20;overflow:hidden}
 .video-pip.hidden{display:none}
 .video-pip.main-mode{left:0;top:0;width:100%;height:100%;border:none;border-radius:0}
 .video-pip.minimized{height:var(--pip-titlebar-h)}
@@ -196,14 +226,14 @@ button:disabled{cursor:not-allowed}
 .pip-resize-handle{position:absolute;right:0;bottom:0;width:14px;height:14px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%,var(--color-text-secondary) 50%);z-index:21}
 
 /* 主屏模式：视频全屏时，地图缩成右上角小 PiP */
-.map-pip-when-video-main{position:absolute;right:16px;top:16px;width:240px;height:150px;background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);display:none;flex-direction:column;z-index:19;overflow:hidden}
+.map-pip-when-video-main{position:absolute;right:76px;top:16px;width:240px;height:150px;background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);display:none;flex-direction:column;z-index:19;overflow:hidden}
 .map-pip-when-video-main.visible{display:flex}
 .map-pip-when-video-main .pip-titlebar{cursor:default}
 .map-mini{flex:1;background:var(--color-ground);position:relative}
 .map-mini::before{content:'';position:absolute;inset:0;background-image:linear-gradient(var(--color-grid) 1px,transparent 1px),linear-gradient(90deg,var(--color-grid) 1px,transparent 1px);background-size:20px 20px;opacity:0.5}
 
 /* ============ 选中目标详情+研判浮层（右侧，选中目标时出现） ============ */
-.target-detail-overlay{position:absolute;top:16px;right:16px;width:340px;background:rgba(37,37,38,0.95);border:1px solid var(--color-border);border-radius:var(--radius-control);box-shadow:0 4px 20px rgba(0,0,0,0.7);padding:12px;display:none;flex-direction:column;gap:8px;z-index:15}
+.target-detail-overlay{position:absolute;top:16px;right:76px;width:340px;background:rgba(37,37,38,0.95);border:1px solid var(--color-border);border-radius:var(--radius-control);box-shadow:var(--elevation-overlay);padding:12px;display:none;flex-direction:column;gap:8px;z-index:15}
 .target-detail-overlay.visible{display:flex}
 .td-close{position:absolute;top:6px;right:6px;width:22px;height:22px;color:var(--color-text-secondary);border-radius:3px;font-size:14px;display:flex;align-items:center;justify-content:center}
 .td-close:hover{background:var(--color-danger);color:var(--color-text-primary)}
@@ -247,6 +277,8 @@ button:disabled{cursor:not-allowed}
 @keyframes alarm-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .emergency-btn{height:18px;padding:0 8px;font-size:11px;background:var(--color-danger);color:var(--color-text-primary);border-radius:var(--radius-control);font-weight:bold}
 .emergency-btn:disabled{background:var(--color-text-disabled);cursor:not-allowed}
+/* 急停图标（fa-hand f256，--size-icon-action）：随按钮文本色渲染，禁用态同色；恒禁用占位 */
+.emergency-btn .em-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-action);line-height:1;margin-right:3px}
 </style>
 </head>
 <body>
@@ -260,13 +292,18 @@ button:disabled{cursor:not-allowed}
     <button data-testid="SIT-MENU-HELP">帮助(&amp;H)</button>
   </div>
 
-  <!-- ============ 工具栏（简化：去掉探测演示控制/阶段进度/时间码） ============ -->
+  <!-- ============ 工具栏（镜像 CURRENT createMapToolbar：探测控制组 + 地图工具组） ============ -->
   <div class="toolbar">
-    <button class="tb-btn" data-testid="SIT-TB-RESET" title="地图视角复位">视角复位</button>
+    <!-- 探测控制组（镜像 CURRENT createMapToolbar 探测控制段；点击行为镜像 onStart/onStop/onReset 槽，本地模拟） -->
+    <button class="tb-btn" data-testid="SIT-TB-DET-RESET" title="重置探测（镜像 CURRENT：停止视频/复位遥测/清空目标与探测结果）"><span class="tb-icon">&#xf2f9;</span>重置</button>
+    <button class="tb-btn" data-testid="SIT-TB-DET-START" title="开始探测（镜像 CURRENT：播放视频/启动遥测模拟器）"><span class="tb-icon">&#xf04b;</span>开始</button>
+    <button class="tb-btn" data-testid="SIT-TB-DET-STOP" title="结束探测（镜像 CURRENT：停止视频并回 0s/停止遥测模拟器）"><span class="tb-icon">&#xf04d;</span>结束</button>
     <span class="tb-separator"></span>
-    <button class="tb-btn" data-testid="SIT-TB-LAYER" data-disabled="true" title="占位，未实现">图层</button>
-    <button class="tb-btn" data-testid="SIT-TB-MEASURE" data-disabled="true" title="占位，未实现">测量</button>
-    <button class="tb-btn" data-testid="SIT-TB-PICK" data-disabled="true" title="占位，未实现">坐标拾取</button>
+    <button class="tb-btn" data-testid="SIT-TB-RESET" title="地图视角复位"><span class="tb-icon">&#xf065;</span>视角复位</button>
+    <span class="tb-separator"></span>
+    <button class="tb-btn" data-testid="SIT-TB-LAYER" data-disabled="true" title="占位，未实现"><span class="tb-icon">&#xf5fd;</span>图层</button>
+    <button class="tb-btn" data-testid="SIT-TB-MEASURE" data-disabled="true" title="占位，未实现"><span class="tb-icon">&#xf545;</span>测量</button>
+    <button class="tb-btn" data-testid="SIT-TB-PICK" data-disabled="true" title="占位，未实现"><span class="tb-icon">&#xf601;</span>坐标拾取</button>
     <span class="tb-spacer"></span>
     <span class="sim-tag">[模拟]</span>
   </div>
@@ -274,17 +311,17 @@ button:disabled{cursor:not-allowed}
   <!-- ============ 主区域 ============ -->
   <div class="main-area">
 
-    <!-- ============ 导航栏（不变） ============ -->
+    <!-- ============ 导航栏（已实现页面 01/02/03 真实链接路由；04-06 占位仅高亮） ============ -->
     <div class="nav-bar">
       <div class="nav-logo" data-testid="SIT-NAV-LOGO">UXO</div>
       <div class="nav-spacer-1"></div>
       <div class="nav-items">
-        <div class="nav-item selected" data-testid="SIT-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
-        <div class="nav-item" data-testid="SIT-NAV-02" title="未实现页面（占位）"><span class="nav-icon">◎</span><span>探测</span></div>
-        <div class="nav-item" data-testid="SIT-NAV-03" title="未实现页面（占位）"><span class="nav-icon">◎</span><span>决策</span></div>
-        <div class="nav-item" data-testid="SIT-NAV-04" title="未实现页面（占位）"><span class="nav-icon">◎</span><span>设备</span></div>
-        <div class="nav-item" data-testid="SIT-NAV-05" title="未实现页面（占位）"><span class="nav-icon">◎</span><span>统计</span></div>
-        <div class="nav-item" data-testid="SIT-NAV-06" title="未实现页面（占位）"><span class="nav-icon">◎</span><span>配置</span></div>
+        <div class="nav-item selected" data-testid="SIT-NAV-01"><span class="nav-icon">&#xf5a0;</span><span>态势</span></div>
+        <a class="nav-item" data-testid="SIT-NAV-02" href="../detection/index.html"><span class="nav-icon">&#xf7c0;</span><span>探测</span></a>
+        <a class="nav-item" data-testid="SIT-NAV-03" href="../decision/index.html"><span class="nav-icon">&#xf24e;</span><span>决策</span></a>
+        <div class="nav-item" data-testid="SIT-NAV-04" title="未实现页面（占位）"><span class="nav-icon">&#xf2db;</span><span>设备</span></div>
+        <div class="nav-item" data-testid="SIT-NAV-05" title="未实现页面（占位）"><span class="nav-icon">&#xe0e3;</span><span>统计</span></div>
+        <div class="nav-item" data-testid="SIT-NAV-06" title="未实现页面（占位）"><span class="nav-icon">&#xf013;</span><span>配置</span></div>
       </div>
       <div class="nav-spacer-2"></div>
     </div>
@@ -378,14 +415,14 @@ button:disabled{cursor:not-allowed}
         </div>
 
         <!-- 2D 战术地图（主舞台，占满剩余空间） -->
-        <div class="tactical-map" data-testid="SIT-MAP">
+        <div class="tactical-map" data-testid="SIT-RP-MAP">
           <div class="map-bg"></div>
           <div class="map-grid"></div>
           <!-- 坐标轴标签（米坐标系 0-5000 × 0-3000） -->
           <div class="map-axis-label" style="left:4px;top:4px">0,3000</div>
-          <div class="map-axis-label" style="right:4px;top:4px">5000,3000</div>
+          <div class="map-axis-label" style="right:64px;top:4px">5000,3000</div>
           <div class="map-axis-label" style="left:4px;bottom:4px">0,0</div>
-          <div class="map-axis-label" style="right:4px;bottom:4px">5000,0</div>
+          <div class="map-axis-label" style="right:64px;bottom:4px">5000,0</div>
           <!-- 跑道（横向，中间偏上） -->
           <div class="map-runway"></div>
           <div class="map-runway-label">RUNWAY 09/27</div>
@@ -393,6 +430,19 @@ button:disabled{cursor:not-allowed}
           <div class="map-compass">N</div>
           <!-- 比例尺（右下角） -->
           <div class="map-scale">500m<span class="map-scale-bar"></span></div>
+
+          <!-- 三维视角工具条（右缘，契约 situation.md §5.1.1 SIT-RP-*；2D 地图上的模拟相机位姿） -->
+          <div class="view-toolbar">
+            <button class="vt-fullscreen" data-testid="SIT-RP-FULLSCREEN" title="全屏功能未实现" disabled>全</button>
+            <div class="vt-title">视角</div>
+            <button class="vt-btn top" data-testid="SIT-RP-TOP" title="俯视（模拟）">俯</button>
+            <button class="vt-btn side" data-testid="SIT-RP-SIDE" title="侧视（模拟）">侧</button>
+            <button class="vt-btn three" data-testid="SIT-RP-3D" title="3D 视角（模拟）">3D</button>
+            <button class="vt-btn reset" data-testid="SIT-RP-RESET" title="复位相机（模拟）">复位</button>
+            <div class="vt-zoom" data-testid="SIT-RP-ZOOM" title="模拟缩放（只读）">缩放: 100%</div>
+            <div class="vt-pos" data-testid="SIT-RP-POS" title="模拟相机坐标（只读）">X:2500 Y:600 Z:2000</div>
+            <div class="vt-spacer"></div>
+          </div>
 
           <!-- UAV-1 FOV 锥形（半透明橙扇形向下） -->
           <div class="map-fov-cone" style="left:35%;top:22%"></div>
@@ -500,7 +550,7 @@ button:disabled{cursor:not-allowed}
         <span class="status-alarm-item">[模拟] Robot-1 待命中</span>
       </div>
     </div>
-    <button class="emergency-btn" data-disabled="true" disabled title="模拟占位，无实际效果" data-testid="SIT-SB-EMERGENCY">紧急停止</button>
+    <button class="emergency-btn" data-disabled="true" disabled title="模拟占位，无实际效果" data-testid="SIT-SB-EMERGENCY"><span class="em-icon">&#xf256;</span>紧急停止</button>
   </div>
 
 </div>
@@ -511,6 +561,7 @@ button:disabled{cursor:not-allowed}
 // 1. 左pane折叠/展开  2. 目标选中联动(地图标记/左面板行/详情浮层)
 // 3. 详情浮层关闭     4. 研判操作(模拟反馈)  5. 视频PiP(拖动/缩放/最小化/关闭/主次切换)
 // 6. 设备资源条点击 -> 打开/切换PiP视频源  7. 导航/菜单仅高亮
+// 10. 三维视角工具条(模拟相机俯/侧/3D/复位,缩放与位置标签联动)
 document.addEventListener('DOMContentLoaded',()=>{
   // ===== 目标数据(模拟态势页 5 目标) =====
   const targets={
@@ -733,8 +784,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     m.addEventListener('click',e=>{e.stopPropagation();switchPipSource(m.dataset.device)});
   });
 
-  // ===== 7. 导航/菜单/状态标签 仅高亮,不路由 =====
-  document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>{
+  // ===== 7. 导航/菜单/状态标签：已实现页面真实链接路由；占位项仅高亮 =====
+  document.querySelectorAll('.nav-item:not([href])').forEach(n=>n.addEventListener('click',()=>{
     document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));
     n.classList.add('selected');
   }));
@@ -756,11 +807,62 @@ document.addEventListener('DOMContentLoaded',()=>{
     initPipPosition();
   });
 
+  // ===== 8.5 探测控制组(镜像 CURRENT onStart/onStop/onReset,本地模拟:写状态栏告警条目) =====
+  const simAlarmTrack=document.querySelector('[data-testid="SIT-SB-ALARM"] .status-alarm-track');
+  const simAlarmAdded=[];// 记录动态追加的告警条目,用于上限 4 条时移除最早条目防溢出
+  function addSimAlarm(text){
+    if(!simAlarmTrack)return;
+    const el=document.createElement('span');
+    el.className='status-alarm-item';
+    el.textContent='[模拟] '+text;
+    simAlarmTrack.appendChild(el);
+    simAlarmAdded.push(el);
+    while(simAlarmAdded.length>4)simAlarmAdded.shift().remove();// 上限 4 条,超出移除最早条目
+  }
+  // 开始探测:镜像 CURRENT onStart(播放视频/启动遥测模拟器),原型以状态栏告警演示
+  document.querySelector('[data-testid="SIT-TB-DET-START"]').addEventListener('click',()=>addSimAlarm('探测已开始'));
+  // 结束探测:镜像 CURRENT onStop(停止视频并回 0s/停止遥测模拟器)
+  document.querySelector('[data-testid="SIT-TB-DET-STOP"]').addEventListener('click',()=>addSimAlarm('探测已结束，视频回 0s'));
+  // 重置探测:镜像 CURRENT onResetDetection(暂停视频/复位遥测/清空目标与探测结果,并写状态栏告警"探测已重置",见 MainWindow.cpp L581)
+  document.querySelector('[data-testid="SIT-TB-DET-RESET"]').addEventListener('click',()=>addSimAlarm('探测已重置'));
+
   // ===== 9. PiP时间码实时更新(走表,模拟) =====
   setInterval(()=>{
     const d=new Date();
     pipTimecode.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
   },1000);
+
+  // ===== 10. 三维视角工具条(模拟:俯/侧/3D/复位,缩放与位置标签联动) =====
+  // 契约 situation.md §5.1.1 SIT-RP-*。原型为 2D 地图模拟 Qt3D 视角工具条:
+  // 相机位姿为 3D 坐标(x=东西,y=高度,z=南北),地图 y 充当 3D z;焦点=选中目标,否则地图中心。
+  const vtTop=document.querySelector('[data-testid="SIT-RP-TOP"]');
+  const vtSide=document.querySelector('[data-testid="SIT-RP-SIDE"]');
+  const vt3D=document.querySelector('[data-testid="SIT-RP-3D"]');
+  const vtReset=document.querySelector('[data-testid="SIT-RP-RESET"]');
+  const vtZoom=document.querySelector('[data-testid="SIT-RP-ZOOM"]');
+  const vtPos=document.querySelector('[data-testid="SIT-RP-POS"]');
+  // 默认/复位相机位姿(高度 600m 折算为 100% 缩放)
+  const VT_CAM_DEFAULT={x:2500,y:600,z:2000};
+  // 焦点目标:当前选中标记,否则地图中心(5000x3000 场地中点)
+  const vtFocus=()=>{const sel=document.querySelector('.map-target.selected');return(sel&&targets[sel.dataset.target])||{x:2500,y:1500};};
+  // 应用相机位姿:缩放按高度折算(600m=100%),位置标签显示 X/Y/Z
+  const vtApplyCam=cam=>{vtZoom.textContent='缩放: '+Math.round(600/cam.y*100)+'%';vtPos.textContent='X:'+cam.x+' Y:'+cam.y+' Z:'+cam.z;};
+  // 设置当前激活的视角按钮(null 清除全部)
+  const vtSetActive=btn=>{[vtTop,vtSide,vt3D].forEach(b=>b.classList.toggle('active',b===btn));};
+  vtTop.addEventListener('click',()=>{const f=vtFocus();vtApplyCam({x:f.x,y:1500,z:f.y});vtSetActive(vtTop);});
+  vtSide.addEventListener('click',()=>{const f=vtFocus();vtApplyCam({x:100,y:200,z:f.y});vtSetActive(vtSide);});
+  vt3D.addEventListener('click',()=>{const f=vtFocus();vtApplyCam({x:f.x+500,y:500,z:f.y+700});vtSetActive(vt3D);});
+  vtReset.addEventListener('click',()=>{
+    // 与工具栏 SIT-TB-RESET 语义等价的模拟复位(见 §8),并复位模拟相机与标签
+    if(pipMainMode)togglePipMain();
+    tdPanel.classList.remove('visible');
+    clearSelection();
+    pip.classList.remove('hidden','minimized');
+    initPipPosition();
+    vtApplyCam(VT_CAM_DEFAULT);
+    vtSetActive(null);
+  });
+  vtApplyCam(VT_CAM_DEFAULT);
 
   // ===== 初始化 =====
   initPipPosition();
