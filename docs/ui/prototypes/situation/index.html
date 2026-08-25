@@ -25,7 +25,11 @@
   --anim-short:150ms;--anim-normal:200ms;--anim-easing:ease-in-out;
   /* PiP 专用尺寸（16:9，参考 QGC/Auterion Mission Control） */
   --pip-width:480px;--pip-height:270px;--pip-titlebar-h:24px;
+  /* 图标与浮层投影 token（design-system.md §3.2/§9；浮层投影 var() 化，消除硬编码） */
+  --size-icon-nav:16px;--size-icon-action:12px;--elevation-overlay:0 4px 12px rgba(0,0,0,0.4);
 }
+/* Font Awesome 7 Solid：与 Qt 侧 QtAwesome 同源（third_party 字体 vendored 至 prototypes/assets/）；图标仅作辅助识别，不作唯一信息载体 */
+@font-face{font-family:"Font Awesome 7 Free";src:url("../assets/fa-solid-900.otf") format("opentype");font-weight:900;font-style:normal;font-display:block;}
 *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-family)}
 html,body{width:100vw;height:100vh;overflow:hidden;background:var(--color-bg);color:var(--color-text-primary);font-size:var(--font-size-body)}
 button{cursor:pointer;font-family:inherit;border:none;background:none;color:inherit;font-size:inherit}
@@ -44,12 +48,14 @@ button:disabled{cursor:not-allowed}
 .menu-bar button[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed}
 .menu-bar button[data-disabled="true"]:hover{background:transparent}
 
-/* ============ 工具栏（简化：去掉探测演示控制与阶段进度） ============ */
+/* ============ 工具栏（镜像 CURRENT createMapToolbar：探测控制组 + 地图工具组） ============ */
 .toolbar{height:var(--size-toolbar-height);background:var(--color-toolbar);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:8px;padding:0 8px}
 .toolbar .tb-btn{padding:4px 12px;color:var(--color-text-primary);font-size:var(--font-size-caption);background:transparent;border:1px solid var(--color-border);border-radius:var(--radius-control);transition:all var(--anim-short) var(--anim-easing)}
 .toolbar .tb-btn:hover{background:var(--color-border);color:var(--color-text-primary)}
 .toolbar .tb-btn[data-disabled="true"]{color:var(--color-text-disabled);cursor:not-allowed;border-color:var(--color-border)}
 .toolbar .tb-btn[data-disabled="true"]:hover{background:transparent}
+/* 工具栏图标（--size-icon-action）：与 Qt 地图工具栏 FA 字形对齐（f2f9 重置/f04b 开始/f04d 结束/f065 视角复位/f5fd 图层/f545 测量/f601 坐标拾取） */
+.toolbar .tb-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-action);line-height:1;margin-right:4px}
 .toolbar .tb-separator{width:1px;height:20px;background:var(--color-border)}
 .toolbar .tb-spacer{flex:1}
 .toolbar .sim-tag{color:var(--color-status-busy);font-size:var(--font-size-caption);font-weight:bold}
@@ -65,7 +71,10 @@ button:disabled{cursor:not-allowed}
 .nav-item{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;transition:all var(--anim-short) var(--anim-easing);cursor:pointer}
 .nav-item:hover{background:var(--color-row-hover);color:var(--color-text-primary)}
 .nav-item.selected{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold}
-.nav-item .nav-icon{font-size:18px;line-height:1}
+/* 已实现页面的导航项为真实链接（<a>），去掉默认下划线 */
+a.nav-item{text-decoration:none}
+/* 导航图标（fa 字形，--size-icon-nav），与 Qt 导航栏 QtAwesome 图标对齐 */
+.nav-item .nav-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-nav);line-height:1}
 .nav-spacer-2{flex:1}
 
 /* ============ 内容列：设备资源条 + 中心区 ============ */
@@ -163,7 +172,7 @@ button:disabled{cursor:not-allowed}
 .map-target-label.pending{color:var(--color-text-disabled)}
 
 /* ============ 视频 PiP 浮窗（左下角，16:9） ============ */
-.video-pip{position:absolute;left:16px;bottom:16px;width:var(--pip-width);height:calc(var(--pip-height) + var(--pip-titlebar-h));background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);box-shadow:0 4px 16px rgba(0,0,0,0.6);display:flex;flex-direction:column;z-index:20;overflow:hidden}
+.video-pip{position:absolute;left:16px;bottom:16px;width:var(--pip-width);height:calc(var(--pip-height) + var(--pip-titlebar-h));background:var(--color-panel);border:1px solid var(--color-border);border-radius:var(--radius-control);box-shadow:var(--elevation-overlay);display:flex;flex-direction:column;z-index:20;overflow:hidden}
 .video-pip.hidden{display:none}
 .video-pip.main-mode{left:0;top:0;width:100%;height:100%;border:none;border-radius:0}
 .video-pip.minimized{height:var(--pip-titlebar-h)}
@@ -203,7 +212,7 @@ button:disabled{cursor:not-allowed}
 .map-mini::before{content:'';position:absolute;inset:0;background-image:linear-gradient(var(--color-grid) 1px,transparent 1px),linear-gradient(90deg,var(--color-grid) 1px,transparent 1px);background-size:20px 20px;opacity:0.5}
 
 /* ============ 选中目标详情+研判浮层（右侧，选中目标时出现） ============ */
-.target-detail-overlay{position:absolute;top:16px;right:16px;width:340px;background:rgba(37,37,38,0.95);border:1px solid var(--color-border);border-radius:var(--radius-control);box-shadow:0 4px 20px rgba(0,0,0,0.7);padding:12px;display:none;flex-direction:column;gap:8px;z-index:15}
+.target-detail-overlay{position:absolute;top:16px;right:16px;width:340px;background:rgba(37,37,38,0.95);border:1px solid var(--color-border);border-radius:var(--radius-control);box-shadow:var(--elevation-overlay);padding:12px;display:none;flex-direction:column;gap:8px;z-index:15}
 .target-detail-overlay.visible{display:flex}
 .td-close{position:absolute;top:6px;right:6px;width:22px;height:22px;color:var(--color-text-secondary);border-radius:3px;font-size:14px;display:flex;align-items:center;justify-content:center}
 .td-close:hover{background:var(--color-danger);color:var(--color-text-primary)}
@@ -247,6 +256,8 @@ button:disabled{cursor:not-allowed}
 @keyframes alarm-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .emergency-btn{height:18px;padding:0 8px;font-size:11px;background:var(--color-danger);color:var(--color-text-primary);border-radius:var(--radius-control);font-weight:bold}
 .emergency-btn:disabled{background:var(--color-text-disabled);cursor:not-allowed}
+/* 急停图标（fa-hand f256，--size-icon-action）：随按钮文本色渲染，禁用态同色；恒禁用占位 */
+.emergency-btn .em-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-action);line-height:1;margin-right:3px}
 </style>
 </head>
 <body>
@@ -260,13 +271,18 @@ button:disabled{cursor:not-allowed}
     <button data-testid="SIT-MENU-HELP">帮助(&amp;H)</button>
   </div>
 
-  <!-- ============ 工具栏（简化：去掉探测演示控制/阶段进度/时间码） ============ -->
+  <!-- ============ 工具栏（镜像 CURRENT createMapToolbar：探测控制组 + 地图工具组） ============ -->
   <div class="toolbar">
-    <button class="tb-btn" data-testid="SIT-TB-RESET" title="地图视角复位">视角复位</button>
+    <!-- 探测控制组（镜像 CURRENT createMapToolbar 探测控制段；点击行为镜像 onStart/onStop/onReset 槽，本地模拟） -->
+    <button class="tb-btn" data-testid="SIT-TB-DET-RESET" title="重置探测（镜像 CURRENT：停止视频/复位遥测/清空目标与探测结果）"><span class="tb-icon">&#xf2f9;</span>重置</button>
+    <button class="tb-btn" data-testid="SIT-TB-DET-START" title="开始探测（镜像 CURRENT：播放视频/启动遥测模拟器）"><span class="tb-icon">&#xf04b;</span>开始</button>
+    <button class="tb-btn" data-testid="SIT-TB-DET-STOP" title="结束探测（镜像 CURRENT：停止视频并回 0s/停止遥测模拟器）"><span class="tb-icon">&#xf04d;</span>结束</button>
     <span class="tb-separator"></span>
-    <button class="tb-btn" data-testid="SIT-TB-LAYER" data-disabled="true" title="占位，未实现">图层</button>
-    <button class="tb-btn" data-testid="SIT-TB-MEASURE" data-disabled="true" title="占位，未实现">测量</button>
-    <button class="tb-btn" data-testid="SIT-TB-PICK" data-disabled="true" title="占位，未实现">坐标拾取</button>
+    <button class="tb-btn" data-testid="SIT-TB-RESET" title="地图视角复位"><span class="tb-icon">&#xf065;</span>视角复位</button>
+    <span class="tb-separator"></span>
+    <button class="tb-btn" data-testid="SIT-TB-LAYER" data-disabled="true" title="占位，未实现"><span class="tb-icon">&#xf5fd;</span>图层</button>
+    <button class="tb-btn" data-testid="SIT-TB-MEASURE" data-disabled="true" title="占位，未实现"><span class="tb-icon">&#xf545;</span>测量</button>
+    <button class="tb-btn" data-testid="SIT-TB-PICK" data-disabled="true" title="占位，未实现"><span class="tb-icon">&#xf601;</span>坐标拾取</button>
     <span class="tb-spacer"></span>
     <span class="sim-tag">[模拟]</span>
   </div>
@@ -274,17 +290,17 @@ button:disabled{cursor:not-allowed}
   <!-- ============ 主区域 ============ -->
   <div class="main-area">
 
-    <!-- ============ 导航栏（不变） ============ -->
+    <!-- ============ 导航栏（已实现页面 01/02/03 真实链接路由；04-06 占位仅高亮） ============ -->
     <div class="nav-bar">
       <div class="nav-logo" data-testid="SIT-NAV-LOGO">UXO</div>
       <div class="nav-spacer-1"></div>
       <div class="nav-items">
-        <div class="nav-item selected" data-testid="SIT-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
-        <div class="nav-item" data-testid="SIT-NAV-02" title="未实现页面（占位）"><span class="nav-icon">◎</span><span>探测</span></div>
-        <div class="nav-item" data-testid="SIT-NAV-03" title="未实现页面（占位）"><span class="nav-icon">◎</span><span>决策</span></div>
-        <div class="nav-item" data-testid="SIT-NAV-04" title="未实现页面（占位）"><span class="nav-icon">◎</span><span>设备</span></div>
-        <div class="nav-item" data-testid="SIT-NAV-05" title="未实现页面（占位）"><span class="nav-icon">◎</span><span>统计</span></div>
-        <div class="nav-item" data-testid="SIT-NAV-06" title="未实现页面（占位）"><span class="nav-icon">◎</span><span>配置</span></div>
+        <div class="nav-item selected" data-testid="SIT-NAV-01"><span class="nav-icon">&#xf5a0;</span><span>态势</span></div>
+        <a class="nav-item" data-testid="SIT-NAV-02" href="../detection/index.html"><span class="nav-icon">&#xf7c0;</span><span>探测</span></a>
+        <a class="nav-item" data-testid="SIT-NAV-03" href="../decision/index.html"><span class="nav-icon">&#xf24e;</span><span>决策</span></a>
+        <div class="nav-item" data-testid="SIT-NAV-04" title="未实现页面（占位）"><span class="nav-icon">&#xf2db;</span><span>设备</span></div>
+        <div class="nav-item" data-testid="SIT-NAV-05" title="未实现页面（占位）"><span class="nav-icon">&#xe0e3;</span><span>统计</span></div>
+        <div class="nav-item" data-testid="SIT-NAV-06" title="未实现页面（占位）"><span class="nav-icon">&#xf013;</span><span>配置</span></div>
       </div>
       <div class="nav-spacer-2"></div>
     </div>
@@ -500,7 +516,7 @@ button:disabled{cursor:not-allowed}
         <span class="status-alarm-item">[模拟] Robot-1 待命中</span>
       </div>
     </div>
-    <button class="emergency-btn" data-disabled="true" disabled title="模拟占位，无实际效果" data-testid="SIT-SB-EMERGENCY">紧急停止</button>
+    <button class="emergency-btn" data-disabled="true" disabled title="模拟占位，无实际效果" data-testid="SIT-SB-EMERGENCY"><span class="em-icon">&#xf256;</span>紧急停止</button>
   </div>
 
 </div>
@@ -733,8 +749,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     m.addEventListener('click',e=>{e.stopPropagation();switchPipSource(m.dataset.device)});
   });
 
-  // ===== 7. 导航/菜单/状态标签 仅高亮,不路由 =====
-  document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>{
+  // ===== 7. 导航/菜单/状态标签：已实现页面真实链接路由；占位项仅高亮 =====
+  document.querySelectorAll('.nav-item:not([href])').forEach(n=>n.addEventListener('click',()=>{
     document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('selected'));
     n.classList.add('selected');
   }));
@@ -755,6 +771,25 @@ document.addEventListener('DOMContentLoaded',()=>{
     pip.classList.remove('hidden','minimized');
     initPipPosition();
   });
+
+  // ===== 8.5 探测控制组(镜像 CURRENT onStart/onStop/onReset,本地模拟:写状态栏告警条目) =====
+  const simAlarmTrack=document.querySelector('[data-testid="SIT-SB-ALARM"] .status-alarm-track');
+  const simAlarmAdded=[];// 记录动态追加的告警条目,用于上限 4 条时移除最早条目防溢出
+  function addSimAlarm(text){
+    if(!simAlarmTrack)return;
+    const el=document.createElement('span');
+    el.className='status-alarm-item';
+    el.textContent='[模拟] '+text;
+    simAlarmTrack.appendChild(el);
+    simAlarmAdded.push(el);
+    while(simAlarmAdded.length>4)simAlarmAdded.shift().remove();// 上限 4 条,超出移除最早条目
+  }
+  // 开始探测:镜像 CURRENT onStart(播放视频/启动遥测模拟器),原型以状态栏告警演示
+  document.querySelector('[data-testid="SIT-TB-DET-START"]').addEventListener('click',()=>addSimAlarm('探测已开始'));
+  // 结束探测:镜像 CURRENT onStop(停止视频并回 0s/停止遥测模拟器)
+  document.querySelector('[data-testid="SIT-TB-DET-STOP"]').addEventListener('click',()=>addSimAlarm('探测已结束，视频回 0s'));
+  // 重置探测:镜像 CURRENT onResetDetection(暂停视频/复位遥测/清空目标与探测结果,并写状态栏告警"探测已重置",见 MainWindow.cpp L581)
+  document.querySelector('[data-testid="SIT-TB-DET-RESET"]').addEventListener('click',()=>addSimAlarm('探测已重置'));
 
   // ===== 9. PiP时间码实时更新(走表,模拟) =====
   setInterval(()=>{

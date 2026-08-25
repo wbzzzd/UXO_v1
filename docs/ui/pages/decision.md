@@ -18,7 +18,7 @@ CURRENT 来源：决策页 P0 Qt 实现已完成并通过验证。`DecisionView`
 - `src/MainWindow/DecisionView.cpp`：页面容器与布局，实例化子组件并接入 `MosPlanningController`。
 - `src/MainWindow/MosRunwayWidget.cpp`：QPainter 2D 跑道俯视图，自绘跑道/弹坑/合成避让几何/MOS 矩形；缩放公式 `clamp(min(w/1920, h/1080), 1, 2)`，不依赖 DPR。
 - `src/MainWindow/MosParamsPanel.cpp`：算法参数栏（10 可编辑 + 2 只读 + 实时校验横幅 + 规划状态横幅 + 重新规划）；字段高 22px、标签字号 11px（DecisionView 本地字面量）。
-- `src/MainWindow/MosGeneratorDialog.cpp`：MOS-015 生成器模态，固定 1012×700px，底部三按钮始终可见；JSON 按钮仅发出目标路径请求，由 `MosPlanningController` 通过 `QSaveFile` 写出当前已提交 fixture。
+- `src/MainWindow/MosGeneratorDialog.cpp`：MOS-015 生成器模态，无边框窗 568×424 + 内容卡 `DEC-GEN-CARD` 520×364，`applyViewportScale` 等比缩放（见 `design-system.md` §9.1），底部三按钮始终可见；JSON 按钮仅发出目标路径请求，由 `MosPlanningController` 通过 `QSaveFile` 写出当前已提交 fixture。
 - `src/MainWindow/MosPlanningController.cpp`：本地确定性状态机（planning -> loading -> result/error/empty），稳定 `DEC-*` ID。
 - `src/MainWindow/DecisionSuggestionPanel.cpp`：态势页右面板下段只读"模拟决策建议"子组件（非决策页组件，保留为态势页锚点）。
 - `include/Core/Data/Types.h`：`TargetType`/`ThreatLevel`/`TargetStatus` 等枚举。
@@ -51,7 +51,7 @@ MOS-015 生成器依据：`docs/features/mos-planning.md` 中 MOS-015 条目（P
 
 ### 2.1 导航栏
 
-固定宽 80px，背景 `--color-bg`，右侧 1px `--color-border` 边框。结构与态势页一致：UXO logo（高 40px，主色，18px 加粗，字间距 2px，居中）-> 16px 间距 -> 6 个导航项 -> 弹性留白。每个导航项高 56px，左侧 3px 透明边框，图标 `◎` + 文字双行，字号 `--font-size-caption`。选中态：背景 `--color-selection`、主色左边框 3px、主文本色、加粗。
+固定宽 80px，背景 `--color-bg`，右侧 1px `--color-border` 边框。结构与态势页一致：UXO logo（高 40px，主色，18px 加粗，字间距 2px，居中）-> 16px 间距 -> 6 个导航项 -> 弹性留白。每个导航项高 56px，左侧 3px 透明边框，图标为 Font Awesome 实心字形（`--size-icon-nav` 16px，映射见 `design-system.md` 第 8 节）+ 文字双行，字号 `--font-size-caption`。选中态：背景 `--color-selection`、主色左边框 3px、主文本色、加粗。
 
 | ID | 标签 | 默认 | 说明 |
 |----|------|------|------|
@@ -308,7 +308,7 @@ HTML 原型标题为"跑道 3000m × 50m [模拟]"，标题右侧比例尺为"0 
 
 入口：工具栏 `DEC-TB-GEN`。模态浮层覆盖整个 `.app`，背景半透明黑遮罩 `rgba(0,0,0,0.55)`，z-index 50。
 
-**模态结构**（宽 520px）：
+**模态结构**（无边框窗 568×424，内含内容卡 `DEC-GEN-CARD` 520×364，泄露区左/右/上 24px、下 36px，圆角 3px，投影 `--elevation-modal`，随视口 `viewportScale` 等比缩放，见 `design-system.md` §9.1；原型以 `.modal-window`/`.modal` 两层还原）：
 
 | 部分 | 内容 |
 |------|------|
@@ -536,6 +536,7 @@ CURRENT Qt 实现的 `DecisionView` + `MosPlanningController` 已落地该边界
 | `DEC-RP-DETAIL-NOTE` | 摘要免责声明 | 右面板 | P0 |
 | `DEC-RP-P1-SLOT` | P1 扩展位容器（禁用占位） | 右面板 | P1 |
 | `DEC-GEN-MODAL` | 生成器模态浮层 | 全屏浮层 | P0 |
+| `DEC-GEN-CARD` | 模态内容卡片（520×364，`DEC-GEN-MODAL` 内） | 全屏浮层 | P0 |
 | `DEC-GEN-CLOSE` | 模态关闭按钮 | 全屏浮层 | P0 |
 | `DEC-GEN-CRATER-COUNT` | 弹坑数量输入 | 全屏浮层 | P0 |
 | `DEC-GEN-CRATER-RMIN` | 弹坑半径最小输入 | 全屏浮层 | P0 |

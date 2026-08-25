@@ -265,17 +265,17 @@ chip 样式：内边距 `3px 8px`，字号 11px，默认 `--color-bg` 背景、`
 
 固定宽 80px（`--size-nav-width`），背景 `--color-bg`，右侧 1px `--color-border` 边框，纵向布局。从上到下：UXO logo（高 40px，居中，主色，18px 加粗，字间距 2px）-> 16px 间距 -> 6 个导航项 -> 弹性留白。
 
-导航项样式：高 56px，flex 纵向居中，左侧 3px 透明边框，`--color-text-secondary` 文本，`--font-size-caption`，间距 4px，过渡动画 `--anim-short`。图标 18px，单行高 1。hover：背景 `--color-row-hover`、文本 `--color-text-primary`。selected：背景 `--color-selection`、左侧边框 `--color-primary`、文本 `--color-text-primary`、加粗。
+导航项样式：高 56px，flex 纵向居中，左侧 3px 透明边框，`--color-text-secondary` 文本，`--font-size-caption`，间距 4px，过渡动画 `--anim-short`。图标为 Font Awesome 实心字形（`--size-icon-nav` 16px，映射见 `design-system.md` 第 8 节）。hover：背景 `--color-row-hover`、文本 `--color-text-primary`。selected：背景 `--color-selection`、左侧边框 `--color-primary`、文本 `--color-text-primary`、加粗。
 
 | ID | 标签 | 图标 | 用途 | 默认态 | hover | 选中态 | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
 |----|------|------|------|--------|-------|--------|---------|------|---------|---------------|------|
 | `DEV-NAV-LOGO` | UXO | - | 仅展示产品标识 | 主色文字，18px 加粗，居中 | 同默认 | 同默认 | 无（仅展示） | 不可聚焦 | 同 CURRENT；无交互 | `application-shell.md` 第 3.1 节 | 无 |
-| `DEV-NAV-01` | 态势 | ◎ | 切换到态势页（占位） | 透明背景、辅助色文本 | 背景 `--color-row-hover`、主文本色 | 背景 `--color-selection`、主色左边框 3px、主文本色、加粗 | 切换该项为选中态（移除其他项 selected）；CURRENT 仅 `qDebug`，不切换页面 | 不可原生聚焦（HTML `<div>`）；原型无键盘支持 | 点击仅高亮选中，不路由；中心区仍显示设备页内容 | `application-shell.md` 第 3 节 | 无 |
-| `DEV-NAV-02` | 探测 | ◎ | 切换到探测 live 页面（`DetectionView`，见 `detection.md`） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
-| `DEV-NAV-03` | 决策 | ◎ | 切换到决策 live 页面（`DecisionView`，见 `decision.md`） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
-| `DEV-NAV-04` | 设备 | ◎ | 当前页面（默认选中） | 选中（HTML `class="nav-item selected"`） | 同上 | 同上 | 同上 | 同上 | 默认选中；点击保持选中 | 同上 | 无 |
-| `DEV-NAV-05` | 统计 | ◎ | 切换到统计页（占位） | 未选中 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
-| `DEV-NAV-06` | 配置 | ◎ | 切换到配置页（占位） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
+| `DEV-NAV-01` | 态势 | `fa_map_location_dot` | 切换到态势页（占位） | 透明背景、辅助色文本 | 背景 `--color-row-hover`、主文本色 | 背景 `--color-selection`、主色左边框 3px、主文本色、加粗 | 切换该项为选中态（移除其他项 selected）；CURRENT 仅 `qDebug`，不切换页面 | 不可原生聚焦（HTML `<div>`）；原型无键盘支持 | 点击仅高亮选中，不路由；中心区仍显示设备页内容 | `application-shell.md` 第 3 节 | 无 |
+| `DEV-NAV-02` | 探测 | `fa_satellite_dish` | 切换到探测 live 页面（`DetectionView`，见 `detection.md`） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
+| `DEV-NAV-03` | 决策 | `fa_scale_balanced` | 切换到决策 live 页面（`DecisionView`，见 `decision.md`） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
+| `DEV-NAV-04` | 设备 | `fa_microchip` | 当前页面（默认选中） | 选中（HTML `class="nav-item selected"`） | 同上 | 同上 | 同上 | 同上 | 默认选中；点击保持选中 | 同上 | 无 |
+| `DEV-NAV-05` | 统计 | `fa_chart_column` | 切换到统计页（占位） | 未选中 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
+| `DEV-NAV-06` | 配置 | `fa_gear` | 切换到配置页（占位） | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 同上 | 无 |
 
 > CURRENT 导航项为 `QPushButton`，原型为 `<div>`；交互差异见 `application-shell.md` 第 3.2 节。`DEV-NAV-01`/`02`/`03`/`05`/`06` 选中后中心区仍显示设备页内容，属占位高亮。
 
@@ -315,7 +315,7 @@ chip 样式：内边距 `3px 8px`，字号 11px，默认 `--color-bg` 背景、`
 | `DEV-SB-DEVICE` | 设备: 3/4 在线 | QLabel（只读） | 状态栏左1 | 显示在线/总数设备统计 | `设备: 3/4 在线`（3 个在线：device-001/003 在线 + device-002 忙碌计为非在线；实际原型硬编码为 3/4） | 主文本色，`--font-size-caption` | 无（只读） | 不可聚焦 | 静态显示，不随设备状态变化 | `application-shell.md` 第 6.1 节 | 无 |
 | `DEV-SB-SIM` | [模拟模式] | QLabel（只读） | 状态栏左2，分隔符后 | 标注当前为本地模拟 | `[模拟模式]` | `--color-status-busy` 文本、`--font-size-caption`、加粗 | 无（只读） | 不可聚焦 | 始终显示 | `application-shell.md` 第 6.1 节 | 明确标注模拟模式 |
 | `DEV-SB-ALARM` | - | QWidget 容器（HTML `<div class="status-alarm">`，只读） | 状态栏中，弹性 | 横向滚动展示模拟告警 | 含 1 条告警项：`模拟告警: Delta 离线` | 透明背景，最小宽 400px，高 18px，`overflow:hidden`；告警项：高 18px、`--color-status-busy` 文本、`--font-size-caption`、背景 `--color-toolbar`、内边距 `2px 8px`、圆角 `--radius-control`、右外边距 10px、`white-space:nowrap` | 无（只读） | 不可聚焦 | 静态展示 1 条模拟告警；不滚动、不更新 | `application-shell.md` 第 6.1 节、第 6.2 节 | 只读，无操作入口 |
-| `DEV-SB-EMERGENCY` | 紧急停止 | QPushButton（HTML `<button class="emergency-btn">`） | 状态栏右 | 紧急停止（**危险占位**） | - | **禁用**：`disabled`、`data-disabled="true"`、背景 `--color-border`、文本 `--color-text-disabled`、`cursor:not-allowed`；启用态样式（未使用）：80x20px、`--color-danger` 背景、`--color-text-primary` 文本、11px 加粗、无边框、圆角 3px | 禁用，无响应 | 不可聚焦 | **禁用并标注"模拟占位，无实际效果"**，附 tooltip `危险占位：无设备停止效果，本原型禁用`；不弹确认框、不发信号 | `application-shell.md` 第 6.3 节、第 7 节；`StatusBarWidget.cpp` `onEmergencyStop`（CURRENT 弹确认框但无消费者） | **危险占位**：CURRENT 仅弹确认框并发出 `emergencyStopClicked` 信号，但 `MainWindow` 未连接，实际不会停止任何设备；文案"所有设备将立即停止"会误导用户。原型禁用此按钮以避免误导 |
+| `DEV-SB-EMERGENCY` | 紧急停止 | QPushButton（HTML `<button class="emergency-btn">`） | 状态栏右 | 紧急停止（**危险占位**） | - | **禁用**：`disabled`、`data-disabled="true"`、背景 `--color-border`、文本 `--color-text-disabled`、`cursor:not-allowed`，附 `fa_hand` 图标（12px，`--size-icon-action`）；启用态样式（未使用）：80x20px、`--color-danger` 背景、`--color-text-primary` 文本、11px 加粗、无边框、圆角 3px | 禁用，无响应 | 不可聚焦 | **禁用并标注"模拟占位，无实际效果"**，附 tooltip `危险占位：无设备停止效果，本原型禁用`；不弹确认框、不发信号 | `application-shell.md` 第 6.3 节、第 7 节；`StatusBarWidget.cpp` `onEmergencyStop`（CURRENT 弹确认框但无消费者） | **危险占位**：CURRENT 仅弹确认框并发出 `emergencyStopClicked` 信号，但 `MainWindow` 未连接，实际不会停止任何设备；文案"所有设备将立即停止"会误导用户。原型禁用此按钮以避免误导 |
 
 ## 6. 状态规则汇总
 

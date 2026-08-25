@@ -323,7 +323,7 @@ Y 轴标注同第一张（5 至 0）。3 组柱：
 | `STA-NAV-05` | 统计 | div | 导航项 5，56px 高 | 切换到统计页（当前页） | 选中 | 同上 | 同上 | 同上 | 同上 | 默认选中；点击仅保持选中 | 见 `application-shell.md` 第 3 节 | 无 |
 | `STA-NAV-06` | 配置 | div | 导航项 6，56px 高 | 切换到配置页 | 未选中 | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
 
-导航项图标统一为 `◎`（18px）。导航项内边距由 flex 居中控制，字号 `--font-size-caption`，间距 4px。过渡动画 `--anim-short`（150ms）`--anim-easing`。
+导航项图标统一为 Font Awesome 实心字形（`--size-icon-nav` 16px，映射见 `design-system.md` 第 8 节）。导航项内边距由 flex 居中控制，字号 `--font-size-caption`，间距 4px。过渡动画 `--anim-short`（150ms）`--anim-easing`。
 
 > 注：原型中导航点击仅切换 selected 类，不执行实际页面跳转（单页原型）。CURRENT Qt 客户端中导航切换通过 `QStackedWidget` 实现，见 `application-shell.md`。
 
@@ -363,7 +363,7 @@ Y 轴标注同第一张（5 至 0）。3 组柱：
 | `STA-SB-DEVICE` | 设备: 3/4 在线 | span | 状态栏左 1 | 显示模拟设备在线状态 | `--color-text-primary`，`--font-size-caption` | 不适用 | 不适用 | 无（只读） | 不可聚焦 | 固定显示 `设备: 3/4 在线`，与 KPI `STA-CE-KPI-DEVICES` 一致 | 见 `application-shell.md` 第 6 节 | 模拟数据 |
 | `STA-SB-SIM` | [模拟模式] | span | 状态栏左 2，分隔线后 | 标注当前为模拟模式 | `--color-status-busy`，`--font-size-caption`，加粗 | 不适用 | 不适用 | 无（只读） | 不可聚焦 | 固定显示 `[模拟模式]` | 见 `application-shell.md` 第 6 节 | 模拟标注 |
 | `STA-SB-ALARM` | - | div 容器 | 状态栏中，弹性宽 | 展示模拟告警滚动条目 | `min-width:400px`，`overflow:hidden`；条目 `--color-status-busy` 色、`--font-size-caption`、`--color-toolbar` 背景、内边距 `2px 8px`、圆角 `--radius-control` | 不适用 | 不适用 | 无（只读） | 不可聚焦 | 固定显示 1 条告警 `模拟告警: 统计数据为本地会话固定` | 见 `application-shell.md` 第 6 节 | 模拟告警 |
-| `STA-SB-EMERGENCY` | 紧急停止 | button | 状态栏右，80x20 | 紧急停止所有设备（禁用占位） | **始终禁用**：`--color-border` 背景、`--color-text-disabled` 文本、11px、加粗、圆角 3px；tooltip `危险占位：无设备停止效果，本原型禁用` | 不适用 | `disabled` + `data-disabled="true"` | 无（disabled，不响应点击） | 不可聚焦 | **模拟占位，无实际效果**；原型中禁用并标注"危险占位" | 见 `application-shell.md` 第 6 节 | 模拟占位，无设备停止效果 |
+| `STA-SB-EMERGENCY` | 紧急停止 | button | 状态栏右，80x20 | 紧急停止所有设备（禁用占位） | **始终禁用**：`--color-border` 背景、`--color-text-disabled` 文本、11px、加粗、圆角 3px，附 `fa_hand` 图标（12px，`--size-icon-action`）；tooltip `危险占位：无设备停止效果，本原型禁用` | 不适用 | `disabled` + `data-disabled="true"` | 无（disabled，不响应点击） | 不可聚焦 | **模拟占位，无实际效果**；原型中禁用并标注"危险占位" | 见 `application-shell.md` 第 6 节 | 模拟占位，无设备停止效果 |
 
 状态栏分隔线为 1px 宽、18px 高的 `--color-border` 竖线。
 

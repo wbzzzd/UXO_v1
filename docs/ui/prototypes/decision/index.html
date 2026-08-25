@@ -19,7 +19,11 @@
   --size-nav-width:80px;--size-left-panel-width:260px;--size-right-panel-width:380px;
   --size-status-bar-height:22px;--size-toolbar-height:32px;--size-menu-bar-height:30px;
   --radius-control:6px;--anim-short:150ms;--anim-easing:ease-in-out;
+  /* 图标与模态投影 token（design-system.md §3.2/§9；模态投影 var() 化，消除硬编码） */
+  --size-icon-nav:16px;--elevation-modal:0 8px 24px rgba(0,0,0,0.5);
 }
+/* Font Awesome 7 Solid：与 Qt 侧 QtAwesome 同源（third_party 字体 vendored 至 prototypes/assets/）；图标仅作辅助识别，不作唯一信息载体 */
+@font-face{font-family:"Font Awesome 7 Free";src:url("../assets/fa-solid-900.otf") format("opentype");font-weight:900;font-style:normal;font-display:block;}
 *{margin:0;padding:0;box-sizing:border-box;}
 /* 原型自适应缩放：保持 1920×1080 设计完整，1280×720 等比缩小后可用 */
 html,body{background:var(--color-bg);color:var(--color-text-primary);font-family:var(--font-family);font-size:var(--font-size-body);user-select:none;overflow:hidden;}
@@ -59,7 +63,10 @@ html,body{background:var(--color-bg);color:var(--color-text-primary);font-family
 .nav-btn{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:3px solid transparent;color:var(--color-text-secondary);font-size:var(--font-size-caption);gap:4px;cursor:pointer;transition:all var(--anim-short) var(--anim-easing);}
 .nav-btn:hover{background:var(--color-row-hover);color:var(--color-text-primary);}
 .nav-btn.active{background:var(--color-selection);border-left-color:var(--color-primary);color:var(--color-text-primary);font-weight:bold;}
-.nav-icon{font-size:18px;line-height:1;}
+/* 已实现页面的导航项为真实链接（<a>），去掉默认下划线 */
+a.nav-btn{text-decoration:none}
+/* 导航图标（fa 字形，--size-icon-nav），与 Qt 导航栏 QtAwesome 图标对齐 */
+.nav-icon{font-family:"Font Awesome 7 Free";font-weight:900;font-size:var(--size-icon-nav);line-height:1;}
 .nav-spacer-2{flex:1;}
 
 /* ===== 左面板 ===== */
@@ -250,16 +257,17 @@ html,body{background:var(--color-bg);color:var(--color-text-primary);font-family
 .status-right{display:flex;align-items:center;gap:6px;}
 .status-right .threat-tag{color:var(--color-threat-high);font-weight:bold;}
 
-/* ===== 模态：模拟损毁分布生成器（MOS-015） ===== */
+/* ===== 模态：模拟损毁分布生成器（MOS-015；几何对齐 Qt 无边框窗：外窗 568×424 + 内卡 520×364 + Modal 投影） ===== */
 .modal-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;z-index:50;}
 .modal-overlay.open{display:flex;}
-.modal{width:520px;background:var(--color-panel);border:1px solid var(--color-border);border-radius:6px;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.6);}
-.modal-header{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--color-border);background:var(--color-toolbar);border-radius:6px 6px 0 0;}
+.modal-window{width:568px;height:424px;}
+.modal{width:520px;height:364px;margin:24px 24px 36px;background:var(--color-panel);border:1px solid var(--color-border);border-radius:3px;display:flex;flex-direction:column;box-shadow:var(--elevation-modal);overflow:hidden;}
+.modal-header{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0;}
 .modal-title{font-size:13px;font-weight:bold;color:var(--color-text-primary);}
 .modal-title .sim{color:var(--color-status-busy);font-size:10px;margin-left:6px;}
-.modal-close{width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--color-text-secondary);border-radius:var(--radius-control);font-size:16px;}
+.modal-close{width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--color-text-secondary);border-radius:var(--radius-control);font-size:16px;}
 .modal-close:hover{background:var(--color-border);color:var(--color-text-primary);}
-.modal-body{padding:14px;display:flex;flex-direction:column;gap:12px;}
+.modal-body{padding:14px;display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;overflow:hidden;}
 .modal-section{display:flex;flex-direction:column;gap:6px;}
 .modal-section-title{font-size:12px;color:var(--color-text-secondary);font-weight:bold;}
 /* minmax(0,1fr) 防止 grid 项固有最小宽度撑破 520px 模态 */
@@ -274,7 +282,7 @@ html,body{background:var(--color-bg);color:var(--color-text-primary);font-family
 .modal-banner.show{display:block;}
 .modal-banner.err{background:rgba(255,82,82,0.12);color:var(--color-threat-high);border:1px solid rgba(255,82,82,0.4);}
 .modal-banner.ok{background:rgba(76,175,80,0.12);color:var(--color-status-online);border:1px solid rgba(76,175,80,0.4);}
-.modal-footer{padding:10px 14px;border-top:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.modal-footer{padding:10px 14px;border-top:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;}
 .modal-footer-note{font-size:10px;color:var(--color-text-secondary);font-style:italic;flex:1;}
 .modal-footer-note .nowrap{white-space:nowrap;}
 .modal-footer-actions{display:flex;gap:8px;}
@@ -322,12 +330,12 @@ html,body{background:var(--color-bg);color:var(--color-text-primary);font-family
       <div class="nav-logo" data-testid="DEC-NAV-LOGO">UXO</div>
       <div class="nav-spacer-1"></div>
       <div class="nav-items">
-        <div class="nav-btn" data-testid="DEC-NAV-01"><span class="nav-icon">◎</span><span>态势</span></div>
-        <div class="nav-btn" data-testid="DEC-NAV-02"><span class="nav-icon">◎</span><span>探测</span></div>
-        <div class="nav-btn active" data-testid="DEC-NAV-03"><span class="nav-icon">◎</span><span>决策</span></div>
-        <div class="nav-btn" data-testid="DEC-NAV-04"><span class="nav-icon">◎</span><span>设备</span></div>
-        <div class="nav-btn" data-testid="DEC-NAV-05"><span class="nav-icon">◎</span><span>统计</span></div>
-        <div class="nav-btn" data-testid="DEC-NAV-06"><span class="nav-icon">◎</span><span>配置</span></div>
+        <a class="nav-btn" data-testid="DEC-NAV-01" href="../situation/index.html"><span class="nav-icon">&#xf5a0;</span><span>态势</span></a>
+        <a class="nav-btn" data-testid="DEC-NAV-02" href="../detection/index.html"><span class="nav-icon">&#xf7c0;</span><span>探测</span></a>
+        <div class="nav-btn active" data-testid="DEC-NAV-03"><span class="nav-icon">&#xf24e;</span><span>决策</span></div>
+        <div class="nav-btn" data-testid="DEC-NAV-04"><span class="nav-icon">&#xf2db;</span><span>设备</span></div>
+        <div class="nav-btn" data-testid="DEC-NAV-05"><span class="nav-icon">&#xe0e3;</span><span>统计</span></div>
+        <div class="nav-btn" data-testid="DEC-NAV-06"><span class="nav-icon">&#xf013;</span><span>配置</span></div>
       </div>
       <div class="nav-spacer-2"></div>
     </div>
@@ -485,7 +493,8 @@ html,body{background:var(--color-bg);color:var(--color-text-primary);font-family
 
   <!-- 模态：模拟损毁分布生成器（MOS-015） -->
   <div class="modal-overlay" id="genModalOverlay" data-testid="DEC-GEN-MODAL">
-    <div class="modal">
+    <div class="modal-window"><!-- 无边框窗几何 568×424（对齐 Qt MosGeneratorDialog 对话框尺寸） -->
+    <div class="modal" data-testid="DEC-GEN-CARD"><!-- 内卡 520×364，与 Qt 对话框内容卡对齐 -->
       <div class="modal-header">
         <div class="modal-title">模拟损毁分布生成器<span class="sim">[模拟 · MOS-015]</span></div>
         <div class="modal-close" data-testid="DEC-GEN-CLOSE">×</div>
@@ -547,6 +556,7 @@ html,body{background:var(--color-bg);color:var(--color-text-primary);font-family
           <button class="btn btn-primary" data-testid="DEC-GEN-APPLY" id="genApplyBtn">应用生成</button>
         </div>
       </div>
+    </div>
     </div>
   </div>
 
@@ -1182,8 +1192,8 @@ document.getElementById('genModalOverlay').addEventListener('click', (e) => { if
   });
 });
 
-// 导航栏点击：仅切换高亮，不路由（与 CURRENT 一致）
-document.querySelectorAll('.nav-btn').forEach(btn => {
+// 导航栏点击：01/02/03 已实现页面为真实链接路由（与 CURRENT 一致）；04/05/06 占位项仅切换高亮
+document.querySelectorAll('.nav-btn:not([href])').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');

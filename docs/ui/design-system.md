@@ -348,7 +348,7 @@ CURRENT 态势页在 1280×720 下右面板旧 `DecisionSuggestionPanel` 仍存�
 
 - **档位选中语义（checked tier）**：`MosParamsPanel` 与候选方案卡片使用互斥 checked 选中态。选中档位：蓝色高亮 `--color-tier-blue` 背景 + 边框；未选中档位（enabled-but-unchecked）：中性默认色，可点击切换。`no-solution` 状态下：无可行档位 `DEC-TB-PLAN-1` **禁用**（dimmed gray），更高可行档位（如 `DEC-TB-PLAN-3`）**启用但不 checked**（中性可选替代，非当前选择）。该语义由 `tierSelectionCheckedStateIsUnambiguous` 测试锁定，避免"档位3 被误读为当前选中"的歧义。
 - **参数栏字段尺寸**：`MosParamsPanel` 输入框字段高 22px、标签字号 11px（小于 `--font-size-caption` 13px，DecisionView 本地字面量）。该尺寸仅用于决策页参数栏，不替换 §2/§3.2 的全局字体/控件 token。
-- **生成器模态响应式**：`MosGeneratorDialog` 固定 1012×700px，在三视口下均完整可见（4K 下大量留白，不缩放）。底部三按钮（下载 JSON / 取消 / 应用生成）始终可见，不裁切。
+- **生成器模态响应式**：`MosGeneratorDialog` 为无边框窗 568×424，内含内容卡 `DEC-GEN-CARD` 520×364（泄露区左/右/上 24px、下 36px），随视口由 `DecisionViewLayout::applyViewportScale` 等比缩放（见 9.1 节）。底部三按钮（下载 JSON / 取消 / 应用生成）始终可见，不裁切。
 - **本地/合成边界**：`DecisionView` 全部数据为本地种子化 fixture（`mulberry32` 确定性生成），`MosRunwayWidget` QPainter 自绘跑道/弹坑/合成避让几何/MOS 矩形；JSON 导出仅通过 `QSaveFile` 向明确本地路径单向写入合成 fixture 工件，不提供 import/reload/运行时持久化/外部集成通道；不联网、不写入数据库、不控制设备。
 - **单档位渲染**：P0 仅渲染当前模拟选择档位（`m_selectedTier`）的 MOS 矩形，不渲染未选中档位；全档位叠加对比视图为 P1 Draft（见 `docs/features/mos-planning.md` MOS-008）。选中档位中属于该档位 `repairedIds` 的障碍物以 `Qt::DashLine` 虚线轮廓 + 斜十字标记绘制，模拟"已处理"假设，不暗示真实修复或安全结论。
 - **各向同性米坐标系**：`MosRunwayWidget` 使用单一各向同性像素/米比例 `pxPerM = min(pxPerMX, pxPerMY)`（X/Y 共享），不使用 HTML 原型的独立叠层分离。障碍物影响圆像素半径 `obstacleRadiusPx = influenceRadius × pxPerM`（米坐标 × 各向同性比例，无钳制/系数），paint 与 hitTest 共用同一半径。
@@ -362,7 +362,7 @@ CURRENT Qt 客户端图标采用 Font Awesome 6 Free 实心字形：第三方库
 - `UiIcons::navGlyph(index)`：导航 6 项码点（0..5，越界返回 0）。
 - `UiIcons::icon(character, color, active, disabled)`：以 `fa::fa_solid` 风格生成图标；`color`/`active`/`disabled` 对应常规/悬停/禁用状态色，无效 `QColor` 表示不生成该状态。
 
-HTML 原型本轮未接入 FA 字体，维持既有文本字形方案（如导航 ◎ 近似、✓/× 等符号）；如后续需要原型对齐，须先在本节评审映射后再实现。
+HTML 原型本轮已接入 FA 字体：字体 vendored 于 `prototypes/assets/fa-solid-900.otf`，各页 `@font-face` 以相对路径 `../assets/` 引用（family `Font Awesome 7 Free`，weight 900）。8.1 节 14 枚字形已全部挂载（六页导航 6 枚、态势页工具栏 7 枚（含探测控制组 重置/开始/结束 3 枚，本批次接入）、五页状态栏急停 1 枚）。原型中 FA 图标的尺寸与状态色遵循 8.2 节约束，按钮文字标签保留不变。
 
 ### 8.1 图标映射（14 枚）
 
@@ -393,12 +393,12 @@ HTML 原型本轮未接入 FA 字体，维持既有文本字形方案（如导�
 
 ## 9. 深度投影（REQ-010 阶段3，CURRENT Qt 登记）
 
-**实现事实**：QSS 不支持 `box-shadow`，投影由 `QGraphicsDropShadowEffect` 消费 `GlobalStyle::Elevation` 常量实现。六页 HTML 原型本轮无 box-shadow/elevation 消费点，无原型同步项。
+**实现事实**：QSS 不支持 `box-shadow`，投影由 `QGraphicsDropShadowEffect` 消费 `GlobalStyle::Elevation` 常量实现。HTML 原型自原型基线同步批次起消费两档 token：态势页 `.video-pip` / `.target-detail-overlay` 用 `--elevation-overlay`，决策页 `.modal`（`DEC-GEN-CARD`）用 `--elevation-modal`；其余原型投影为本地装饰字面量，不走 token。
 
 | Token | 值 | GlobalStyle 常量 | 消费端 |
 |---|---|---|---|
-| `--elevation-overlay` | `0 4px 12px rgba(0,0,0,0.4)` | `Elevation::OverlayBlurRadius=12 / OverlayOffsetY=4 / OverlayShadowAlpha=102` | 态势页 PiP（`videoPiP`）与目标详情浮层（`targetDetailOverlay`）的阴影底衬 |
-| `--elevation-modal` | `0 8px 24px rgba(0,0,0,0.5)` | `Elevation::ModalBlurRadius=24 / ModalOffsetY=8 / ModalShadowAlpha=128` | 模拟损毁分布生成器对话框内容卡片 `DEC-GEN-CARD` |
+| `--elevation-overlay` | `0 4px 12px rgba(0,0,0,0.4)` | `Elevation::OverlayBlurRadius=12 / OverlayOffsetY=4 / OverlayShadowAlpha=102` | 态势页 PiP（`videoPiP`）与目标详情浮层（`targetDetailOverlay`）的阴影底衬；HTML 原型态势页 `.video-pip` / `.target-detail-overlay` |
+| `--elevation-modal` | `0 8px 24px rgba(0,0,0,0.5)` | `Elevation::ModalBlurRadius=24 / ModalOffsetY=8 / ModalShadowAlpha=128` | 模拟损毁分布生成器对话框内容卡片 `DEC-GEN-CARD`；HTML 原型决策页 `.modal`（`DEC-GEN-CARD`） |
 
 ### 9.1 实现方式与已知限制
 

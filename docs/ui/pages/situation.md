@@ -522,43 +522,42 @@ CURRENT 在 `SituationView` 右侧叠加一个 60px 宽的竖直工具栏，背�
 |----|------|------|------|------|--------|-------|--------|---------|------|---------|---------------|------|
 | `SIT-NAV-LOGO` | UXO | div | 导航栏顶，40px 高 | 品牌标识 | `--color-primary` 色，18px，加粗，字间距 2px，居中 | 不适用 | 不适用 | 无 | 不可聚焦 | 同 CURRENT | 见 `application-shell.md` 第 3 节 | 无 |
 | `SIT-NAV-01` | 态势 | div | 导航项 1，56px 高 | 切换到态势页（当前页） | 选中 | 背景 `--color-row-hover`、文本 `--color-text-primary` | 背景 `--color-selection`、左边框 `--color-primary`、文本 `--color-text-primary`、加粗 | 移除其他项 selected，当前加 selected（无实际页面跳转） | div 无 tabindex，不可键盘聚焦 | 默认选中；点击仅保持选中 | 见 `application-shell.md` 第 3 节 | 无 |
-| `SIT-NAV-02` | 探测 | div | 导航项 2，56px 高 | 切换到探测页（CURRENT 已实现 live 页面 `DetectionView`，见 `detection.md`） | 未选中 | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
-| `SIT-NAV-03` | 决策 | div | 导航项 3，56px 高 | 切换到决策页（CURRENT 已实现 live 页面 `DecisionView`，MOS P0） | 未选中 | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
-| `SIT-NAV-04` | 设备 | div | 导航项 4，56px 高 | 切换到设备页（占位） | 未选中，tooltip `未实现页面（占位）` | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
+| `SIT-NAV-02` | 探测 | a 链接 | 导航项 2，56px 高 | 跳转到探测页（CURRENT live 页面 `DetectionView`，见 `detection.md`） | 未选中（`--color-text-secondary` 文本） | 背景 `--color-row-hover`、文本 `--color-text-primary` | 本页不选中；探测页中对应导航项为选中态 | 真实链接跳转 `../detection/index.html` | a 链接可 Tab 聚焦，Enter 触发跳转 | 真实 `<a>` 链接，多页原型互跳 | 见 `application-shell.md` 第 3 节 | 无 |
+| `SIT-NAV-03` | 决策 | a 链接 | 导航项 3，56px 高 | 跳转到决策页（CURRENT live 页面 `DecisionView`，MOS P0） | 未选中（`--color-text-secondary` 文本） | 背景 `--color-row-hover`、文本 `--color-text-primary` | 本页不选中；决策页中对应导航项为选中态 | 真实链接跳转 `../decision/index.html` | a 链接可 Tab 聚焦，Enter 触发跳转 | 真实 `<a>` 链接，多页原型互跳 | 见 `application-shell.md` 第 3 节 | 无 |
+| `SIT-NAV-04` | 设备 | div | 导航项 4，56px 高 | 切换到设备页（占位） | 未选中（`--color-text-secondary` 文本），tooltip `未实现页面（占位）` | 背景 `--color-row-hover`、文本 `--color-text-primary` | 背景 `--color-selection`、左边框 `--color-primary`、文本 `--color-text-primary`、加粗 | 移除其他导航项 selected，当前项加 selected（无页面跳转） | div 无 tabindex，不可键盘聚焦 | 点击仅切换 selected 高亮，不跳转（占位项） | 见 `application-shell.md` 第 3 节 | 无 |
 | `SIT-NAV-05` | 统计 | div | 导航项 5，56px 高 | 切换到统计页（占位） | 未选中，tooltip `未实现页面（占位）` | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
 | `SIT-NAV-06` | 配置 | div | 导航项 6，56px 高 | 切换到配置页（占位） | 未选中，tooltip `未实现页面（占位）` | 同上 | 同上 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 3 节 | 无 |
 
-导航项图标统一为 `◎`（18px）。导航项内边距由 flex 居中控制，字号 `--font-size-caption`，间距 4px。
+导航项图标统一为 Font Awesome 实心字形（`--size-icon-nav` 16px；字体 vendored 于 `prototypes/assets/fa-solid-900.otf`，映射见 `design-system.md` 第 8 节）。导航项内边距由 flex 居中控制，字号 `--font-size-caption`，间距 4px。
 
-> 注：原型中导航点击仅切换 selected 类，不执行实际页面跳转（单页原型）。CURRENT Qt 客户端中导航切换通过 `QStackedWidget` 实现，见 `application-shell.md`。
+> 注：原型中已实现页面的导航项（`SIT-NAV-02`/`SIT-NAV-03`）为真实 `<a>` 链接，点击跳转到探测/决策页原型（多页互链）；当前页 `SIT-NAV-01` 与占位项 `SIT-NAV-04`–`06` 为 div，点击仅切换 selected 类，不执行页面跳转。CURRENT Qt 客户端中导航切换通过 `QStackedWidget` 实现（index 1=探测 `DetectionView`、index 2=决策 `DecisionView`），见 `application-shell.md`。
 
 ### 6.2 菜单栏
 
-高 30px（`--size-menu-bar-height`），背景 `--color-menu`，底部 1px `--color-border` 边框，内边距 `0 4px`。5 个菜单项为 `<button>` 元素，内边距 `6px 12px`，`--font-size-body`。
+高 30px（`--size-menu-bar-height`），背景 `--color-menu`，底部 1px `--color-border` 边框，内边距 `0 4px`。4 个菜单项为 `<button>` 元素，内边距 `6px 12px`，`--font-size-body`。
 
-默认态：透明背景、`--color-text-primary` 文本。hover：背景 `--color-border`。禁用态（`data-disabled="true"`）：`--color-text-disabled` 文本，hover 不变背景。省略态（`data-omitted="true"`）：`display:none`，不渲染。
+默认态：透明背景、`--color-text-primary` 文本。hover：背景 `--color-border`。禁用态（`data-disabled="true"`）：`--color-text-disabled` 文本，hover 不变背景。
 
 | ID | 标签 | 类型 | 位置 | 用途 | 默认态 | hover | disabled/omitted | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
 |----|------|------|------|------|--------|-------|------------------|---------|------|---------|---------------|------|
-| `SIT-MENU-FILE` | 文件(&F) | button | 菜单栏左 1 | 文件菜单（占位） | 透明背景、主文本色 | 背景 `--color-border` | 不适用 | 无（无 JS 事件绑定） | Tab 聚焦，Enter 触发 | 点击无效果，不展开下拉菜单 | 见 `application-shell.md` 第 4 节 | 无 |
-| `SIT-MENU-VIEW` | 视图(&V) | button | 菜单栏左 2 | 视图菜单（占位） | 同上 | 同上 | 不适用 | 无 | 同上 | 同上 | 见 `application-shell.md` 第 4 节 | 无 |
+| `SIT-MENU-FILE` | 文件(&F) | button | 菜单栏左 1 | 文件菜单（占位） | 透明背景、主文本色 | 背景 `--color-border` | 不适用 | JS 切换 active 类（无对应样式规则，无视觉变化），不展开下拉菜单 | Tab 聚焦，Enter 触发 | 点击切换 active 类，不展开下拉菜单 | 见 `application-shell.md` 第 4 节 | 无 |
+| `SIT-MENU-VIEW` | 视图(&V) | button | 菜单栏左 2 | 视图菜单（占位） | 同上 | 同上 | 不适用 | 同上 | 同上 | 同上 | 见 `application-shell.md` 第 4 节 | 无 |
 | `SIT-MENU-TOOLS` | 工具(&T) | button | 菜单栏左 3 | 工具菜单（禁用占位） | `--color-text-disabled` 文本 | 不变背景 | `data-disabled="true"`，tooltip `占位控件，未实现` | 无（disabled） | 不可聚焦 | **禁用并标注"占位"**，不响应点击 | 见 `application-shell.md` 第 4 节 | 无 |
-| `SIT-MENU-DEVICE` | 设备(&D) | button | 菜单栏左 4 | 设备菜单（省略占位） | 不适用 | 不适用 | `data-omitted="true"`，`display:none` | 无（不可见） | 不可聚焦 | **省略不渲染**；对应 CURRENT 中连接空 lambda 的"打开设备控制台"占位菜单项 | 见 `application-shell.md` 第 7 节 | 无 |
-| `SIT-MENU-HELP` | 帮助(&H) | button | 菜单栏左 5 | 帮助菜单（占位） | 透明背景、主文本色 | 背景 `--color-border` | 不适用 | 无 | Tab 聚焦，Enter 触发 | 点击无效果 | 见 `application-shell.md` 第 4 节 | 无 |
+| `SIT-MENU-HELP` | 帮助(&H) | button | 菜单栏左 4 | 帮助菜单（占位） | 透明背景、主文本色 | 背景 `--color-border` | 不适用 | JS 切换 active 类（同 `SIT-MENU-FILE`，无视觉变化） | Tab 聚焦，Enter 触发 | 点击切换 active 类，不展开下拉菜单 | 见 `application-shell.md` 第 4 节 | 无 |
 
 ### 6.3 工具栏
 
-高 32px（`--size-toolbar-height`），背景 `--color-toolbar`，底部 1px `--color-border` 边框，内边距 `0 8px`，间距 8px。从左到右：图层控制（禁用占位）+ 测量工具（禁用占位）+ 坐标拾取（禁用占位）+ 视角复位按钮 + 同步状态（省略占位）+ 书签（省略占位）+ 设备控制台（省略占位）。
+高 32px（`--size-toolbar-height`），背景 `--color-toolbar`，底部 1px `--color-border` 边框，内边距 `0 8px`，间距 8px。从左到右：探测控制组（重置/开始/结束，启用，镜像 CURRENT 探测工作流）+ 分隔线 + 视角复位按钮 + 分隔线 + 图层（禁用占位）+ 测量（禁用占位）+ 坐标拾取（禁用占位）+ 弹性留白 + `[模拟]` 标签（`--color-status-busy`，加粗）。同步状态、书签、设备控制台在 CURRENT 中未实现，原型不渲染（省略说明见 `application-shell.md` 第 5 节与第 7 节）。
 
 | ID | 标签 | 类型 | 位置 | 用途 | 默认态 | hover | disabled/omitted | 点击结果 | 键盘 | 原型行为 | CURRENT 映射 | 安全 |
 |----|------|------|------|------|--------|-------|------------------|---------|------|---------|---------------|------|
-| `SIT-TB-LAYER` | 图层控制 | span | 工具栏左 1 | 图层控制（禁用占位） | `--color-text-disabled`，`--font-size-caption` | 不变（disabled） | `data-disabled="true"`，tooltip `占位控件，未实现` | 无 | 不可聚焦 | **禁用并标注"占位"** | 见 `application-shell.md` 第 5 节 | 无 |
-| `SIT-TB-MEASURE` | 测量工具 | span | 工具栏左 2 | 测量工具（禁用占位） | 同上 | 同上 | 同上 | 无 | 不可聚焦 | 同上 | 见 `application-shell.md` 第 5 节 | 无 |
-| `SIT-TB-PICK` | 坐标拾取 | span | 工具栏左 3 | 坐标拾取（禁用占位） | 同上 | 同上 | 同上 | 无 | 不可聚焦 | 同上 | 见 `application-shell.md` 第 5 节 | 无 |
-| `SIT-TB-RESET` | 视角复位 | button | 工具栏左 4 | 复位三维相机视角 | `--color-text-secondary` 文本、透明背景、1px `--color-border` 边框、圆角 `--radius-control`、`--font-size-caption`；内边距 `4px 8px` | 背景 `--color-border`、文本 `--color-text-primary` | 不适用 | 无（JS 未绑定 click 事件） | Tab 聚焦，Enter 触发 | 点击无效果；与右面板 `SIT-RP-RESET` 等价但工具栏按钮无绑定 | 见 `application-shell.md` 第 5 节 | 无 |
-| `SIT-TB-SYNC` | 同步状态 | span | 工具栏左 5 | 同步状态（省略占位） | 不适用 | 不适用 | `data-omitted="true"`，`display:none` | 无（不可见） | 不可聚焦 | **省略不渲染** | 见 `application-shell.md` 第 5 节 | 无 |
-| `SIT-TB-BOOKMARK` | 书签 | span | 工具栏左 6 | 书签（省略占位） | 不适用 | 不适用 | `data-omitted="true"`，`display:none` | 无（不可见） | 不可聚焦 | **省略不渲染** | 见 `application-shell.md` 第 5 节 | 无 |
-| `SIT-TB-CONSOLE` | 设备控制台 | span | 工具栏左 7 | 设备控制台（省略占位） | 不适用 | 不适用 | `data-omitted="true"`，`display:none` | 无（不可见） | 不可聚焦 | **省略不渲染**；对应 CURRENT 中连接空 lambda 的"打开设备控制台"占位 | 见 `application-shell.md` 第 7 节 | 无 |
+| `SIT-TB-DET-RESET` | 重置 | button | 工具栏左 1 | 重置探测（镜像 CURRENT `onResetDetection`） | `--color-text-primary` 文本、透明背景、1px `--color-border` 边框、圆角 `--radius-control`、`--font-size-caption`，附 `fa_rotate_right` 图标（12px，`--size-icon-action`）；内边距 `4px 12px`，tooltip `重置探测（镜像 CURRENT：停止视频/复位遥测/清空目标与探测结果）` | 背景 `--color-border`、文本 `--color-text-primary` | 不适用 | JS 绑定：状态栏告警区追加 `[模拟] 探测已重置` 条目 | Tab 聚焦，Enter 触发 | 镜像 CURRENT 启用按钮；本地模拟，动态告警上限 4 条（超出移除最早条目），无真实设备控制 | 见 `application-shell.md` 第 5 节 | 无 |
+| `SIT-TB-DET-START` | 开始 | button | 工具栏左 2 | 开始探测（镜像 CURRENT `onStartDetection`） | 同上（图标 `fa_play`；tooltip `开始探测（镜像 CURRENT：播放视频/启动遥测模拟器）`） | 同上 | 不适用 | JS 绑定：状态栏告警区追加 `[模拟] 探测已开始` 条目 | 同上 | 同上 | 见 `application-shell.md` 第 5 节 | 无 |
+| `SIT-TB-DET-STOP` | 结束 | button | 工具栏左 3 | 结束探测（镜像 CURRENT `onStopDetection`） | 同上（图标 `fa_stop`；tooltip `结束探测（镜像 CURRENT：停止视频并回 0s/停止遥测模拟器）`） | 同上 | 不适用 | JS 绑定：状态栏告警区追加 `[模拟] 探测已结束，视频回 0s` 条目 | 同上 | 同上 | 见 `application-shell.md` 第 5 节 | 无 |
+| `SIT-TB-RESET` | 视角复位 | button | 工具栏左 4 | 复位三维相机视角 | `--color-text-primary` 文本、透明背景、1px `--color-border` 边框、圆角 `--radius-control`、`--font-size-caption`，附 `fa_expand` 图标（12px，`--size-icon-action`）；内边距 `4px 12px`，tooltip `地图视角复位` | 背景 `--color-border`、文本 `--color-text-primary` | 不适用 | JS 绑定模拟复位：退出画中画主画面、隐藏目标详情浮层、清除目标选中、显示并复位画中画位置 | Tab 聚焦，Enter 触发 | 点击执行模拟复位，与右面板 `SIT-RP-RESET` 语义等价；纯本地视图操作，无设备控制。CURRENT 中该按钮为禁用占位，原型保留可点击，为已文档化差异 | 见 `application-shell.md` 第 5 节 | 无 |
+| `SIT-TB-LAYER` | 图层 | button | 工具栏左 5 | 图层控制（禁用占位） | `--color-text-disabled`，`--font-size-caption`，附 `fa_layer_group` 图标（12px，`--size-icon-action`） | 不变（disabled） | `data-disabled="true"`，tooltip `占位，未实现` | 无 | Tab 可聚焦、Enter/Space 无操作 | **禁用并标注"占位"** | 见 `application-shell.md` 第 5 节 | 无 |
+| `SIT-TB-MEASURE` | 测量 | button | 工具栏左 6 | 测量工具（禁用占位） | 同上（图标 `fa_ruler`） | 同上 | 同上 | 无 | 同上 | 同上 | 见 `application-shell.md` 第 5 节 | 无 |
+| `SIT-TB-PICK` | 坐标拾取 | button | 工具栏左 7 | 坐标拾取（禁用占位） | 同上（图标 `fa_location_crosshairs`） | 同上 | 同上 | 无 | 同上 | 同上 | 见 `application-shell.md` 第 5 节 | 无 |
 
 ### 6.4 状态栏
 
@@ -569,8 +568,8 @@ CURRENT 在 `SituationView` 右侧叠加一个 60px 宽的竖直工具栏，背�
 | `SIT-SB-DEVICE` | 设备: 2/2 在线 | span | 状态栏左 1 | 显示模拟设备在线状态 | `--color-text-primary`，`--font-size-caption` | 不适用 | 不适用 | 无（只读） | 不可聚焦 | 固定显示 `设备: 2/2 在线`，不随操作变化 | 见 `application-shell.md` 第 6 节 | 模拟数据 |
 | `SIT-SB-BATTERY` | 最低电量: 74% | span | 状态栏左 2，分隔线后 | 显示模拟设备最低电量 | `status-battery high` 类（`--color-status-online` 色），`--font-size-caption` | 不适用 | 不适用 | 无（只读） | 不可聚焦 | 固定显示 `最低电量: 74%`；电量阈值变色（high/mid/low） | 见 `application-shell.md` 第 6 节 | 模拟数据 |
 | `SIT-SB-SIM` | [模拟模式] | span | 状态栏左 3，分隔线后 | 标注当前为模拟模式 | `--color-status-busy`，`--font-size-caption`，加粗 | 不适用 | 不适用 | 无（只读） | 不可聚焦 | 固定显示 `[模拟模式]` | 见 `application-shell.md` 第 6 节 | 模拟标注 |
-| `SIT-SB-ALARM` | - | div 容器 | 状态栏中，弹性宽 | 展示模拟告警滚动条目 | 条目 `--color-status-busy` 色、`--font-size-caption`、`--color-toolbar` 背景、内边距 `2px 8px`、圆角 `--radius-control` | 不适用 | 不适用 | 无（只读） | 不可聚焦 | 固定显示 1 条告警 `模拟告警 1: 模拟设备电量偏低` | 见 `application-shell.md` 第 6 节 | 模拟告警 |
-| `SIT-SB-EMERGENCY` | 紧急停止 | button | 状态栏右，高 18px（宽自适应） | 紧急停止所有设备（禁用占位） | **始终禁用**：`--color-text-disabled` 背景、`--color-text-primary` 文本、11px、加粗、圆角 `--radius-control`；tooltip `模拟占位，无实际效果` | 不适用 | `disabled` + `data-disabled="true"` | 无（disabled，不响应点击） | 不可聚焦 | **模拟占位，无实际效果**；原型中禁用 | 见 `application-shell.md` 第 6 节 | 模拟占位，无设备停止效果 |
+| `SIT-SB-ALARM` | - | div 容器 | 状态栏中，弹性宽 | 展示模拟告警滚动条目 | 轨道 `display:flex`、间距 32px、`white-space:nowrap`；条目 `--color-text-primary` 文本、`--font-size-caption`；`alarm-scroll` 18s 线性无限横向滚动（`translateX(-50%)`，条目复制一份实现无缝滚动） | 不适用 | 不适用 | 无（只读） | 不可聚焦 | 初始固定 4 条模拟告警（`[模拟] TGT-002 检测置信度 92%`、`[模拟] UAV-1 电量 82%`、`[模拟] TGT-001 检测置信度 86%`、`[模拟] Robot-1 待命中`）；探测控制组操作追加动态告警（`[模拟] 探测已开始`/`探测已结束，视频回 0s`/`探测已重置`，上限 4 条，超出移除最早条目） | 见 `application-shell.md` 第 6 节 | 模拟告警 |
+| `SIT-SB-EMERGENCY` | 紧急停止 | button | 状态栏右，高 18px（宽自适应） | 紧急停止所有设备（禁用占位） | **始终禁用**：`--color-text-disabled` 背景、`--color-text-primary` 文本、11px、加粗、圆角 `--radius-control`，附 `fa_hand` 图标（12px，`--size-icon-action`）；tooltip `模拟占位，无实际效果` | 不适用 | `disabled` + `data-disabled="true"` | 无（disabled，不响应点击） | 不可聚焦 | **模拟占位，无实际效果**；原型中禁用 | 见 `application-shell.md` 第 6 节 | 模拟占位，无设备停止效果 |
 
 状态栏分隔线为 1px 宽、18px 高的 `--color-border` 竖线。
 
@@ -681,23 +680,22 @@ CURRENT 在 1280x720 下决策面板末两行（指派设备、模拟声明）�
 |----|------|------|
 | `SIT-NAV-LOGO` | 导航栏 Logo | 应用壳 |
 | `SIT-NAV-01` | 导航项：态势（选中） | 应用壳 |
-| `SIT-NAV-02` | 导航项：探测（已实现，切换探测页） | 应用壳 |
-| `SIT-NAV-03` | 导航项：决策（已实现，切换 MOS 决策页） | 应用壳 |
+| `SIT-NAV-02` | 导航项：探测（已实现，链接跳转探测页原型） | 应用壳 |
+| `SIT-NAV-03` | 导航项：决策（已实现，链接跳转决策页原型） | 应用壳 |
 | `SIT-NAV-04` | 导航项：设备（占位） | 应用壳 |
 | `SIT-NAV-05` | 导航项：统计（占位） | 应用壳 |
 | `SIT-NAV-06` | 导航项：配置（占位） | 应用壳 |
 | `SIT-MENU-FILE` | 菜单：文件 | 应用壳 |
 | `SIT-MENU-VIEW` | 菜单：视图 | 应用壳 |
 | `SIT-MENU-TOOLS` | 菜单：工具（禁用占位） | 应用壳 |
-| `SIT-MENU-DEVICE` | 菜单：设备（省略占位） | 应用壳 |
 | `SIT-MENU-HELP` | 菜单：帮助 | 应用壳 |
+| `SIT-TB-DET-RESET` | 工具栏：重置探测 | 应用壳 |
+| `SIT-TB-DET-START` | 工具栏：开始探测 | 应用壳 |
+| `SIT-TB-DET-STOP` | 工具栏：结束探测 | 应用壳 |
+| `SIT-TB-RESET` | 工具栏：视角复位 | 应用壳 |
 | `SIT-TB-LAYER` | 工具栏：图层控制（禁用占位） | 应用壳 |
 | `SIT-TB-MEASURE` | 工具栏：测量工具（禁用占位） | 应用壳 |
 | `SIT-TB-PICK` | 工具栏：坐标拾取（禁用占位） | 应用壳 |
-| `SIT-TB-RESET` | 工具栏：视角复位 | 应用壳 |
-| `SIT-TB-SYNC` | 工具栏：同步状态（省略占位） | 应用壳 |
-| `SIT-TB-BOOKMARK` | 工具栏：书签（省略占位） | 应用壳 |
-| `SIT-TB-CONSOLE` | 工具栏：设备控制台（省略占位） | 应用壳 |
 | `SIT-SB-DEVICE` | 设备状态 | 状态栏 |
 | `SIT-SB-BATTERY` | 最低电量 | 状态栏 |
 | `SIT-SB-SIM` | 模拟模式标签 | 状态栏 |

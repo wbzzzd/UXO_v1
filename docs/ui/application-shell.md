@@ -20,7 +20,7 @@ CURRENT 窗口标题前缀与早期参考图（历史 `image1.png`，已删除�
 
 ## 2. 区域布局
 
-CURRENT 主区域为 `QHBoxLayout`：导航 | 左面板 | 中心区 | 右面板，四者 `setContentsMargins(0,0,0,0)`、`setSpacing(0)`，区域之间无外边距。中心区为 `QVBoxLayout` 容纳 `centerSplitter`（垂直 splitter：视频流 + 信息区）和工具栏上方区域。
+CURRENT 主区域为 `QHBoxLayout`：导航栏（80px）+ `QStackedWidget` 主页面栈（`m_pageStack`，objectName `mainPageStack`，三页：0 态势工作区 = 左面板 + 设备资源条 + 地图工具栏 + 战术地图主舞台；1 探测 `DetectionView`；2 决策 `DecisionView`，`mainLayout->addWidget(m_pageStack, 1)`），`setContentsMargins(0,0,0,0)`、`setSpacing(0)` 无外边距。下图为态势页原型基线布局；探测/决策页内部布局见 `pages/detection.md` 与 `pages/decision.md`。
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -50,17 +50,17 @@ CURRENT 主区域为 `QHBoxLayout`：导航 | 左面板 | 中心区 | 右面板�
 |------|------|------|------|
 | 导航栏 | 宽 80px 固定 | - | `NavigationWidget.cpp` `setFixedWidth(80)` |
 | 左面板 | 宽 320px 固定 | - | `GlobalStyle.h` `Sizes::LeftPanelWidth` |
-| 中心区 | 弹性 | stretch 1 | `MainWindow.cpp` `mainLayout->addWidget(m_centerArea, 1)` |
-| 右面板 | 宽 360px 固定（CURRENT）；360–420px 弹性（TARGET） | - | `GlobalStyle.h` `Sizes::RightPanelWidth`；TARGET 扩展 |
-| 视频流区 | 弹性 | stretch 3 | `MainWindow.cpp` `m_centerSplitter->setStretchFactor(0, 3)` |
-| 信息区 | 弹性 | stretch 2 | `MainWindow.cpp` `m_centerSplitter->setStretchFactor(1, 2)` |
-| 信息面板头 | 高 28px 固定 | - | `MainWindow.cpp` `infoHeader->setFixedHeight(28)` |
-| 告警区 | 弹性 | stretch 1 | `MainWindow.cpp` `infoSplitter->setStretchFactor(0, 1)` |
-| 探测控制区 | 弹性 | stretch 1 | `MainWindow.cpp` `infoSplitter->setStretchFactor(1, 1)` |
-| 批量操作条 | 隐藏（默认） | - | `MainWindow.cpp` `m_batchOperationBar` 默认 hidden |
+| 中心区 | 弹性 | stretch 1 | 原型基线（CURRENT 未实例化，见第 2 节漂移注） |
+| 右面板 | 宽 360px 固定；360–420px 弹性（TARGET） | - | `GlobalStyle.h` `Sizes::RightPanelWidth` 常量保留（面板未实例化，见第 2 节漂移注） |
+| 视频流区 | 弹性 | stretch 3 | 原型基线（CURRENT 未实例化，见第 2 节漂移注） |
+| 信息区 | 弹性 | stretch 2 | 原型基线（CURRENT 未实例化，见第 2 节漂移注） |
+| 信息面板头 | 高 28px 固定 | - | 原型基线（CURRENT 未实例化，见第 2 节漂移注） |
+| 告警区 | 弹性 | stretch 1 | 原型基线（CURRENT 未实例化，见第 2 节漂移注） |
+| 探测控制区 | 弹性 | stretch 1 | 原型基线（CURRENT 未实例化，见第 2 节漂移注） |
+| 批量操作条 | 隐藏（默认） | - | 原型基线（CURRENT 未实例化，见第 2 节漂移注） |
 | 状态栏 | 宿主 28px / 内容 22px 固定 | - | `MainWindow.cpp` `kStatusBarHostHeight=28` / `kStatusBarContentHeight=22` |
 | 菜单栏 | 高 30px | - | `GlobalStyle.h` `Sizes::MenuBarHeight` |
-| 工具栏 | 高 32px 固定 | - | `MainWindow.cpp` `toolBar->setFixedHeight(32)` |
+| 工具栏 | 高 32px 固定 | - | `MainWindow.cpp` `createMapToolbar`（`m_mapToolbar->setFixedHeight(kMapToolbarHeight)`，`kMapToolbarHeight=32`） |
 
 > 注：`GlobalStyle.h` 声明 `StatusBarHeight=28`，但 `StatusBarWidget.cpp` 内容 `setFixedHeight(22)`，宿主 `QStatusBar` 28px 含内边距。以源码实际渲染为准。
 
@@ -79,17 +79,17 @@ CURRENT 主区域为 `QHBoxLayout`：导航 | 左面板 | 中心区 | 右面板�
 
 CURRENT 通过 `QStackedWidget` 路由：index0=态势 live、index1=探测 live（`DetectionView`）、index2=决策 live（`DecisionView`），index3/4/5 未实现独立页面，回退到态势页。`onNavigationChanged` 不再仅 `qDebug`，而是切换 `QStackedWidget` 当前页。本试点原型保持与 CURRENT 一致的路由行为。
 
-每个导航项为一个按钮，固定高 56px，无外边距，左侧 3px 透明边框。图标与文字双行显示，字号 `--font-size-caption`，居中对齐。TARGET 原型以文本字形 ◎ 近似图标；CURRENT Qt 自阶段2 批次9 起为 `QToolButton`（`Qt::ToolButtonTextUnderIcon`，objectName `DEC-NAV-01`..`06`）配 Font Awesome 实心图标，图标映射与状态色见 `design-system.md` 第 8 节。
+每个导航项为一个按钮，固定高 56px，无外边距，左侧 3px 透明边框。图标与文字双行显示，字号 `--font-size-caption`，居中对齐。TARGET 原型自原型基线同步批次起经 `@font-face` 引入 vendored FA 字体渲染实心图标（`--size-icon-nav` 16px），与 CURRENT 图标方案一致；CURRENT Qt 自阶段2 批次9 起为 `QToolButton`（`Qt::ToolButtonTextUnderIcon`，objectName `DEC-NAV-01`..`06`）配 Font Awesome 实心图标，图标映射与状态色见 `design-system.md` 第 8 节。
 
 | ID | 标签 | 图标 | CURRENT index | 用途 | 默认态 | hover | 选中态 |
 |----|------|------|------|------|--------|-------|--------|
 | `SIT-NAV-LOGO` | UXO | - | - | 仅展示，不可交互 | 主色文字 | 同默认 | 同默认 |
-| `SIT-NAV-01` | 态势 | ◎ | 0 | 态势 live 页面（默认选中） | 透明背景、辅助色文字 | 背景 `--color-row-hover`、主文本色 | 背景 `--color-selection`、主色左边框 3px、主文本色、加粗 |
-| `SIT-NAV-02` | 探测 | ◎ | 1 | 探测 live 页面（`DetectionView`，见 `pages/detection.md`） | 同上 | 同上 | 同上 |
-| `SIT-NAV-03` | 决策 | ◎ | 2 | 决策 live 页面（`DecisionView`，MOS P0） | 同上 | 同上 | 同上 |
-| `SIT-NAV-04` | 设备 | ◎ | 3 | 未实现独立页面（回退态势占位） | 同上 | 同上 | 同上 |
-| `SIT-NAV-05` | 统计 | ◎ | 4 | 未实现独立页面（回退态势占位） | 同上 | 同上 | 同上 |
-| `SIT-NAV-06` | 配置 | ◎ | 5 | 未实现独立页面（回退态势占位） | 同上 | 同上 | 同上 |
+| `SIT-NAV-01` | 态势 | `fa_map_location_dot` | 0 | 态势 live 页面（默认选中） | 透明背景、辅助色文字 | 背景 `--color-row-hover`、主文本色 | 背景 `--color-selection`、主色左边框 3px、主文本色、加粗 |
+| `SIT-NAV-02` | 探测 | `fa_satellite_dish` | 1 | 探测 live 页面（`DetectionView`，见 `pages/detection.md`） | 同上 | 同上 | 同上 |
+| `SIT-NAV-03` | 决策 | `fa_scale_balanced` | 2 | 决策 live 页面（`DecisionView`，MOS P0） | 同上 | 同上 | 同上 |
+| `SIT-NAV-04` | 设备 | `fa_microchip` | 3 | 未实现独立页面（回退态势占位） | 同上 | 同上 | 同上 |
+| `SIT-NAV-05` | 统计 | `fa_chart_column` | 4 | 未实现独立页面（回退态势占位） | 同上 | 同上 | 同上 |
+| `SIT-NAV-06` | 配置 | `fa_gear` | 5 | 未实现独立页面（回退态势占位） | 同上 | 同上 | 同上 |
 
 ### 3.2 交互
 
@@ -97,7 +97,7 @@ CURRENT 通过 `QStackedWidget` 路由：index0=态势 live、index1=探测 live
 |------|----|
 | 点击结果 | 切换该项为选中态，左侧 3px 主色边框出现，背景变为 `--color-selection`；CURRENT 通过 `QStackedWidget` 路由：`SIT-NAV-01` -> index0（态势 live）、`SIT-NAV-02` -> index1（探测 live `DetectionView`）、`SIT-NAV-03` -> index2（决策 live `DecisionView`）、其余 -> 回退态势页。 |
 | 键盘 | Tab 聚焦到按钮；Enter/Space 触发点击。 |
-| 原型行为 | 同 CURRENT：选中 + 路由。`SIT-NAV-04`/`05`/`06` 选中后中心区回退到态势占位，并在信息面板头标注"该页面为占位，未实现"。 |
+| 原型行为 | 当前页项渲染为不可跳转的占位项；已实现页面（探测/决策）为真实 `<a>` 链接互跳，语义同 CURRENT 的 `QStackedWidget` 路由。`SIT-NAV-04`/`05`/`06` 为占位项：点击仅切换选中高亮并以 tooltip 提示"未实现页面（占位）"，不发生路由、无中心区回退渲染。 |
 | CURRENT 映射 | `NavigationWidget.cpp` `setupUi`、`setCurrentIndex`、`updateSelection`、`applyNavIcon`（批次9 图标状态色重建）；`MainWindow.cpp` `onNavigationChanged`（切换 `QStackedWidget` 当前页） |
 | 安全 | 无设备控制、无副作用 |
 
@@ -141,38 +141,41 @@ CURRENT 共 5 个顶级菜单。本试点仅文档化菜单结构与行为，不
 | 点击结果 | 保留项触发对应槽；禁用项无响应；省略项不渲染 |
 | 键盘 | Alt+F/V/T/H 展开对应顶级菜单；Down/Up 在子项间移动；Enter 触发（保留项）或无响应（禁用项） |
 | 原型行为 | HTML 原型不实现完整下拉弹出层；仅渲染 5 个顶级菜单为可点击文本，附 tooltip 标注其包含的子项与禁用/省略状态。完整下拉交互属后续任务。 |
-| CURRENT 映射 | `MainWindow.cpp` `createMenuBar`（第 69-111 行） |
+| CURRENT 映射 | `MainWindow.cpp` `createMenuBar`（第 176-204 行） |
 | 安全 | `SIT-MENU-VIEW-TOP`/`SIT-MENU-VIEW-SIDE` 仅切换本地三维相机视角，无设备控制；`SIT-MENU-EXIT` 触发窗口关闭，无外部副作用 |
 
 ## 5. 工具栏
 
-高 32px 固定，不可移动（`setMovable(false)`），背景 `--color-toolbar`，按钮间距 8px，内边距 8px。
+高 32px 固定（`kMapToolbarHeight=32`）；CURRENT 地图工具栏为 `QWidget`（`m_mapToolbar`），非 `QToolBar`。
 
-CURRENT 工具栏全部以 `QLabel` 占位，仅“视角复位”是真实 `QAction`（连接到 `situationView()->resetCameraView()`）。早期参考图中“图层控制/测量工具/坐标拾取/同步状态/书签/设备控制台”均为视觉占位。
+CURRENT 工具栏为 7 个 `QPushButton`：探测控制组（重置/开始/结束）启用并连接真实槽（`onResetDetection`/`onStartDetection`/`onStopDetection`，connects 第 383-386 行）；视角复位/图层/测量/坐标拾取为禁用占位（`setEnabled(false)` 第 343/351/359/367 行，`onResetViewClicked` 第 933 行不可达）。早期参考图中“同步状态/书签/设备控制台”CURRENT 未实现，原型按省略处理（见 5.1 与第 7 节）。
 
 ### 5.1 工具栏项清单
 
 | ID | 标签 | 类型 | CURRENT 行为 | TARGET 原型行为 |
 |----|------|------|------|---------|
-| `SIT-TB-LAYER` | 图层控制 | QLabel 占位 | 仅展示文字 | 禁用并标注“占位” |
-| `SIT-TB-MEASURE` | 测量工具 | QLabel 占位 | 仅展示文字 | 禁用并标注“占位” |
-| `SIT-TB-PICK` | 坐标拾取 | QLabel 占位 | 仅展示文字 | 禁用并标注“占位” |
-| `SIT-TB-RESET` | 视角复位 | QAction | 调用 `resetCameraView()` | 保留（同 `SIT-RP-RESET`） |
-| `SIT-TB-SYNC` | 同步状态 | QLabel 占位 | 仅展示文字 | 省略 |
-| `SIT-TB-BOOKMARK` | 书签 | QLabel 占位 | 仅展示文字 | 省略 |
-| `SIT-TB-CONSOLE` | 设备控制台 | QLabel 占位 | 仅展示文字 | **省略**（占位且无实际效果，详见第 7 节） |
+| `SIT-TB-DET-RESET` | 重置 | QPushButton（启用） | 触发 `onResetDetection()`：停止视频、复位遥测模拟器、清空目标/检测框/航迹与探测页结果 | 启用，点击状态栏追加 `[模拟] 探测已重置` 告警（详见 `pages/situation.md`） |
+| `SIT-TB-DET-START` | 开始 | QPushButton（启用） | 触发 `onStartDetection()`：播放视频并启动遥测模拟器 | 启用，点击状态栏追加 `[模拟] 探测已开始` 告警 |
+| `SIT-TB-DET-STOP` | 结束 | QPushButton（启用） | 触发 `onStopDetection()`：停止视频并回 0s、停止遥测模拟器 | 启用，点击状态栏追加 `[模拟] 探测已结束，视频回 0s` 告警 |
+| `SIT-TB-RESET` | 视角复位 | QPushButton（禁用占位） | 按钮禁用，槽 `onResetViewClicked()` 不可达 | 可点击，JS 模拟复位（画中画/选中/浮层复位，详见 `pages/situation.md`）；CURRENT 禁用为已文档化差异 |
+| `SIT-TB-LAYER` | 图层 | QPushButton（禁用占位） | 仅展示，禁用 | 禁用并标注“占位” |
+| `SIT-TB-MEASURE` | 测量 | QPushButton（禁用占位） | 仅展示，禁用 | 禁用并标注“占位” |
+| `SIT-TB-PICK` | 坐标拾取 | QPushButton（禁用占位） | 仅展示，禁用 | 禁用并标注“占位” |
+| `SIT-TB-SYNC` | 同步状态 | - | 未实现（早期参考图视觉占位，`createMapToolbar` 未创建） | 省略 |
+| `SIT-TB-BOOKMARK` | 书签 | - | 未实现（早期参考图视觉占位，`createMapToolbar` 未创建） | 省略 |
+| `SIT-TB-CONSOLE` | 设备控制台 | - | 未实现（早期参考图视觉占位，`createMapToolbar` 未创建） | **省略**（详见第 7 节） |
 
-CURRENT 标签样式为 `color: #B8B8B8; padding: 4px; font-size: 13px;`，对应 `--color-text-secondary`、`--font-size-caption`（阶段2 批次7 token 提升后值）。
+CURRENT 工具栏 7 个按钮均附 12px Font Awesome 实心图标（`setIconSize(QSize(12, 12))`），工具栏末端为 `[模拟]` 角标标签；历史 QLabel 占位样式已随重写移除。原型工具栏样式见 `pages/situation.md` §6.3。
 
 ### 5.2 工具栏交互
 
 | 字段 | 值 |
 |------|----|
-| 点击结果 | 仅 `SIT-TB-RESET` 可点击：触发 `resetCameraView()`，复位三维相机到默认视角。其余标签无点击响应。 |
-| 键盘 | `SIT-TB-RESET` 可聚焦，Enter 触发；其余不可聚焦。 |
-| 原型行为 | 仅保留 `SIT-TB-RESET` 为可点击按钮；其余占位标签以禁用样式呈现并附 tooltip “占位控件，未实现”。 |
-| CURRENT 映射 | `MainWindow.cpp` `createMapToolbar`（249-312） |
-| 安全 | `SIT-TB-RESET` 仅影响本地三维相机视角，无设备控制 |
+| 点击结果 | CURRENT：探测控制组 3 键触发对应槽（本地模拟视频/遥测操作）；视角复位/图层/测量/坐标拾取禁用无响应。原型：探测控制组与视角复位可点击（追加模拟告警/模拟复位），占位按钮无响应。 |
+| 键盘 | CURRENT：探测控制组 3 键可聚焦，Enter 触发；禁用占位不可聚焦。原型：占位按钮 Tab 可聚焦、Enter/Space 无操作。 |
+| 原型行为 | 探测控制组 3 键为启用按钮（点击在状态栏追加模拟告警）；视角复位可点击执行 JS 模拟复位；图层/测量/坐标拾取以禁用样式呈现并附 tooltip “占位，未实现”（详见 `pages/situation.md` §6.3）。 |
+| CURRENT 映射 | `MainWindow.cpp` `createMapToolbar`（第 303-388 行，connects 第 383-386 行） |
+| 安全 | 探测控制组仅操作本地模拟视频/遥测；视角复位仅影响本地三维相机视角；均无设备控制 |
 
 ## 6. 状态栏
 
@@ -196,7 +199,7 @@ CURRENT 标签样式为 `color: #B8B8B8; padding: 4px; font-size: 13px;`，对�
 
 ### 6.3 紧急停止按钮 `SIT-SB-EMERGENCY`
 
-CURRENT 为恒禁用占位钮：固定 128x20px（宽度容纳完整“紧急停止（模拟占位）”文本），字号 11px（小于 `--font-size-caption`，CURRENT 字面量），加粗，tooltip“模拟占位，无实际效果”。阶段2 批次9 起附 `fa_hand` 图标（12px；按钮为禁用占位态，图标渲染 `--color-text-disabled`，映射见 `design-system.md` 第 8 节）。
+CURRENT 为恒禁用占位钮：固定 128x20px（宽度容纳完整“紧急停止（模拟占位）”文本），字号 11px（小于 `--font-size-caption`，CURRENT 字面量），加粗，tooltip“模拟占位，无实际效果”。阶段2 批次9 起附 `fa_hand` 图标（12px；按钮为禁用占位态，图标渲染 `--color-text-disabled`，映射见 `design-system.md` 第 8 节）。五页 HTML 原型（态势/探测/设备/统计/配置；决策页无急停）同样附 `fa_hand` 图标（`.em-icon` 12px，`--size-icon-action`，随按钮文本色 token 渲染）。
 
 | 状态 | 背景 | 文本 | 边框 |
 |------|------|------|------|
@@ -225,14 +228,13 @@ TARGET 原型行为：**按钮禁用并标注“模拟占位，无实际效果�
 |------|------|------|
 | 紧急停止按钮 `SIT-SB-EMERGENCY` | 历史版本可点击、弹确认框并发出无消费者信号，文案“所有设备将立即停止”暗示真实停止效果，违反安全边界；CURRENT 已改为恒禁用占位，确认框路径不可达（见 6.3） | 禁用并标注“模拟占位，无实际效果”（CURRENT 已落地对齐） |
 | 设备菜单“打开设备控制台”（无 ID，省略） | lambda 空，无实际效果，且暗示真实设备控制 | 省略菜单项 |
-| 工具栏“设备控制台”标签 `SIT-TB-CONSOLE` | QLabel 占位，无实际效果 | 省略 |
-| 工具栏“同步状态”“书签”标签 `SIT-TB-SYNC`/`SIT-TB-BOOKMARK` | QLabel 占位，无实际效果 | 省略 |
+| 工具栏“设备控制台”标签 `SIT-TB-CONSOLE` | 早期参考图视觉占位，CURRENT `createMapToolbar` 未创建 | 省略 |
+| 工具栏“同步状态”“书签”标签 `SIT-TB-SYNC`/`SIT-TB-BOOKMARK` | 早期参考图视觉占位，CURRENT `createMapToolbar` 未创建 | 省略 |
 | 菜单“历史回放/日志查看/数据同步”（无 ID，省略） | lambda 空 | 省略 |
 | 菜单“新建任务/打开预案/保存方案/系统设置” `SIT-MENU-NEW-TASK`/`SIT-MENU-OPEN-PLAN`/`SIT-MENU-SAVE-PLAN`/`SIT-MENU-SETTINGS` | 槽函数占位 | 禁用并标注“占位” |
 | 导航 `SIT-NAV-02` | 已实现独立探测页面（`DetectionView`） | 路由到探测 live 页面（详见 `pages/detection.md`） |
 | 导航 `SIT-NAV-03` | 已实现独立决策页面（`DecisionView` MOS P0） | 路由到决策 live 页面（详见 `pages/decision.md`） |
-| 导航 `SIT-NAV-04`/`05`/`06` | 未实现独立页面 | 保留可点击高亮，中心区回退态势占位并标注"占位" |
-| 导航 `SIT-NAV-03` | 已实现独立决策页面（`DecisionView` MOS P0） | 路由到决策 live 页面（详见 `pages/decision.md`） |
+| 导航 `SIT-NAV-04`/`05`/`06` | 未实现独立页面 | 保留可点击高亮（点击仅切换选中态，tooltip"未实现页面（占位）"），无中心区回退渲染 |
 
 ## 8. 视口适配
 
@@ -248,14 +250,14 @@ CURRENT 在 1280x720 下态势页右面板旧 `DecisionSuggestionPanel` 仍存�
 
 | 壳元素 | CURRENT 源码位置 |
 |--------|------------------|
-| 窗口尺寸与标题 | `MainWindow.cpp` `setupUi`（第 108-110 行：标题“排弹抢修指挥系统 V1.0”、最小 1280x720、默认 1920x1080） |
-| 菜单栏构造 | `MainWindow.cpp` `createMenuBar`（第 140-167 行） |
-| 地图工具栏构造 | `MainWindow.cpp` `createMapToolbar`（第 256-340 行：重置/开始/结束/视角复位/图层/测量/坐标拾取 按钮与 `[模拟]` 角标，部分为禁用占位，按钮图标为批次9 Font Awesome 实心图标；全局工具栏未实现） |
-| 主布局与页面栈 | `MainWindow.cpp` `createMainLayout`（第 169-254 行，含态势页装配与 `pageStack` 三页：0 态势/1 探测/2 决策） |
-| 状态栏宿主 | `MainWindow.cpp` `createStatusBar`（第 342-351 行） |
+| 窗口尺寸与标题 | `MainWindow.cpp` `setupUi`（第 136-175 行：标题“排弹抢修指挥系统 V1.0”、最小 1280x720、默认 1920x1080） |
+| 菜单栏构造 | `MainWindow.cpp` `createMenuBar`（第 176-204 行） |
+| 地图工具栏构造 | `MainWindow.cpp` `createMapToolbar`（第 303-388 行：重置/开始/结束/视角复位/图层/测量/坐标拾取 按钮与 `[模拟]` 角标，部分为禁用占位，按钮图标为批次9 Font Awesome 实心图标；全局工具栏未实现） |
+| 主布局与页面栈 | `MainWindow.cpp` `createMainLayout`（第 205-302 行，含态势页装配与 `m_pageStack` 三页：0 态势/1 探测/2 决策） |
+| 状态栏宿主 | `MainWindow.cpp` `createStatusBar`（第 389-399 行） |
 | 状态栏内容 | `StatusBarWidget.cpp` `setupUi`（第 46-156 行） |
 | 紧急停止槽 | `StatusBarWidget.cpp` `onEmergencyStop`（第 200-211 行，恒禁用不可达） |
 | 导航栏 | `NavigationWidget.cpp` 全文 |
 | 导航切换槽 | `MainWindow.cpp` `onNavigationChanged`（切换 `QStackedWidget` 当前页：index1=探测 live、index2=决策 live、其余回退态势页） |
-| 信号连接 | `MainWindow.cpp` `createConnections`（第 325-414 行） |
-| 模拟数据加载 | `MainWindow.cpp` `loadMockData`（第 418-463 行） |
+| 信号连接 | `MainWindow.cpp` `createConnections`（第 400-492 行） |
+| 模拟数据加载 | `MainWindow.cpp` `loadMockData`（第 493-540 行） |

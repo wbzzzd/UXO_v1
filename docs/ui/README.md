@@ -45,6 +45,7 @@
 | `pages/situation.md` | 态势页面完整设计契约、逐控件 `SIT-*` 清单、状态、交互、安全与 CURRENT 对照（详细样板） |
 | `prototypes/<page>/index.html` | 各页 HTML 原型（内联 CSS+JS，单文件，本地模拟 fixture）；六页目录平级，每目录仅含 `index.html` |
 | `images/<page>/overview-1920x1080.png` | 各页 1920×1080 权威整体设计图 |
+| `prototypes/assets/fa-solid-900.otf` | Font Awesome 7 Free Solid 字体（vendored 自 `third_party/QtAwesome`，六页原型 `@font-face` 以相对路径 `../assets/` 引用） |
 | `prototypes/screenshot.js` | Playwright 截图脚本（参数化，`node screenshot.js [page]`，无参数跑全部六页） |
 | `prototypes/package.json` | 原型工具链 npm 配置（依赖 playwright，本地安装不提交） |
 
