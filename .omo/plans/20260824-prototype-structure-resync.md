@@ -126,3 +126,5 @@
 - situation 原型右面板无 SIT-RP-* testid（浮层实现），粒度与逐控件契约存在偏差（沿前置计划已知项）。
 - situation.md §11 引用的 loadMockData 行号可能滞后，留待下次文档校对批次。
 - 1280×720 与 3840×2160 两视口截图仍未交付（ui/README §8 后续任务，非本计划范围）。
+
+**更新（2026-08-25）**：上述三项遗留已由 `.omo/plans/20260825-situation-rp-testids-and-viewports.md` 批次全部解决——SIT-RP-* 8 枚 testid 已挂载并通过 29 项 Playwright 运行时断言；§11 行号已按源码校准；六页三视口截图已交付，README §7 已记录固定画布现状。
