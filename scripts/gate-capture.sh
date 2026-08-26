@@ -7,15 +7,16 @@
 #   FONTCONFIG_FILE=<conda>/etc/fonts/fonts.conf  钉死 fontconfig 到构建所用 conda 环境
 #                                   （系统 CJK 字体稀疏，仅 1 款；钉死配置避免宿主字体变动影响离屏渲染）
 # 用法：scripts/gate-capture.sh <tag>
-#   tag：输出目录标签，如 before / after；输出 /tmp/opencode/uiupgrade-batch7/<tag>/
-# 采集矩阵：决策页(03)三视口 1280x720/1920x1080/3840x2160 + 态势页(01) 1920x1080（覆盖 QSS 密集页与 3D 画布页）
+#   tag：输出目录标签，如 before / after / req011-verify；输出 /tmp/opencode/ui-gate/<tag>/
+# 采集矩阵（REQ-011 起 9 张）：态势页(01)/探测页(02)/决策页(03) 三页 × 1280x720/1920x1080/3840x2160 三视口（覆盖 3D 画布页、左表格页与 QSS 密集页）
+# 确定性说明：p02 三视口逐字节确定；p01（画中画时钟/告警跑马灯）与 p03（跑道画布选中目标脉冲动画）存在帧级时变，A/B 差异仅落在上述已知区域时视同噪声，不算回归
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
 TAG="${1:?用法: scripts/gate-capture.sh <tag>}"
 ENVROOT="/home/lin/.local/share/mamba/envs/uxo-dev"
-OUT="/tmp/opencode/uiupgrade-batch7/${TAG}"
+OUT="/tmp/opencode/ui-gate/${TAG}"
 CAP="build-conda/MainWindowCapture"
 
 # --- 字体环境固化（核心）---
@@ -28,11 +29,12 @@ mkdir -p "$OUT"
 # 环境证据落盘：复核字体固化是否生效
 env | grep -E "QT_QPA|FONTCONFIG" > "${OUT}/env.txt"
 
-# --- 采集矩阵 ---
-$CAP "${OUT}/p03_1280x720.png"  1280x720  03
-$CAP "${OUT}/p03_1920x1080.png" 1920x1080 03
-$CAP "${OUT}/p03_3840x2160.png" 3840x2160 03
-$CAP "${OUT}/p01_1920x1080.png" 1920x1080 01
+# --- 采集矩阵（REQ-011 起扩展为 9 张：三页 × 三视口，与计划 §8 验证命令一致）---
+for page in 01 02 03; do
+  for vp in 1280x720 1920x1080 3840x2160; do
+    $CAP "${OUT}/p${page}_${vp}.png" "$vp" "$page"
+  done
+done
 
 echo "采集完成: ${OUT}"
 ls -l "$OUT"
