@@ -69,7 +69,7 @@ add_subdirectory(src/MainWindow)
 add_subdirectory(src/App)
 
 # ---- 安装规则（cmake --install）----
-# 布局: bin/UXOMissionControl + lib/onnxruntime + share/uxo/assets/models
+# 布局: bin/UXOMissionControl + lib/onnxruntime + share/uxo/assets/{models,media}
 
 # onnxruntime: 取带版本号的真实库文件（跳过 .so / .so.1 符号链），
 # 按 SONAME(libonnxruntime.so.1) 安装，避免符号链被解引用成多份拷贝
@@ -88,6 +88,12 @@ install(FILES
     assets/models/yolov8_cls_224.onnx
     assets/models/patchcore_params.json
     DESTINATION share/uxo/assets/models)
+
+# 演示媒体资产（卫星底图 JPEG + 无人机航拍视频；来源与转码参数见 docs/DEVELOPMENT.md）
+install(FILES
+    assets/media/shenyang_yuhong_satellite.jpg
+    assets/media/perth_airport_drone_uxo.mp4
+    DESTINATION share/uxo/assets/media)
 
 # 测试配置
 enable_testing()

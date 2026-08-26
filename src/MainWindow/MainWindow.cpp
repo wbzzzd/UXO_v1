@@ -51,9 +51,11 @@ constexpr int kPipHeight = kPipVideoHeight + kPipTitleBarHeight;
 constexpr int kPipMargin = 12;
 constexpr int kMapToolbarHeight = 32;
 
-// 模拟素材路径（演示用，真实系统从配置加载）
-const char* const kVideoPath = "/home/lin/uxo-assets/video/perth_airport_drone_uxo.mp4";
-const char* const kSatellitePath = "/home/lin/uxo-assets/satellite/shenyang_yuhong_satellite.png";
+// 模拟素材文件名（演示用，真实系统从配置加载）；完整路径在 loadMockData 中
+// 按 MEDIA_ASSETS_DIR 编译期宏（源码树）优先、安装布局 share/uxo/assets/media
+// 回退的方式解析，与 AI 模型目录（DETECTION_ASSETS_DIR）的做法一致
+const char* const kVideoFile = "perth_airport_drone_uxo.mp4";
+const char* const kSatelliteFile = "shenyang_yuhong_satellite.jpg";
 
 // 视频时长（秒），与 DroneTelemetrySimulator 航线时长一致
 constexpr double kVideoDurationSec = 96.0;
@@ -516,12 +518,20 @@ void MainWindow::loadMockData()
     m_statusBarWidget->setMinBatteryLevel(minBattery);
     m_statusBarWidget->setSimulationMode(true);
 
+    // 媒体目录: 优先编译期源码树路径（开发期）；源码树不在时回退安装布局
+    // bin/../share/uxo/assets/media（对应根 CMakeLists 的 install 规则）
+    QString mediaDir = QStringLiteral(MEDIA_ASSETS_DIR) + QStringLiteral("/media");
+    if (!QFileInfo::exists(mediaDir + QStringLiteral("/") + QString::fromUtf8(kSatelliteFile))) {
+        mediaDir = QCoreApplication::applicationDirPath()
+                       + QStringLiteral("/../share/uxo/assets/media");
+    }
+
     // 地图: 卫星底图 + 机场边界
     m_tacticalMap->setAirportBounds(scenario.airportBounds);
-    m_tacticalMap->setSatelliteImage(QString::fromUtf8(kSatellitePath));
+    m_tacticalMap->setSatelliteImage(mediaDir + QStringLiteral("/") + QString::fromUtf8(kSatelliteFile));
 
-    // 视频: 加载真实视频文件
-    m_videoPiP->loadVideo(QString::fromUtf8(kVideoPath));
+    // 视频: 加载演示视频文件（与卫星底图同一 media 目录）
+    m_videoPiP->loadVideo(mediaDir + QStringLiteral("/") + QString::fromUtf8(kVideoFile));
 
     // 无人机遥测模拟器: 加载航线
     m_droneSimulator->loadRoute(scenario.droneRoute, kVideoDurationSec);
