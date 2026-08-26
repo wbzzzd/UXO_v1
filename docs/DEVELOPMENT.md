@@ -25,6 +25,13 @@
 | ONNX Runtime | 1.23.2；头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库，需先本地部署 `third_party/onnxruntime/` 下的动态库才能构建 |
 | 中文字体 | Noto CJK 或等价字体 |
 
+演示媒体资产已入库 `assets/media/`：卫星底图 `shenyang_yuhong_satellite.jpg` 与演示视频 `perth_airport_drone_uxo.mp4`，运行期由 MainWindow 按编译期源码树宏（`MEDIA_ASSETS_DIR`）优先、安装布局 `share/uxo/assets/media` 回退解析，与 AI 模型目录的解析方式一致。入库前转码参数：
+
+- 卫星底图：原始 PNG（5376×4864 RGB，约 51MB）转 JPEG 质量 2，约 8.2MB。
+- 演示视频：原始 MP4（1080p/30fps/96s，约 56MB）经 x264 CRF 26 / preset veryfast 转码并去除音轨（源无音轨），约 23MB。
+
+原始未压缩素材保存在仓库外，不入库。
+
 激活环境：
 
 ```bash

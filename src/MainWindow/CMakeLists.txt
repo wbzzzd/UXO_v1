@@ -65,3 +65,10 @@ target_link_libraries(MainWindow
     QtAwesome
     Detection
 )
+
+# 编译期注入媒体资产目录宏（演示卫星图/视频路径解析，与 Detection 的
+# DETECTION_ASSETS_DIR 同构）：开发期指向源码树 assets/；
+# 安装布局由运行时回退 bin/../share/uxo/assets/media 处理
+target_compile_definitions(MainWindow PRIVATE
+    MEDIA_ASSETS_DIR="${CMAKE_SOURCE_DIR}/assets"
+)
