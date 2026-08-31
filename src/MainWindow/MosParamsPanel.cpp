@@ -62,6 +62,12 @@ void MosParamsPanel::setupUi()
         lab->setProperty("mosFontRole", QLatin1String("field"));
         lab->setWordWrap(true);
         lab->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        // 三视口适配（REQ-011）：1280×720 决策页中心列可用宽仅 ~545px，而标签与
+        // 输入框的自然最小宽合计把网格最小宽顶到 ~630px，网格内部被迫压缩重排
+        // （标签换行；像素分析证实左右面板恒 260/380px、候选卡片从未被裁）。
+        // 标签设显式最小宽 56px 交由 wordWrap 换行压缩，网格最小宽降至 ~470；
+        // 宽裕视口（1920/4K）下显式最小宽不参与列分配，布局不变。
+        lab->setMinimumWidth(56);
         // 标签也赋予稳定 objectName（<objName>-LABEL），便于闭包测试按名定位做几何断言，
         // 不影响按字段 objectName 的现有 findChild 查找。
         lab->setObjectName(objName + QStringLiteral("-LABEL"));
@@ -78,6 +84,9 @@ void MosParamsPanel::setupUi()
         sb->setDecimals(decimals);
         sb->setValue(val);
         sb->setFixedHeight(26);
+        // 三视口适配（REQ-011）：输入框显式最小宽 84px，防止量程文本（如 10000.00）
+        // 的自然 minimumSizeHint 顶高网格最小宽；设置后网格最小宽 ~470 ≤ 545。
+        sb->setMinimumWidth(84);
         connect(sb, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](){ revalidate(); });
         return sb;
     };
@@ -86,6 +95,8 @@ void MosParamsPanel::setupUi()
         sb->setRange(min, max);
         sb->setValue(val);
         sb->setFixedHeight(26);
+        // 三视口适配（REQ-011）：同 mkDouble，输入框显式最小宽 84px。
+        sb->setMinimumWidth(84);
         connect(sb, QOverload<int>::of(&QSpinBox::valueChanged), this, [this](){ revalidate(); });
         return sb;
     };

@@ -48,7 +48,7 @@ MainWindow
 
 > **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已编译但未在 MainWindow 中实例化。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页、探测页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 探测页（`DetectionView`，AI 检测结果自动填充 + 人工二次校验），index 2 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）。
 
-默认尺寸 1920×1080，最小尺寸 1280×720。决策页历史三视口几何证据见 `.omo/evidence/mos-p0-qt-closure-final/REPORT.md`；该证据采集于本轮单档位渲染修正之前，不能作为修正后的 fresh 多视口证据。1280×720 下决策面板存在约 5px 底部溢出，当前记录为已知问题。
+默认尺寸 1920×1080，最小尺寸 1280×720。三视口 fresh 像素验证（REQ-011，2026-08-26）：态势/探测/决策三页 × 1280×720/1920×1080/3840×2160 共 9 张离屏截图留存于 `.omo/evidence/qt-viewport-adaptation/`；1280×720 三页无区域溢出与意外裁切（探测页左表格水平滚动条为用户裁决接受项，决策页参数区部分标签换行为既有登记的紧凑可用表现），1920×1080 与修复前基线零回归（画中画时钟、告警跑马灯动画帧差异除外），3840×2160 固定 token 区域与字体不缩放、仅中心区放大。此前登记的“1280×720 决策面板约 5px 底部溢出”系失实记录（所指 `DecisionSuggestionPanel` 未纳入编译目标，见上文注），已撤销；决策页历史三视口几何证据（`.omo/evidence/mos-p0-qt-closure-final/REPORT.md`）采集于单档位渲染修正之前，仅作历史追溯。
 
 ## 4. CURRENT 可见功能矩阵
 
