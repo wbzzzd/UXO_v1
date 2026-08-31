@@ -73,7 +73,6 @@ void NavigationWidget::setupUi()
         btn->setProperty("navBtn", true);
         // 构造期设置属性，首次 polish 前生效，无需 repolish
         btn->setProperty("selected", i == 0);
-        applyNavIcon(i);
 
         connect(btn, &QToolButton::clicked, this, [this, i]() {
             setCurrentIndex(i);
@@ -82,6 +81,10 @@ void NavigationWidget::setupUi()
 
         layout->addWidget(btn);
         m_navButtons.append(btn);
+        // 必须先 append 再设图标：applyNavIcon 以 m_navButtons 下标定位按钮，
+        // 越界守卫会拒绝尚未入列的下标；此前在 append 之前调用导致构造期
+        // 全部按钮未获得图标，直到点击分页后才由 updateSelection 补上
+        applyNavIcon(i);
     }
 
     layout->addStretch();
