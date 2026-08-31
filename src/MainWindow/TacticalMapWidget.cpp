@@ -77,6 +77,8 @@ void TacticalMapWidget::setupUi()
     m_view->setFrameShape(QFrame::NoFrame);
     // QGraphicsView 拦截鼠标事件，设为透明让点击穿透到 TacticalMapWidget::mousePressEvent
     m_view->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    // 监听视图自身 Resize：布局激活后视图拿到真实尺寸时重适配场景（见 eventFilter）
+    m_view->installEventFilter(this);
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -377,6 +379,22 @@ void TacticalMapWidget::resizeEvent(QResizeEvent *event)
     QWidget::resizeEvent(event);
     // 确保全场景始终可见，目标不会因视图尺寸变化而消失或聚集在角落
     m_view->fitInView(m_scene->sceneRect(), Qt::KeepAspectRatio);
+}
+
+bool TacticalMapWidget::eventFilter(QObject *obj, QEvent *event)
+{
+    // 父控件 resizeEvent 触发时布局尚未激活, 视口仍是旧尺寸(构造期为默认 98x28),
+    // 此时 fitInView 会把缩放冻结在错误值(启动时底图缩成屏幕中央小点);
+    // 视图自身 Resize 事件发生在布局给出真实尺寸之后, 以此为准重适配。
+    // 注意 Resize 事件先于 QGraphicsView 自身 resizeEvent 到达本过滤器, 此刻
+    // 视口子控件几何尚未同步更新, 直接 fit 仍会读到旧视口, 故排队到本轮事件
+    // 链处理完毕后再执行, 保证读到最终视口几何
+    if (obj == m_view && event->type() == QEvent::Resize) {
+        QMetaObject::invokeMethod(this, [this] {
+            m_view->fitInView(m_scene->sceneRect(), Qt::KeepAspectRatio);
+        }, Qt::QueuedConnection);
+    }
+    return QWidget::eventFilter(obj, event);
 }
 
 void TacticalMapWidget::onPulseTick()
