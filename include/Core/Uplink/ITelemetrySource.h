@@ -1,0 +1,47 @@
+#ifndef CORE_UPLINK_ITELEMETRYSOURCE_H
+#define CORE_UPLINK_ITELEMETRYSOURCE_H
+
+// 遥测数据源抽象接口（REQ-012 WP3）
+// 本地模拟源（DroneTelemetrySimulator）与真实链路源（MqttTelemetrySource）
+// 共同实现，由 TelemetrySourceManager 统一调度，UI 只面向管理器。
+
+#include "Core/Uplink/TelemetryTypes.h"
+
+#include <QObject>
+#include <QString>
+
+namespace Core::Uplink {
+
+class ITelemetrySource : public QObject
+{
+    Q_OBJECT
+
+public:
+    using QObject::QObject;
+    ~ITelemetrySource() override = default;
+
+    // 启动/停止数据源
+    virtual void start() = 0;
+    virtual void stop() = 0;
+
+    // 复位：语义由各实现定义（模拟源=清航线进度回起点；真实源=无操作）
+    virtual void reset() = 0;
+
+    // 当前是否处于运行中
+    virtual bool isRunning() const = 0;
+
+signals:
+    // 遥测更新：两种来源输出同一 TelemetryData 形状
+    void telemetryUpdated(const Core::Uplink::TelemetryData &data);
+
+    // 告警事件（仅真实源发出，如机身/负载 HMS 事件；模拟源不发）
+    // code=告警事件码（如 device_exit_hms），text=展示文本；UI 负责加 [HMS] 前缀
+    void alertReceived(const QString &code, const QString &text);
+
+    // 链路状态变化（仅真实源发出；模拟源不进入链路状态机）
+    void linkStateChanged(Core::Uplink::LinkState state);
+};
+
+}
+
+#endif
