@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "Core/Simulation/SimulationWorkflow.h"
+#include "Core/Uplink/TelemetryTypes.h"
 #include "Detection/DetectionTypes.h"
 
 #include <QMainWindow>
@@ -11,6 +12,7 @@
 
 class QPushButton;
 class QLabel;
+class QButtonGroup;
 
 class QStackedWidget;
 class StatusBarWidget;
@@ -29,14 +31,15 @@ namespace Core::MOS {
 class MosPlanningController;
 }
 
-namespace Core::Simulation {
-class DroneTelemetrySimulator;
+namespace Core::Uplink {
+class TelemetrySourceManager;
 }
 
 // 主窗口: 态势页布局
 // 导航(80px) | 左pane(可折叠40/320px) | 中心区(设备资源条36px + 地图主舞台)
-// 地图主舞台上浮动: 视频PiP(左下480x270) + 目标详情浮层(右上340px)
-// 探测工具栏: [重置][开始][结束] 驱动无人机遥测+AI 检测（视频抽帧）
+// 地图主舞台上浮动: 视频PiP(左下480x270) + 目标详情浮层(右上340px) + 数据源徽标(左上)
+// 探测工具栏: [本地模拟|真实链路] [重置][开始][结束] 驱动无人机遥测+AI 检测（视频抽帧）
+// 遥测数据源经 TelemetrySourceManager 统一管理: 本地模拟 / 真实链路（REQ-012 WP3）
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -67,8 +70,11 @@ private slots:
     void onStopDetection();
     void onResetDetection();
 
-    // 模拟器回调
-    void onTelemetryUpdated(double lat, double lng, double alt, double heading);
+    // 数据源回调（TelemetrySourceManager 统一转发，REQ-012 WP3）
+    void onTelemetryUpdated(const Core::Uplink::TelemetryData& data);
+    void onSourceSegmentClicked(int id);  // 分段控件切换数据源
+    void onSourceModeChanged(Core::Uplink::SourceMode mode);
+    void onLinkStateChanged(Core::Uplink::LinkState state);
     void onVideoEnded();
 
     // AI 检测引擎回调
@@ -101,6 +107,10 @@ private:
     void createConnections();
     void loadMockData();
     void repositionFloatingWidgets();
+    // 刷新数据源徽标文案/语义色（模拟 [模拟] / 真实链路按链路状态显示）
+    void updateSourceBadge();
+    // 刷新数据源分段控件与 [开始] 可用性（运行中/连接中锁定切换）
+    void updateSourceControlStates();
 
     // 根据 TargetType 获取中文显示名称
     QString targetTypeName(Core::TargetType type) const;
@@ -141,8 +151,13 @@ private:
     QPushButton *m_startBtn;       // 探测工具栏 [开始]
     QPushButton *m_stopBtn;        // 探测工具栏 [结束]
     QPushButton *m_resetBtn;       // 探测工具栏 [重置]
+    // 数据源分段控件: [本地模拟|真实链路] 互斥切换（REQ-012 WP3）
+    QButtonGroup *m_sourceGroup;         // 互斥组，按钮 id=SourceMode 枚举值
+    QPushButton *m_simSourceBtn;         // 分段 [本地模拟]
+    QPushButton *m_realSourceBtn;        // 分段 [真实链路]
+    QLabel *m_sourceBadge;               // 地图舞台左上数据源徽标
 
-    Core::Simulation::DroneTelemetrySimulator *m_droneSimulator;
+    Core::Uplink::TelemetrySourceManager *m_telemetryManager;  // 遥测数据源管理器（持有模拟/真实源）
     DetectionEngine *m_detectionEngine;
 
     // P0 最小页面栈：index 0 = 态势工作区，index 1 = MOS 决策页
@@ -165,6 +180,10 @@ private:
     double m_currentDroneHeading;  // 最新航向(度, 0=北, 顺时针)
 
     int m_targetCounter;  // 目标 ID 生成计数器
+
+    // 真实链路状态判定标志（区分连接失败回退与曾连接后断链，见 onLinkStateChanged）
+    bool m_realLinkConnectingSeen;  // 本轮进入真实链路后是否见过 Connecting
+    bool m_realLinkEverConnected;   // 本轮真实链路是否成功连接过
 
     QHash<QString, DetectionEvidence> m_evidenceByTargetId;
 
