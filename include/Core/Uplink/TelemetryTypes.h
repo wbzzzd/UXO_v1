@@ -6,6 +6,7 @@
 // 输出同一形状，UI 不感知来源差异。
 
 #include <QMetaType>
+#include <QString>
 
 namespace Core::Uplink {
 
@@ -32,10 +33,22 @@ enum class LinkState {
     Stalled        // 停滞（>5s 无 OSD，由 TelemetrySourceManager 判定）
 };
 
+// 告警事件（REQ-012 WP4）：结构化携带 HMS 级别，取代 WP3 的 code+text 纯文本信号
+// （WP3 在源头把 level 折叠进文案导致 UI 无法按级别着色/映射，WP4 改为数值直传）。
+// level 语义对齐 docs/interfaces/接口规格-MSDK对接.md events 契约：
+//   0/1/2 = HMS 提示/警告/严重；-1 = 无级别事件（device_exit_hms 解除通知、未识别 method 透传）。
+// level→Core::AlarmLevel 的映射表在 UI 转换槽冻结（MainWindow），源头只传数值。
+struct AlertEvent {
+    QString code;    // 告警事件码（HMS code，或 events 报文的 method 名）
+    int level = -1;  // HMS 级别 0/1/2；-1 表示无级别事件
+    QString text;    // 事件正文（展示文案；UI 负责加 [HMS] 前缀与级别着色）
+};
+
 }
 
 Q_DECLARE_METATYPE(Core::Uplink::TelemetryData)
 Q_DECLARE_METATYPE(Core::Uplink::SourceMode)
 Q_DECLARE_METATYPE(Core::Uplink::LinkState)
+Q_DECLARE_METATYPE(Core::Uplink::AlertEvent)
 
 #endif

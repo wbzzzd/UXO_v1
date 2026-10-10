@@ -35,8 +35,8 @@ signals:
     void telemetryUpdated(const Core::Uplink::TelemetryData &data);
 
     // 告警事件（仅真实源发出，如机身/负载 HMS 事件；模拟源不发）
-    // code=告警事件码（如 device_exit_hms），text=展示文本；UI 负责加 [HMS] 前缀
-    void alertReceived(const QString &code, const QString &text);
+    // WP4 起携带结构化 AlertEvent（code/level/text），UI 负责级别映射与 [HMS] 前缀
+    void alertReceived(const Core::Uplink::AlertEvent &event);
 
     // 链路状态变化（仅真实源发出；模拟源不进入链路状态机）
     void linkStateChanged(Core::Uplink::LinkState state);

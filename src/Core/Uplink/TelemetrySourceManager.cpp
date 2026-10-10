@@ -29,6 +29,9 @@ TelemetrySourceManager::TelemetrySourceManager(QObject *parent)
     qRegisterMetaType<TelemetryData>();
     qRegisterMetaType<SourceMode>();
     qRegisterMetaType<LinkState>();
+    // WP4（feature §6.4）：转发信号 alertReceived 携自定义 AlertEvent，
+    // 队列连接跨线程投递自定义类型须运行期注册，与上述三类型同理
+    qRegisterMetaType<AlertEvent>();
 
     m_stallTimer->setSingleShot(true);
     m_stallTimer->setInterval(STALL_TIMEOUT_MS);

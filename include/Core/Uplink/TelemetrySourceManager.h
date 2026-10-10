@@ -48,7 +48,7 @@ public:
 signals:
     // 以下信号均为当前源信号的转发（真实源信号已在其内部回到主线程）
     void telemetryUpdated(const Core::Uplink::TelemetryData &data);
-    void alertReceived(const QString &code, const QString &text);
+    void alertReceived(const Core::Uplink::AlertEvent &event);
     void modeChanged(Core::Uplink::SourceMode mode);
     void linkStateChanged(Core::Uplink::LinkState state);
 

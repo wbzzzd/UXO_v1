@@ -1,4 +1,4 @@
-// 遥测数据源管理器单测（REQ-012 M4E WP3）
+// 遥测数据源管理器单测（REQ-012 M4E WP3；WP4 告警用例改断言结构化 AlertEvent 三字段）
 // 覆盖：默认态、模拟遥测转发、模式切换语义（保持运行状态）、真实链路连接失败路径、
 // OSD/事件解析契约（docs/interfaces/接口规格-MSDK对接.md）、真实链路停滞状态机。
 // 用 QTEST_GUILESS_MAIN 而非 QTEST_MAIN：Core 目标经普通 target_link_libraries 传递
@@ -85,7 +85,8 @@ private slots:
     // 真实链路连接失败路径：Connecting→Disconnected 两拍；stop 去重；重试再走一轮
     void realLinkConnectFailure();
 
-    // OSD/events 解析契约：无效坐标、elevation 回退、HMS 级别映射、通用事件、非契约主题
+    // OSD/events 解析契约：无效坐标、elevation 回退、HMS 结构化级别直传（WP4）、
+    // 通用事件、非契约主题
     void osdAndEventsParsing();
 
     // 真实链路停滞状态机：Connected→超时 Stalled→遥测恢复 Connected；模拟模式超时无操作
@@ -232,7 +233,7 @@ void TelemetrySourceManagerTest::osdAndEventsParsing()
     QCOMPARE(telemetrySpy.count(), 2);
     QCOMPARE(telemetrySpy.last().at(0).value<Core::Uplink::TelemetryData>().altitude, 66.6);
 
-    // 契约 §4：HMS data.list 字符串码 + level 2 → 严重
+    // 契约 §4：HMS data.list 字符串码 + level 2 → 严重（WP4：level 数值直传，feature §6.4）
     {
         QJsonObject item;
         item.insert(QStringLiteral("code"), QStringLiteral("battery_low"));
@@ -241,11 +242,14 @@ void TelemetrySourceManagerTest::osdAndEventsParsing()
         hmsData.insert(QStringLiteral("list"), QJsonArray{item});
         invokeMessageArrived(&source, eventsTopic, eventsPayload(QStringLiteral("hms"), hmsData));
         QCOMPARE(alertSpy.count(), 1);
-        QCOMPARE(alertSpy.first().at(0).toString(), QStringLiteral("battery_low"));
-        QCOMPARE(alertSpy.first().at(1).toString(), QStringLiteral("HMS 告警（严重）"));
+        const Core::Uplink::AlertEvent event =
+            alertSpy.first().at(0).value<Core::Uplink::AlertEvent>();
+        QCOMPARE(event.code, QStringLiteral("battery_low"));
+        QCOMPARE(event.level, 2);
+        QCOMPARE(event.text, QStringLiteral("HMS 告警（严重）"));
     }
 
-    // 契约 §4 防御：数值码兼容 + 未知级别
+    // 契约 §4 防御：数值码兼容 + 级别越界（9）按无级别 -1，正文回退未知文案
     {
         QJsonObject item;
         item.insert(QStringLiteral("code"), 1200);
@@ -254,8 +258,26 @@ void TelemetrySourceManagerTest::osdAndEventsParsing()
         hmsData.insert(QStringLiteral("list"), QJsonArray{item});
         invokeMessageArrived(&source, eventsTopic, eventsPayload(QStringLiteral("hms"), hmsData));
         QCOMPARE(alertSpy.count(), 2);
-        QCOMPARE(alertSpy.last().at(0).toString(), QStringLiteral("1200"));
-        QCOMPARE(alertSpy.last().at(1).toString(), QStringLiteral("HMS 告警（未知）"));
+        const Core::Uplink::AlertEvent event =
+            alertSpy.last().at(0).value<Core::Uplink::AlertEvent>();
+        QCOMPARE(event.code, QStringLiteral("1200"));
+        QCOMPARE(event.level, -1);
+        QCOMPARE(event.text, QStringLiteral("HMS 告警（未知）"));
+    }
+
+    // level 字段缺失：非 0/1/2 一律按无级别 -1（缺失不得误判为 0 提示）
+    {
+        QJsonObject item;
+        item.insert(QStringLiteral("code"), QStringLiteral("compass_error"));
+        QJsonObject hmsData;
+        hmsData.insert(QStringLiteral("list"), QJsonArray{item});
+        invokeMessageArrived(&source, eventsTopic, eventsPayload(QStringLiteral("hms"), hmsData));
+        QCOMPARE(alertSpy.count(), 3);
+        const Core::Uplink::AlertEvent event =
+            alertSpy.last().at(0).value<Core::Uplink::AlertEvent>();
+        QCOMPARE(event.code, QStringLiteral("compass_error"));
+        QCOMPARE(event.level, -1);
+        QCOMPARE(event.text, QStringLiteral("HMS 告警（未知）"));
     }
 
     // 空码项跳过（不产生告警）
@@ -265,28 +287,38 @@ void TelemetrySourceManagerTest::osdAndEventsParsing()
         QJsonObject hmsData;
         hmsData.insert(QStringLiteral("list"), QJsonArray{item});
         invokeMessageArrived(&source, eventsTopic, eventsPayload(QStringLiteral("hms"), hmsData));
-        QCOMPARE(alertSpy.count(), 2);
+        QCOMPARE(alertSpy.count(), 3);
     }
 
-    // device_exit_hms：HMS 解除（网关既定事件）
+    // device_exit_hms：HMS 解除（网关既定事件），无级别语义 level=-1，文案保持
     invokeMessageArrived(&source, eventsTopic,
                          eventsPayload(QStringLiteral("device_exit_hms"), QJsonObject()));
-    QCOMPARE(alertSpy.count(), 3);
-    QCOMPARE(alertSpy.last().at(0).toString(), QStringLiteral("device_exit_hms"));
-    QCOMPARE(alertSpy.last().at(1).toString(), QStringLiteral("机身 HMS 告警已解除"));
+    QCOMPARE(alertSpy.count(), 4);
+    {
+        const Core::Uplink::AlertEvent event =
+            alertSpy.last().at(0).value<Core::Uplink::AlertEvent>();
+        QCOMPARE(event.code, QStringLiteral("device_exit_hms"));
+        QCOMPARE(event.level, -1);
+        QCOMPARE(event.text, QStringLiteral("机身 HMS 告警已解除"));
+    }
 
-    // 契约 §4：其他 method 按通用事件透传（前向兼容）
+    // 契约 §4：其他 method 按通用事件透传（前向兼容），code=method、无级别
     invokeMessageArrived(&source, eventsTopic,
                          eventsPayload(QStringLiteral("device_online"), QJsonObject()));
-    QCOMPARE(alertSpy.count(), 4);
-    QCOMPARE(alertSpy.last().at(0).toString(), QStringLiteral("device_online"));
-    QCOMPARE(alertSpy.last().at(1).toString(), QStringLiteral("事件：device_online"));
+    QCOMPARE(alertSpy.count(), 5);
+    {
+        const Core::Uplink::AlertEvent event =
+            alertSpy.last().at(0).value<Core::Uplink::AlertEvent>();
+        QCOMPARE(event.code, QStringLiteral("device_online"));
+        QCOMPARE(event.level, -1);
+        QCOMPARE(event.text, QStringLiteral("事件：device_online"));
+    }
 
     // 契约 §5：非契约主题（网关 state 拓扑）不消费
     invokeMessageArrived(&source, QStringLiteral("thing/product/GW001/state"),
                          osdPayload(39.9, 116.4, 10.0, 0.0));
     QCOMPARE(telemetrySpy.count(), 2);
-    QCOMPARE(alertSpy.count(), 4);
+    QCOMPARE(alertSpy.count(), 5);
 }
 
 void TelemetrySourceManagerTest::stallStateMachine()

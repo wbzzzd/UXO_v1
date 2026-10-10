@@ -40,6 +40,11 @@ MqttTelemetrySource::MqttTelemetrySource(const QString &host, quint16 port, QObj
     // Paho 回调线程信号跨线程排队投递所需的元数据注册
     qRegisterMetaType<TelemetryData>();
     qRegisterMetaType<LinkState>();
+    // WP4（feature §6.4 / 接口规格 §4）：alertReceived 改携自定义 AlertEvent 结构。
+    // Paho 回调在 Paho 线程，信号经队列连接跨线程投递自定义类型必须在运行期
+    // qRegisterMetaType 注册（Q_DECLARE_METATYPE 仅为编译期声明，队列连接按
+    // 类型名查元数据表，未注册会在投递点静默失败）。
+    qRegisterMetaType<AlertEvent>();
 
     connect(m_client, &MqttUplinkClient::connectionEstablished,
             this, &MqttTelemetrySource::onClientConnectionEstablished);
@@ -163,7 +168,9 @@ void MqttTelemetrySource::handleEventsPayload(const QString &payload)
     const QJsonObject data = root.value(QStringLiteral("data")).toObject();
 
     if (method == QStringLiteral("hms")) {
-        // 契约 §4：data.list[] 每项含 code（字符串）与 level（0/1/2 → 提示/警告/严重）
+        // 契约 §4：data.list[] 每项至少含 code（字符串）与 level（0/1/2 → 提示/警告/严重）；
+        // 可选字段 args/component_index/sensor_index 为原样透传字段（非可读描述），
+        // 故正文沿用级别文案（事件正文显示 code + 文案见 feature §6.4）。
         const QJsonArray list = data.value(QStringLiteral("list")).toArray();
         for (const QJsonValue &item : list) {
             const QJsonObject obj = item.toObject();
@@ -178,7 +185,10 @@ void MqttTelemetrySource::handleEventsPayload(const QString &payload)
             if (code.isEmpty()) {
                 continue;
             }
-            const int level = obj.value(QStringLiteral("level")).toInt();
+            // WP4（feature §6.4）：level 数值直传不再折叠进文案，级别→告警档位映射
+            // 冻结在 UI 转换槽；字段缺失、非整数或越界（非 0/1/2）按无级别 -1 处理
+            const int rawLevel = obj.value(QStringLiteral("level")).toInt(-1);
+            const int level = (rawLevel >= 0 && rawLevel <= 2) ? rawLevel : -1;
             QString levelText;
             switch (level) {
             case 0: levelText = QStringLiteral("提示"); break;
@@ -186,19 +196,21 @@ void MqttTelemetrySource::handleEventsPayload(const QString &payload)
             case 2: levelText = QStringLiteral("严重"); break;
             default: levelText = QStringLiteral("未知"); break;
             }
-            emit alertReceived(code, QStringLiteral("HMS 告警（%1）").arg(levelText));
+            emit alertReceived(
+                AlertEvent{code, level, QStringLiteral("HMS 告警（%1）").arg(levelText)});
         }
         return;
     }
 
     if (method == QStringLiteral("device_exit_hms")) {
-        // 网关既定事件：机身 HMS 告警解除（data 为空，模拟器附录 A 亦发此事件）
-        emit alertReceived(method, QStringLiteral("机身 HMS 告警已解除"));
+        // 网关既定事件：机身 HMS 告警解除（data 为空，模拟器附录 A 亦发此事件）；
+        // 解除通知无级别语义，level=-1
+        emit alertReceived(AlertEvent{method, -1, QStringLiteral("机身 HMS 告警已解除")});
         return;
     }
 
-    // 契约 §4：其他 method 允许出现——按通用事件透传，不做语义消费
-    emit alertReceived(method, QStringLiteral("事件：%1").arg(method));
+    // 契约 §4：其他 method 允许出现——按通用事件透传，不做语义消费（无级别，level=-1）
+    emit alertReceived(AlertEvent{method, -1, QStringLiteral("事件：%1").arg(method)});
 }
 
 void MqttTelemetrySource::setLinkState(LinkState state)
