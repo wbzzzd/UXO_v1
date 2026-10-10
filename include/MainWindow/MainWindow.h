@@ -23,6 +23,7 @@ class TacticalMapWidget;
 class DeviceResourceBar;
 class TargetDetailOverlay;
 class AlertPanel;
+class EventLogWidget;
 class DecisionView;
 class DetectionView;
 class DetectionEngine;
@@ -36,7 +37,7 @@ class TelemetrySourceManager;
 }
 
 // 主窗口: 态势页布局
-// 导航(80px) | 左pane(可折叠40/320px) | 中心区(设备资源条36px + 地图主舞台)
+// 导航(80px) | 左pane(可折叠40/320px) | 中心区(设备资源条36px + 地图主舞台 + 告警与日志条带140px)
 // 地图主舞台上浮动: 视频PiP(左下480x270) + 目标详情浮层(右上340px) + 数据源徽标(左上)
 // 探测工具栏: [本地模拟|真实链路] [重置][开始][结束] 驱动无人机遥测+AI 检测（视频抽帧）
 // 遥测数据源经 TelemetrySourceManager 统一管理: 本地模拟 / 真实链路（REQ-012 WP3）
@@ -75,6 +76,8 @@ private slots:
     void onSourceSegmentClicked(int id);  // 分段控件切换数据源
     void onSourceModeChanged(Core::Uplink::SourceMode mode);
     void onLinkStateChanged(Core::Uplink::LinkState state);
+    // HMS 告警事件: 冻结级别映射 -> 告警面板 + 事件日志双区分发 + 状态栏轻提示
+    void onAlertReceived(const Core::Uplink::AlertEvent &event);
     void onVideoEnded();
 
     // AI 检测引擎回调
@@ -156,6 +159,10 @@ private:
     QPushButton *m_simSourceBtn;         // 分段 [本地模拟]
     QPushButton *m_realSourceBtn;        // 分段 [真实链路]
     QLabel *m_sourceBadge;               // 地图舞台左上数据源徽标
+
+    // 「告警与日志」区（REQ-012 WP4）: 态势页地图下方条带，告警面板与事件日志各半宽
+    AlertPanel *m_alertPanel;       // 左半: HMS 告警列表（复活孤儿组件）
+    EventLogWidget *m_eventLog;     // 右半: 只读追加式事件日志
 
     Core::Uplink::TelemetrySourceManager *m_telemetryManager;  // 遥测数据源管理器（持有模拟/真实源）
     DetectionEngine *m_detectionEngine;

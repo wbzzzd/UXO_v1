@@ -7,6 +7,8 @@
 #include "MainWindow/TacticalMapWidget.h"
 #include "MainWindow/DeviceResourceBar.h"
 #include "MainWindow/TargetDetailOverlay.h"
+#include "MainWindow/AlertPanel.h"
+#include "MainWindow/EventLogWidget.h"
 #include "MainWindow/DecisionView.h"
 #include "MainWindow/DetectionView.h"
 #include "MainWindow/MosPlanningController.h"
@@ -36,6 +38,7 @@
 #include <QStackedWidget>
 #include <QCoreApplication>
 #include <QFileInfo>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QGraphicsDropShadowEffect>
@@ -52,6 +55,12 @@ constexpr int kPipTitleBarHeight = 24;
 constexpr int kPipHeight = kPipVideoHeight + kPipTitleBarHeight;
 constexpr int kPipMargin = 12;
 constexpr int kMapToolbarHeight = 32;
+// 「告警与日志」条带固定高度（REQ-012 WP4, 1280x720 布局硬约束上限 140px）:
+// 720p 垂直预算 720 - 菜单栏(~30) - 状态栏(28) - 资源条(36) - 工具栏(32) = ~594px，
+// 条带固定 140 后地图主舞台仍保有 ~454px（> 视频 PiP 全高 294px），地图 stretch=1 不变。
+// 固定而非最大高度：QTextEdit 自然 sizeHint(约 192px) 会把弹性高度顶满 140 上限，
+// 固定可避免告警条数变化引起地图舞台反复重排。
+constexpr int kAlertLogStripHeight = 140;
 
 // 模拟素材文件名（演示用，真实系统从配置加载）；完整路径在 loadMockData 中
 // 按 MEDIA_ASSETS_DIR 编译期宏（源码树）优先、安装布局 share/uxo/assets/media
@@ -114,6 +123,8 @@ MainWindow::MainWindow(QWidget *parent)
     , m_simSourceBtn(nullptr)
     , m_realSourceBtn(nullptr)
     , m_sourceBadge(nullptr)
+    , m_alertPanel(nullptr)
+    , m_eventLog(nullptr)
     , m_telemetryManager(nullptr)
     , m_detectionEngine(nullptr)
     , m_pageStack(nullptr)
@@ -303,6 +314,32 @@ void MainWindow::createMainLayout()
     m_sourceBadge->setAttribute(Qt::WA_TransparentForMouseEvents, true);
 
     centerLayout->addWidget(m_mapContainer, 1);
+
+    // 3d. 「告警与日志」条带（REQ-012 WP4）: 地图主舞台正下方，AlertPanel（复活
+    // 孤儿组件）与 EventLogWidget 横向并列各半宽；固定高度不超过 140px（720p 硬约束，
+    // 见 kAlertLogStripHeight）。条带位于布局流内而非浮层，不遮挡地图鼠标交互。
+    QWidget *alertLogStrip = new QWidget(centerArea);
+    alertLogStrip->setObjectName(QStringLiteral("situationAlertLogStrip"));
+    alertLogStrip->setFixedHeight(kAlertLogStripHeight);
+    QHBoxLayout *stripLayout = new QHBoxLayout(alertLogStrip);
+    stripLayout->setContentsMargins(0, 0, 0, 0);
+    stripLayout->setSpacing(0);
+
+    m_alertPanel = new AlertPanel(alertLogStrip);
+    stripLayout->addWidget(m_alertPanel, 1);
+
+    // 双面板间 1px 竖分隔线（StatusBarWidget::createSeparator 同模式，颜色走 Border 令牌）
+    QFrame *stripSeparator = new QFrame(alertLogStrip);
+    stripSeparator->setObjectName(QStringLiteral("situationAlertLogSeparator"));
+    stripSeparator->setFixedWidth(1);
+    stripSeparator->setStyleSheet(
+        QStringLiteral("background-color: %1;").arg(GlobalStyle::Colors::Border));
+    stripLayout->addWidget(stripSeparator);
+
+    m_eventLog = new EventLogWidget(alertLogStrip);
+    stripLayout->addWidget(m_eventLog, 1);
+
+    centerLayout->addWidget(alertLogStrip);
 
     // 中心区加入态势工作区布局
     situationLayout->addWidget(centerArea, 1);
@@ -511,12 +548,10 @@ void MainWindow::createConnections()
     // 链路状态 -> §6.1 状态机（连接失败回退模拟/断链提示不自动切回）
     connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::linkStateChanged,
             this, &MainWindow::onLinkStateChanged);
-    // 真实链路 HMS 告警 -> 状态栏（text 为展示文案；code 仅定位用不展示）
+    // 真实链路 HMS 告警 -> onAlertReceived 槽（REQ-012 WP4）:
+    // 冻结级别映射后分发「告警与日志」双区 + 状态栏轻提示（取代 WP3 丢弃 code 的 lambda）
     connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::alertReceived,
-            this, [this](const QString &code, const QString &text) {
-        Q_UNUSED(code);
-        m_statusBarWidget->addAlarm(QStringLiteral("[HMS] %1").arg(text));
-    });
+            this, &MainWindow::onAlertReceived);
     // 数据源分段控件: 互斥切换 本地模拟/真实链路（id=SourceMode 枚举值）
     connect(m_sourceGroup, &QButtonGroup::idClicked,
             this, &MainWindow::onSourceSegmentClicked);
@@ -829,6 +864,43 @@ void MainWindow::onLinkStateChanged(Core::Uplink::LinkState state)
     }
     updateSourceBadge();
     updateSourceControlStates();
+}
+
+// HMS 告警事件回调（REQ-012 WP4）: 冻结级别映射 -> 告警面板 + 事件日志双区分发，
+// 并保留状态栏轻提示（沿袭 WP3 行为）
+void MainWindow::onAlertReceived(const Core::Uplink::AlertEvent &event)
+{
+    // 映射表冻结 2026-10-11，对齐 docs/interfaces/接口规格-MSDK对接.md events 契约
+    // 与 feature §6.4: level 0/1/2 = HMS 提示/警告/严重；-1（无级别事件）及未知值按提示处理
+    Core::AlarmLevel alarmLevel = Core::AlarmLevel::Info;
+    switch (event.level) {
+    case 0:
+        alarmLevel = Core::AlarmLevel::Info;
+        break;
+    case 1:
+        alarmLevel = Core::AlarmLevel::Warning;
+        break;
+    case 2:
+        alarmLevel = Core::AlarmLevel::Error;
+        break;
+    default:  // -1 及未知值 -> 提示
+        alarmLevel = Core::AlarmLevel::Info;
+        break;
+    }
+
+    // AlarmInfo 组装（字段见 include/Core/Data/Types.h AlarmInfo）:
+    // 正文带 [HMS] 来源前缀并显示 code + 文案（feature §6.4/§6.6），时间戳取当前
+    Core::AlarmInfo alarm;
+    alarm.level = alarmLevel;
+    alarm.message = QStringLiteral("[HMS] %1 — %2").arg(event.code, event.text);
+    alarm.createTime = QDateTime::currentDateTime();
+
+    // 双区分发: 告警面板（级别着色列表）+ 事件日志（同级别条目）
+    m_alertPanel->addAlert(alarm);
+    m_eventLog->appendEvent(alarmLevel, alarm.message);
+
+    // 状态栏轻提示（现状行为保留，正文与双区一致）
+    m_statusBarWidget->addAlarm(alarm.message);
 }
 
 // 三向联动: 目标表/地图/视频框 任一选中 -> 同步其他两区
