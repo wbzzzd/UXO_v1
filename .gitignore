@@ -50,6 +50,9 @@ Makefile*
 # Test runtime artifacts (MOS 导出产物等运行时生成文件)
 mos-sim-scenario-*.json
 
+# Python 字节码缓存（scripts/ 下 sim 工具运行产物）
+__pycache__/
+
 # Logs
 logs/
 
