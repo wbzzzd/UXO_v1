@@ -5,7 +5,9 @@ UXO排弹系统 M4E 遥测模拟器
 作用：不依赖真机，向 EMQX 注入合成 OSD 遥测（按大疆上云API物模型格式），
      用于打通并验证 排弹系统 的整条数据链路。
 模拟内容：一条排弹侦察航迹（起飞→网格搜索→激光标记疑似点→返航→降落），
-         含电量衰减、RTK状态、云台姿态、激光目标坐标、HMS告警事件。
+          含电量衰减、RTK状态、云台姿态、激光目标坐标、HMS告警事件。
+HMS注入：航迹进度约 30%/60%/85% 时各发一条 method="hms" 事件
+          （level 0 提示 / 1 警告 / 2 严重），--no-hms 可关闭。
 用法：python sim_telemetry.py [--broker 127.0.0.1] [--port 1883] [--sn 1581F5BKSIMUL001]
 依赖：pip install paho-mqtt
 停止：Ctrl+C
@@ -29,6 +31,8 @@ parser.add_argument("--port", type=int, default=1883, help="EMQX 端口")
 parser.add_argument("--sn", default="1581F5BKSIMUL001", help="模拟飞机 SN")
 parser.add_argument("--gateway", default="RC2SIMUL0001", help="模拟遥控器(网关) SN")
 parser.add_argument("--speedup", type=float, default=1.0, help="时间加速倍率")
+parser.add_argument("--no-hms", action="store_true",
+                    help="不注入航迹中段的多级 HMS 事件（默认注入；结尾 device_exit_hms 始终保留）")
 args = parser.parse_args()
 
 DRONE_SN = args.sn
@@ -136,11 +140,13 @@ def make_osd(t_s, wp_idx, frac, lat, lon, rel_alt, speed, phase,
         "gateway": GW_SN,
     }
 
-def make_event(evt):
+def make_event(evt, data=None):
+    """构造 Cloud API 事件信封（tid/bid/timestamp/gateway/method/data）；
+    data 默认空对象，HMS 事件传入 {"list": [{"code", "level"}]}"""
     return {
         "tid": str(uuid.uuid4()), "bid": str(uuid.uuid4()),
         "timestamp": int(time.time() * 1000),
-        "gateway": GW_SN, "method": evt, "data": {},
+        "gateway": GW_SN, "method": evt, "data": data or {},
         "need_reply": 0,
     }
 
@@ -185,6 +191,16 @@ print("按 Ctrl+C 停止\n")
 osd_topic = f"thing/product/{DRONE_SN}/osd"
 evt_topic = f"thing/product/{DRONE_SN}/events"
 
+# HMS 多级注入计划：按航迹进度比例触发（与 speedup 兼容，不依赖墙钟）。
+# level 映射见接口规格 events 契约：0=提示 1=警告 2=严重，每条 data.list 含 1 项。
+HMS_INJECTIONS = [
+    {"progress": 0.30, "code": "compass_calibration_reminder", "level": 0},
+    {"progress": 0.60, "code": "wind_warning", "level": 1},
+    {"progress": 0.85, "code": "battery_low", "level": 2},
+]
+# --no-hms 时清空注入计划；结尾 device_exit_hms 属 WP1 既定行为，不受此开关影响
+hms_pending = [] if args.no_hms else list(HMS_INJECTIONS)
+
 try:
     total_wp = len(ROUTE) - 1
     t_s = 0.0
@@ -211,6 +227,13 @@ try:
                   f"alt={alt:5.1f}m bat={bat:3d}% lat={lat:.6f} lon={lon:.6f}"
                   + (f" [LASER→{laser[0]:.6f},{laser[1]:.6f}]" if laser else ""),
                   end="", flush=True)
+            # 航迹进度（当前航段序号+段内比例）/总航段数 达到阈值即注入一条 HMS 事件
+            progress = (i + frac) / total_wp
+            while hms_pending and progress >= hms_pending[0]["progress"]:
+                inj = hms_pending.pop(0)
+                client.publish(evt_topic, json.dumps(make_event(
+                    "hms", {"list": [{"code": inj["code"], "level": inj["level"]}]})), qos=1)
+                print(f"\n[HMS] 进度{progress*100:.0f}% 注入 code={inj['code']} level={inj['level']}")
             time.sleep(INTERVAL)
             t_s += INTERVAL
     # 结束事件
