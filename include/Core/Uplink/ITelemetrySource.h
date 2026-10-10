@@ -7,6 +7,7 @@
 
 #include "Core/Uplink/TelemetryTypes.h"
 
+#include <QByteArray>
 #include <QObject>
 #include <QString>
 
@@ -40,6 +41,12 @@ signals:
 
     // 链路状态变化（仅真实源发出；模拟源不进入链路状态机）
     void linkStateChanged(Core::Uplink::LinkState state);
+
+    // 原始报文直通（REQ-012 WP6 TrackStore）：真实源收到契约主题（osd/events）
+    // 报文时原样转发主题与 UTF-8 载荷字节，供落库旁路 verbatim 消费（不做语义
+    // 加工，帧有效性过滤与列映射由消费方自裁决）；模拟源不发射——模拟模式
+    // 落库零写入天然达成。QString/QByteArray 为内建元类型，队列投递免注册。
+    void rawMessageReceived(const QString &topic, const QByteArray &payload);
 };
 
 }

@@ -110,8 +110,12 @@ void MqttTelemetrySource::onClientMessageArrived(const QString &topic, const QSt
 {
     // 按主题后缀分发（通配订阅前缀为 thing/product/{sn}）
     if (topic.endsWith(QStringLiteral("/osd"))) {
+        // WP6 TrackStore：契约主题原始报文 verbatim 直通落库旁路（在语义解析
+        // 之前发射，保真优先；帧有效性过滤与列映射由消费方自裁决）
+        emit rawMessageReceived(topic, payload.toUtf8());
         handleOsdPayload(payload);
     } else if (topic.endsWith(QStringLiteral("/events"))) {
+        emit rawMessageReceived(topic, payload.toUtf8());
         handleEventsPayload(payload);
     }
     // 其他主题（如网关 state 拓扑，契约 §5 注明非契约不消费）忽略

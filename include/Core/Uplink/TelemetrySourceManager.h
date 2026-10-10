@@ -8,6 +8,7 @@
 
 #include "Core/Uplink/TelemetryTypes.h"
 
+#include <QByteArray>
 #include <QObject>
 
 class QTimer;
@@ -49,6 +50,8 @@ signals:
     // 以下信号均为当前源信号的转发（真实源信号已在其内部回到主线程）
     void telemetryUpdated(const Core::Uplink::TelemetryData &data);
     void alertReceived(const Core::Uplink::AlertEvent &event);
+    // WP6 TrackStore：原始报文直通转发（模拟源无此信号，转发自然静默）
+    void rawMessageReceived(const QString &topic, const QByteArray &payload);
     void modeChanged(Core::Uplink::SourceMode mode);
     void linkStateChanged(Core::Uplink::LinkState state);
 

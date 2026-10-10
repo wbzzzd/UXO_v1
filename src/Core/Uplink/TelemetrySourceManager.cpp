@@ -37,12 +37,15 @@ TelemetrySourceManager::TelemetrySourceManager(QObject *parent)
     m_stallTimer->setInterval(STALL_TIMEOUT_MS);
     connect(m_stallTimer, &QTimer::timeout, this, &TelemetrySourceManager::onStallTimeout);
 
-    // 挂当前源（默认模拟源）信号转发：遥测经槽转发，告警信号直通，链路状态驱动停滞计时
+    // 挂当前源（默认模拟源）信号转发：遥测经槽转发，告警/原始报文直通，链路状态驱动停滞计时
     ITelemetrySource *source = m_simSource;
     connect(source, &ITelemetrySource::telemetryUpdated,
             this, &TelemetrySourceManager::onSourceTelemetry);
     connect(source, &ITelemetrySource::alertReceived,
             this, &TelemetrySourceManager::alertReceived);
+    // WP6 TrackStore：原始报文信号直通（QString/QByteArray 内建元类型免注册）
+    connect(source, &ITelemetrySource::rawMessageReceived,
+            this, &TelemetrySourceManager::rawMessageReceived);
     connect(source, &ITelemetrySource::linkStateChanged,
             this, &TelemetrySourceManager::onSourceLinkState);
 }
@@ -80,6 +83,9 @@ void TelemetrySourceManager::setMode(SourceMode mode)
             this, &TelemetrySourceManager::onSourceTelemetry);
     connect(newSource, &ITelemetrySource::alertReceived,
             this, &TelemetrySourceManager::alertReceived);
+    // WP6 TrackStore：原始报文信号直通（换源时随转发一并重挂）
+    connect(newSource, &ITelemetrySource::rawMessageReceived,
+            this, &TelemetrySourceManager::rawMessageReceived);
     connect(newSource, &ITelemetrySource::linkStateChanged,
             this, &TelemetrySourceManager::onSourceLinkState);
 
