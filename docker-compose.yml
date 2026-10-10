@@ -40,8 +40,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-uxo_dev_only}
     volumes:
       - postgis-data:/var/lib/postgresql/data
-      # WP6 提供 schema 后启用：
-      # - ./init-db:/docker-entrypoint-initdb.d:ro
+      # WP6：schema 已收编落盘 init-db/01_schema.sql，首次启动自动执行（仅空数据卷初始化时生效）
+      - ./init-db:/docker-entrypoint-initdb.d:ro
 
 volumes:
   postgis-data:
