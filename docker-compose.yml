@@ -1,0 +1,47 @@
+# UXO M4E 数据链路本地部署（REQ-012）
+#
+# 默认仅启动 EMQX（真实链路唯一必备组件）：
+#   docker compose up -d
+# WP6 TrackStore 需要 PostgreSQL+PostGIS 时显式启用（默认不启动）：
+#   docker compose --profile trackstore up -d
+#
+# 注意：本文件为本项目自写极简部署物，非开工包部署物的收编（开工包 SRS/RTMP
+# 链路已随 RTSP 直裁决作废，见 .omo/plans/20261009-m4e-integration-kickoff.md 第 9 条）。
+
+services:
+  emqx:
+    image: emqx/emqx:5.8
+    container_name: uxo-emqx
+    restart: unless-stopped
+    ports:
+      - "1883:1883"     # MQTT TCP（App/sim 推流、客户端订阅）
+      - "8083:8083"     # MQTT WebSocket
+      - "18083:18083"   # Dashboard（默认 admin/public，仅限本机开发使用）
+    environment:
+      EMQX_DASHBOARD__DEFAULT_USERNAME: admin
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD:-public}
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: uxo-postgis
+    profiles: ["trackstore"]  # WP6 TrackStore 开关：不指定 profile 时不启动
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: uxo
+      POSTGRES_USER: uxo
+      # 仅本地开发占位口令；生产部署经 .env 注入（.env 不得提交）
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-uxo_dev_only}
+    volumes:
+      - postgis-data:/var/lib/postgresql/data
+      # WP6 提供 schema 后启用：
+      # - ./init-db:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  postgis-data:
