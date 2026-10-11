@@ -62,7 +62,7 @@ REQ-009（`Implemented`）不取代、不降级：其模拟遥测/视频/目标�
 
 - 新增数据源接口层（建议 `Core/Uplink`）：遥测源接口由 `DroneTelemetrySimulator` 改造实现（模拟源），`MqttTelemetrySource` 实现（真实源），二者输出同构内部遥测结构。
 - 新增 `MqttUplinkClient`：订阅 osd/events，解析 Cloud API 物模型，输出内部遥测/事件结构。
-- `VideoStreamPanel` 视频源抽象：本地文件（模拟）/ 链路 URL（真实，一期 RTSP 直连遥控器）；视频源配置化 URL、面板对协议与对端不感知（设计护栏，见 §9-2）；播放方案待选型（见 §9-3）。
+- `VideoStreamPanel` 视频源抽象：本地文件（模拟）/ 链路 URL（真实，一期 RTSP 直连遥控器）；视频源配置化 URL、面板对协议与对端不感知（设计护栏，见 §9-2）；播放方案=QMediaPlayer+GStreamer（§9-3 终裁，2026-10-11）。
 - 新增 `EventIngest`：events → 告警/日志。
 - 新增 `TrackStore`（可选开关）：PostgreSQL 轨迹库写入（`trajectory`/`events` 两表；`task`/`media` 表后续；`laser_targets` 表保留不启用，见 §1.3）。
 - 部署物新增：仓根自写极简 compose（EMQX；PostgreSQL 待 §9-4）、`docs/interfaces/` 接口报文规格文档、`scripts/` 开发/CI 用模拟器（参考开工包 `sim_telemetry.py`，注明来源）；不收编开工包部署物（见 §9-5）。
@@ -133,7 +133,7 @@ REQ-009（`Implemented`）不取代、不降级：其模拟遥测/视频/目标�
    | 多席位分发 | 支持 | 不支持（遥控器连接数受限） |
    | App 改动 | 小（MSDK 原生 RtmpSettings） | 零 |
    | 前置依赖 | SRS 在线 | 客户端与遥控器同网段 |
-3. **链路视频播放方案**：QMediaPlayer + GStreamer（工程量小、延迟偏高，两种制式均可用）vs FFmpeg/mpv 嵌入（延迟低、工程量大）——需原型验证后裁决。
+3. **链路视频播放方案**：QMediaPlayer + GStreamer（工程量小、延迟偏高，两种制式均可用）vs FFmpeg/mpv 嵌入（延迟低、工程量大）——需原型验证后裁决。**终裁（2026-10-11，Phase A 实测）**：采用 **QMediaPlayer + GStreamer**——本地 RTSP 测试源（mediamtx + ffmpeg，画面烧毫秒级时码）实测玻璃到玻璃延迟稳态均值 3.4ms（median 3.1 / p95 4 / max 52）、首帧 87ms、60s 无漂移，远优于 ≤0.8s 判据（余量 >10 倍）；机制实证为 Qt appsink（sync=false）下发 latency=0 的 LATENCY 事件覆盖 rtspsrc 默认 2000ms 缓冲（GST_DEBUG 日志 + 三路对照：默认 2031ms / latency=100 116ms / sync=false 59ms）。FFmpeg/mpv 嵌入不启动。注意：实测为 localhost 无网络抖动环境，latency=0 意味着无抖动缓冲保护，真机真实网络下需同口径复测（真机 2026-10-11 已可用）；若未来绕开 Qt 用原生 GStreamer 管线，建议 latency=100。证据 `/tmp/opencode/wp5-proto/report.md`。
 4. **轨迹库写入授权范围 —— 已裁决（2026-10-10）**：随 REQ-012 批准授权生效（REQ-012 备注既定措辞：批准即构成轨迹库写入的明确授权）。范围按 §5：`trajectory`/`events` 两表，`TrackStore` 为可选开关（默认关闭）；`task`/`media` 表后续；`laser_targets` 表保留不启用。
 5. **部署物 vendor 方式 —— 已裁决（2026-10-09）**：开工包降为参考、部署物不收编；本仓自写极简 compose（EMQX；PostgreSQL 待 §9-4），接口报文规格收编本仓 `docs/interfaces/` 并自行维护（双方契约）；模拟器留作开发/CI 工具（参考开工包 `sim_telemetry.py`，注明来源）。
 6. **联调窗口 —— 已消解（2026-10-10）**：App 工程移交本项目接续，两端排期自主可控，无外部依赖；用户可手柄常驻开发调试，真机联调随时可进行。App 出口改造约 1–2 周（本项目承担，施工图见移交工程内《UAS项目交接文档.md》），完成后即进入真机联调（=REQ-012 验收）。
