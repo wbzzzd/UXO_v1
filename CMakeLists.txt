@@ -521,3 +521,19 @@ target_link_libraries(UXOMissionControlTelemetrySourceManagerTest
     Core
 )
 add_test(NAME telemetry_source_manager COMMAND UXOMissionControlTelemetrySourceManagerTest)
+
+# REQ-012 M4E WP6 落库映射单测（纯 QCoreApplication，无需 QPA 平台插件；
+# 覆盖主题 SN 提取、OSD 轨迹行 20 键映射、events 行映射、无效帧丢弃与开关默认关闭；
+# 不触库，无头环境无条件执行）
+add_executable(UXOMissionControlTrackStoreTest
+    tests/track_store_test.cpp
+)
+target_include_directories(UXOMissionControlTrackStoreTest PRIVATE
+    ${HEADERS_DIR}
+)
+target_link_libraries(UXOMissionControlTrackStoreTest
+    Qt5::Core
+    Qt5::Test
+    Core
+)
+add_test(NAME track_store COMMAND UXOMissionControlTrackStoreTest)
