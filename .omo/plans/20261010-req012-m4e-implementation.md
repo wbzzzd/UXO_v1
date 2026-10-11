@@ -57,7 +57,7 @@ WP5 视频播放原型(本仓,独立,随时可做,不阻塞主线)
 - §9-3 原型：QMediaPlayer + GStreamer 直连 RTSP 实测延迟与稳定性（App 侧已实测 ~0.5s）；不达标再评 FFmpeg/mpv 嵌入。
 - 接入：`VideoStreamPanel` 视频源配置化 URL、协议与对端不感知（§9-2 护栏）；HUD-only 叠加不变。
 - 验证：手柄常驻拉流稳定、延迟可接受。
-- 状态：**WORKING**（2026-10-11 开工；Phase A 原型实测 **PASS** → §9-3 已终裁，Phase B 集成进行中）。
+- 状态：**ARTIFACT_READY**（2026-10-11：Phase A PASS → §9-3 终裁，Phase B 集成本地门禁全绿；真流验收 + HUD 视觉确认并入 WP7）。
 - WP5 技术裁决（2026-10-11；feature 文档 §9-3 终裁依赖 Phase A 实测数据）：
   - ① 执行分两段：Phase A 原型实测（本地 RTSP 测试源 + QMediaPlayer 拉流，测玻璃到玻璃延迟与稳定性）→ 数据落 §9-3 终裁；Phase B 按终裁集成（源抽象/接线/测试适配/门禁）。
   - ② 路线候选：conda env Qt5 Multimedia 后端=GStreamer，rtspsrc/rtph264depay/avdec_h264 插件实证存在（2026-10-11 gst-inspect）；QMediaPlayer+GStreamer 为首选，自定义 GStreamer 管线（appsink）或 mpv 仅当实测不达标才升级（独立后续，本 WP 不背）。
@@ -68,6 +68,7 @@ WP5 视频播放原型(本仓,独立,随时可做,不阻塞主线)
   - ⑦ 延迟口径（原型判据）：玻璃到玻璃 ≤0.8s 判 QMediaPlayer 路线可用（App 侧实测 0.5s 为参照留裕度）；已知风险=rtspsrc 默认 latency=2000ms 且 Qt5 playbin 不暴露该属性，实测超标时优先评估自定义 GStreamer 管线（appsink）再评 mpv。
   - ⑧ 测试基线：video_render_capture_test、stop_select_flicker_repro（xcb，现行环境性失败基线 #5/#6）、simulation_workflow_ui_test（offscreen）为受影响集；门禁=不破现有通过集，涉时长/结束语义的断言按直播语义复核。
 - WP5 Phase A 收口（2026-10-11）：mediamtx（`/home/lin/.local/opt/mediamtx/`）+ conda env ffmpeg 推流、画面烧毫秒级时码；QMediaPlayer harness 直连 `rtsp://127.0.0.1:8554/wallclock`。**玻璃到玻璃稳态 mean 3.4ms（median 3.1 / p95 4 / max 52）、首帧 87ms、60s 无漂移 → 判定 PASS（判据⑦ ≤0.8s，余量 >10 倍）**；机制=Qt appsink(sync=false) 下发 latency=0 的 LATENCY 事件覆盖 rtspsrc 默认 2000ms（GST_DEBUG 日志 + 三路对照：默认 2031ms / latency=100 116ms / sync=false 59ms）。**§9-3 终裁：QMediaPlayer+GStreamer 路线成立，FFmpeg/mpv 不启动**。风险留档：localhost 无网络抖动、latency=0 无缓冲保护，真机真实网络需同口径复测（真机 2026-10-11 已可用）；若未来绕开 Qt 用原生管线建议 latency=100。证据 `/tmp/opencode/wp5-proto/`（report.md、frames/、logs/、对照日志、anchors/）。
+- WP5 Phase B 收口（2026-10-11）：双提交 `3c4a122`（面板双源抽象+直播语义适配+`UXO_VIDEO_RTSP_URL` 环境配置+ctest 单测）、`48304e6`（MainWindow 按裁决⑥接线：真实链路→RTSP 流、本地模拟→演示视频缓存路径）。改动 7 文件 +175/-4：VideoStreamPanel 内双源抽象（`loadVideo`/`loadStreamUrl`，无旁路面板，§9-2 护栏保持）；直播适配=seek 禁用 / duration 恒 0 / EndOfMedia 抑制 / position 与抽帧时间戳走本地单调时钟（QElapsedTimer 首 play 起算、换源失效）/ 换源清缓存帧防跨源证据污染；新增 `include/MainWindow/VideoSourceConfig.h`（env 读取+默认本地测试流，TrackStoreConfig 先例）与 `tests/video_source_config_test.cpp`（ctest 纯逻辑覆盖）。门禁：全量构建通过；ctest **18/20**（新单测通过，#5/#6 既有 xcb 环境性失败不变，无新失败）；RTSP 冒烟走 MainWindow 真实生产路径 **17/17 PASS**（15s 内 RTSP 帧入面板、本地时钟单调、seek 空操作、EndOfMedia/durationChanged 抑制、frameExtracted 本地时钟、切回文件语义恢复；证据 `/tmp/opencode/wp5-phaseb/`：run.log、harness.log、frames/——probe 帧可见烧录时码彩条，非黑帧）。已知次要项（非门禁，留档）：①切回本地源后存在一帧异步尾帧（QVideoProbe 排队帧晚于清帧到达；抽帧定时器停止态且文件帧 <100ms 即覆盖，无证据污染路径），诊断快照已存；②offscreen 下 QVideoWidget 原生表面不绘制（视频区黑、HUD 不合成）为既有平台限制、与本地文件路径一致——HUD 视觉确认与真机同口径复测（裁决③）并入 WP7。
 
 ### WP6 TrackStore（依赖 WP1，授权已生效）
 
