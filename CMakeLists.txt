@@ -537,3 +537,18 @@ target_link_libraries(UXOMissionControlTrackStoreTest
     Core
 )
 add_test(NAME track_store COMMAND UXOMissionControlTrackStoreTest)
+
+# REQ-012 M4E WP5 视频源环境配置单测（纯 QCoreApplication，无需 QPA 平台插件；
+# 覆盖 UXO_VIDEO_RTSP_URL 未设/空回退默认测试流、设置生效；
+# 配置为头文件内联实现，免链接 Core）
+add_executable(UXOMissionControlVideoSourceConfigTest
+    tests/video_source_config_test.cpp
+)
+target_include_directories(UXOMissionControlVideoSourceConfigTest PRIVATE
+    ${HEADERS_DIR}
+)
+target_link_libraries(UXOMissionControlVideoSourceConfigTest
+    Qt5::Core
+    Qt5::Test
+)
+add_test(NAME video_source_config COMMAND UXOMissionControlVideoSourceConfigTest)

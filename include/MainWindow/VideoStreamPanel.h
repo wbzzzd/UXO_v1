@@ -8,6 +8,7 @@
 
 #include <QWidget>
 #include <QMediaPlayer>
+#include <QElapsedTimer>
 #include <QImage>
 
 class QLabel;
@@ -26,8 +27,13 @@ public:
     explicit VideoStreamPanel(QWidget *parent = nullptr);
     ~VideoStreamPanel();
 
-    // 加载本地视频文件
+    // 加载本地视频文件（本地模拟源）
     void loadVideo(const QString& path);
+    // 加载链路视频流 URL（真实链路源，REQ-012 WP5 裁决④⑥；
+    // 面板不感知协议与对端，仅接收源——§9-2 护栏）
+    void loadStreamUrl(const QString& url);
+    // 当前是否为直播源（loadStreamUrl 置位，loadVideo 复位）
+    bool isLiveSource() const;
 
     // 播放控制接口
     void play();
@@ -96,6 +102,10 @@ protected:
     QVideoWidget *m_videoWidget;
     QVideoProbe *m_probe;
     QImage m_lastFrame;
+    // 直播源状态（REQ-012 WP5 裁决④）: URL 源置位，文件语义点按直播适配
+    bool m_liveSource = false;
+    // 直播本地时钟: play() 首次启动、换源失效；直播 position/抽帧时间戳走此时钟
+    QElapsedTimer m_liveClock;
     QTimer *m_extractionTimer = nullptr;
     VideoOverlayWidget *m_overlay;
     QWidget *m_videoArea;

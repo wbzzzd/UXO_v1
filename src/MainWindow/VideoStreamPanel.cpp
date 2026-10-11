@@ -5,6 +5,7 @@
 #include <QVideoWidget>
 #include <QVideoProbe>
 #include <QVideoFrame>
+#include <QUrl>
 #include <QWidget>
 #include <QLabel>
 #include <QVBoxLayout>
@@ -218,11 +219,32 @@ void VideoStreamPanel::loadVideo(const QString& path)
     if (path.isEmpty()) {
         return;
     }
+    // 切回文件源: 复位直播标志并清空缓存帧（防跨源旧帧进入抽帧证据）
+    m_liveSource = false;
+    m_liveClock.invalidate();
+    m_lastFrame = QImage();
     m_player->setMedia(QUrl::fromLocalFile(path));
+}
+
+// 直播源加载（REQ-012 WP5 裁决④⑥）: 面板只接收 URL、不解析协议与对端（§9-2 护栏）；
+// 换源清空缓存帧，直播时钟待 play() 首次启动
+void VideoStreamPanel::loadStreamUrl(const QString& url)
+{
+    if (url.isEmpty()) {
+        return;
+    }
+    m_liveSource = true;
+    m_liveClock.invalidate();
+    m_lastFrame = QImage();
+    m_player->setMedia(QUrl(url));
 }
 
 void VideoStreamPanel::play()
 {
+    // 直播源首次播放启动本地时钟（换源失效后重播重新起算）
+    if (m_liveSource && !m_liveClock.isValid()) {
+        m_liveClock.start();
+    }
     m_player->play();
     m_extractionTimer->start();
 }
@@ -235,16 +257,28 @@ void VideoStreamPanel::pause()
 
 void VideoStreamPanel::seek(qint64 ms)
 {
+    // 直播流无进度语义, seek 禁用（REQ-012 WP5 裁决④）
+    if (m_liveSource) {
+        return;
+    }
     m_player->setPosition(ms);
 }
 
 qint64 VideoStreamPanel::position() const
 {
+    // 直播源用本地时钟（RTSP 流的播放器位置无意义）
+    if (m_liveSource) {
+        return m_liveClock.isValid() ? m_liveClock.elapsed() : 0;
+    }
     return m_player->position();
 }
 
 qint64 VideoStreamPanel::duration() const
 {
+    // 直播流无时长语义, 恒 0（REQ-012 WP5 裁决④）
+    if (m_liveSource) {
+        return 0;
+    }
     return m_player->duration();
 }
 
@@ -258,6 +292,11 @@ bool VideoStreamPanel::hasFrame() const
     return !m_lastFrame.isNull();
 }
 
+bool VideoStreamPanel::isLiveSource() const
+{
+    return m_liveSource;
+}
+
 VideoOverlayWidget* VideoStreamPanel::overlay() const
 {
     return m_overlay;
@@ -265,11 +304,20 @@ VideoOverlayWidget* VideoStreamPanel::overlay() const
 
 void VideoStreamPanel::onPositionChanged(qint64 ms)
 {
+    // 直播源改发本地时钟位置（RTSP 播放器位置无意义）
+    if (m_liveSource) {
+        emit positionChanged(m_liveClock.isValid() ? m_liveClock.elapsed() : 0);
+        return;
+    }
     emit positionChanged(ms);
 }
 
 void VideoStreamPanel::onDurationChanged(qint64 ms)
 {
+    // 直播流无时长语义, 抑制 durationChanged（REQ-012 WP5 裁决④）
+    if (m_liveSource) {
+        return;
+    }
     emit durationChanged(ms);
 }
 
@@ -283,6 +331,10 @@ void VideoStreamPanel::onStateChanged(QMediaPlayer::State state)
 
 void VideoStreamPanel::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
 {
+    // 直播流无「结尾」语义: EndOfMedia/videoEnded 不适用（REQ-012 WP5 裁决④）
+    if (m_liveSource) {
+        return;
+    }
     // 媒体到达结尾: 暂停播放并发出 videoEnded 信号
     if (status == QMediaPlayer::EndOfMedia) {
         m_player->pause();
@@ -309,5 +361,6 @@ void VideoStreamPanel::onExtractionTimer()
     if (m_lastFrame.isNull()) {
         return;
     }
-    emit frameExtracted(m_lastFrame, m_player->position());
+    // 时间戳统一走 position(): 文件源=播放器位置, 直播源=本地时钟（REQ-012 WP5 裁决④）
+    emit frameExtracted(m_lastFrame, position());
 }
