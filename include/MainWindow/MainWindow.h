@@ -36,6 +36,10 @@ namespace Core::Uplink {
 class TelemetrySourceManager;
 }
 
+namespace Core::TrackStore {
+class TrackStore;
+}
+
 // 主窗口: 态势页布局
 // 导航(80px) | 左pane(可折叠40/320px) | 中心区(设备资源条36px + 地图主舞台 + 告警与日志条带140px)
 // 地图主舞台上浮动: 视频PiP(左下480x270) + 目标详情浮层(右上340px) + 数据源徽标(左上)
@@ -165,6 +169,7 @@ private:
     EventLogWidget *m_eventLog;     // 右半: 只读追加式事件日志
 
     Core::Uplink::TelemetrySourceManager *m_telemetryManager;  // 遥测数据源管理器（持有模拟/真实源）
+    Core::TrackStore::TrackStore *m_trackStore = nullptr;  // WP6 落库门面，未启用时保持 nullptr
     DetectionEngine *m_detectionEngine;
 
     // P0 最小页面栈：index 0 = 态势工作区，index 1 = MOS 决策页

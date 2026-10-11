@@ -16,6 +16,7 @@
 #include "Core/Data/Types.h"
 #include "Core/Simulation/DemoScenarioProvider.h"
 #include "Core/Simulation/DroneTelemetrySimulator.h"
+#include "Core/TrackStore/TrackStore.h"
 #include "Core/Uplink/TelemetrySourceManager.h"
 #include "Detection/DetectionEngine.h"
 #include "Core/MOS/MosFixtureGenerator.h"
@@ -126,6 +127,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_alertPanel(nullptr)
     , m_eventLog(nullptr)
     , m_telemetryManager(nullptr)
+    , m_trackStore(nullptr)
     , m_detectionEngine(nullptr)
     , m_pageStack(nullptr)
     , m_situationPage(nullptr)
@@ -175,6 +177,15 @@ void MainWindow::setupUi()
     m_telemetryManager = new Core::Uplink::TelemetrySourceManager(this);
     m_detectionEngine = new DetectionEngine(this);
     m_detectionEngine->setObjectName(QStringLiteral("detectionEngine"));
+
+    // WP6 TrackStore：仅当 UXO_TRACKSTORE=1 时创建落库门面并订阅原始报文；
+    // 未启用时 m_trackStore 保持 nullptr，零数据库连接、零写入。
+    if (Core::TrackStore::TrackStore::isEnabledByEnv()) {
+        m_trackStore = new Core::TrackStore::TrackStore(this);
+        connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::rawMessageReceived,
+                m_trackStore, &Core::TrackStore::TrackStore::onRawMessage);
+        m_trackStore->start();
+    }
 
     createMapToolbar();
     createStatusBar();
