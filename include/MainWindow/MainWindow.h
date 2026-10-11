@@ -150,6 +150,8 @@ private:
 
     QWidget *m_mapContainer;
     VideoStreamPanel *m_videoPiP;
+    // 本地演示视频路径（loadMockData 解析后缓存；数据源切回本地模拟时重载，REQ-012 WP5 裁决⑥）
+    QString m_localVideoPath;
     // 浮动面板阴影底衬（PiP 与目标详情浮层的投影层，见 MainWindow.cpp 匿名命名空间）
     QWidget *m_pipShadowLayer;
     QWidget *m_overlayShadowLayer;

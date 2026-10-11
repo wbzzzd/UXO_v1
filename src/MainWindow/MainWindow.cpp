@@ -3,6 +3,7 @@
 #include "MainWindow/LeftPanelWidget.h"
 #include "MainWindow/NavigationWidget.h"
 #include "MainWindow/VideoStreamPanel.h"
+#include "MainWindow/VideoSourceConfig.h"
 #include "MainWindow/VideoOverlayWidget.h"
 #include "MainWindow/TacticalMapWidget.h"
 #include "MainWindow/DeviceResourceBar.h"
@@ -667,8 +668,10 @@ void MainWindow::loadMockData()
     m_tacticalMap->setAirportBounds(scenario.airportBounds);
     m_tacticalMap->setSatelliteImage(mediaDir + QStringLiteral("/") + QString::fromUtf8(kSatelliteFile));
 
-    // 视频: 加载演示视频文件（与卫星底图同一 media 目录）
-    m_videoPiP->loadVideo(mediaDir + QStringLiteral("/") + QString::fromUtf8(kVideoFile));
+    // 视频: 加载演示视频文件（与卫星底图同一 media 目录）；路径缓存供数据源
+    // 切回本地模拟时重载（REQ-012 WP5 裁决⑥）
+    m_localVideoPath = mediaDir + QStringLiteral("/") + QString::fromUtf8(kVideoFile);
+    m_videoPiP->loadVideo(m_localVideoPath);
 
     // 无人机遥测模拟器: 加载航线（经数据源管理器持有的模拟源）
     m_telemetryManager->simulationSource()->loadRoute(scenario.droneRoute, kVideoDurationSec);
@@ -818,6 +821,14 @@ void MainWindow::onSourceSegmentClicked(int id)
 // 数据源模式切换回调: 同步分段选中态/状态栏模拟标识/徽标/控件可用性
 void MainWindow::onSourceModeChanged(Core::Uplink::SourceMode mode)
 {
+    // 视频源互斥（REQ-012 WP5 裁决⑥）: 真实链路→流 URL（环境变量 UXO_VIDEO_RTSP_URL），
+    // 本地模拟→演示视频；面板不感知协议与对端（§9-2 护栏），仅由本处重设源
+    if (mode == Core::Uplink::SourceMode::RealLink) {
+        m_videoPiP->loadStreamUrl(videoStreamUrlFromEnv());
+    } else {
+        m_videoPiP->loadVideo(m_localVideoPath);
+    }
+
     // 同步分段选中态（程序化 setChecked 不触发 clicked/idClicked，无递归风险）
     if (m_simSourceBtn != nullptr && m_realSourceBtn != nullptr) {
         m_simSourceBtn->setChecked(mode == Core::Uplink::SourceMode::Simulation);
