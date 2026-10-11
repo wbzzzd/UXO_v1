@@ -57,7 +57,16 @@ WP5 视频播放原型(本仓,独立,随时可做,不阻塞主线)
 - §9-3 原型：QMediaPlayer + GStreamer 直连 RTSP 实测延迟与稳定性（App 侧已实测 ~0.5s）；不达标再评 FFmpeg/mpv 嵌入。
 - 接入：`VideoStreamPanel` 视频源配置化 URL、协议与对端不感知（§9-2 护栏）；HUD-only 叠加不变。
 - 验证：手柄常驻拉流稳定、延迟可接受。
-- 状态：未开工
+- 状态：**WORKING**（2026-10-11 开工，Phase A 原型实测）。
+- WP5 技术裁决（2026-10-11；feature 文档 §9-3 终裁依赖 Phase A 实测数据）：
+  - ① 执行分两段：Phase A 原型实测（本地 RTSP 测试源 + QMediaPlayer 拉流，测玻璃到玻璃延迟与稳定性）→ 数据落 §9-3 终裁；Phase B 按终裁集成（源抽象/接线/测试适配/门禁）。
+  - ② 路线候选：conda env Qt5 Multimedia 后端=GStreamer，rtspsrc/rtph264depay/avdec_h264 插件实证存在（2026-10-11 gst-inspect）；QMediaPlayer+GStreamer 为首选，自定义 GStreamer 管线（appsink）或 mpv 仅当实测不达标才升级（独立后续，本 WP 不背）。
+  - ③ 测试源（开发期无真机）：mediamtx 静态二进制装 ~/.local/opt（paho 先例，不入仓）+ conda env ffmpeg 推流（rtspclientsink 缺席故走 ffmpeg）；源画面烧入毫秒级本地时钟时间码供延迟测量；真机到手后同口径复测。
+  - ④ 改动面（§9-2 护栏"配置化 URL、面板协议不感知"）：VideoStreamPanel 内做源抽象（本地文件/链路 URL 双源），不旁路新面板；直播流适配文件语义点：seek 禁用、duration/videoEnded/EndOfMedia 不适用、抽帧时间戳改本地时钟；HUD 与 QVideoWidget 原生窗护栏（overlay 挂 QVideoWidget、阴影走 FloatingShadowLayer）与媒体源无关，不受影响。
+  - ⑤ 视频 URL 配置：环境变量 `UXO_VIDEO_RTSP_URL`（与 UXO_TRACKSTORE_* 同先例），默认指向本地测试流；操作员 UI 配置留二期。
+  - ⑥ 数据源互斥：模拟源→本地演示视频（现状），真实源→RTSP URL；切换跟随 WP3 数据源控件，由 MainWindow 在源切换时重设面板源。
+  - ⑦ 延迟口径（原型判据）：玻璃到玻璃 ≤0.8s 判 QMediaPlayer 路线可用（App 侧实测 0.5s 为参照留裕度）；已知风险=rtspsrc 默认 latency=2000ms 且 Qt5 playbin 不暴露该属性，实测超标时优先评估自定义 GStreamer 管线（appsink）再评 mpv。
+  - ⑧ 测试基线：video_render_capture_test、stop_select_flicker_repro（xcb，现行环境性失败基线 #5/#6）、simulation_workflow_ui_test（offscreen）为受影响集；门禁=不破现有通过集，涉时长/结束语义的断言按直播语义复核。
 
 ### WP6 TrackStore（依赖 WP1，授权已生效）
 
