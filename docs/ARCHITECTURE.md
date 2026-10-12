@@ -27,17 +27,19 @@ flowchart LR
     MainWindow --> Core["Core<br/>(静态库)"]
     MainWindow --> Common["Common<br/>(静态库)"]
     MainWindow --> Detection["Detection<br/>(静态库)"]
+    MainWindow --> GPR["GPR<br/>(静态库)"]
 ```
 
 | 构建目标 | 源码位置 | 当前责任 | 直接项目依赖 |
 |----------|----------|----------|--------------|
 | `UXOMissionControl` | `src/App/`、`include/App/` | `main.cpp`、CURRENT `Application` 生命周期类与窗口创建 | `MainWindow` |
-| `MainWindow` | `src/MainWindow/`、`include/MainWindow/` | 22 个已编译 UI 源文件：检测阶段控件（MainWindow、LeftPanelWidget、StatusBarWidget、NavigationWidget、VideoStreamPanel、VideoOverlayWidget、TacticalMapWidget、DeviceResourceBar、TargetDetailOverlay、DetectionView）+ MOS 决策模块（DecisionView 及其 Layout/Snapshot/Tier 辅助、MosPlanningController、MosRunwayWidget 及其 Interaction、MosParamsPanel、MosGeneratorDialog、TargetCardWidget、PlanCardWidget、AlertPanel）；承担 UI 组合与大部分协调 | `Common`、`Core`、`Detection` |
+| `MainWindow` | `src/MainWindow/`、`include/MainWindow/` | 25 个已编译 UI 源文件：检测阶段控件（MainWindow、LeftPanelWidget、StatusBarWidget、NavigationWidget、VideoStreamPanel、VideoOverlayWidget、TacticalMapWidget、DeviceResourceBar、TargetDetailOverlay、DetectionView）+ MOS 决策模块（DecisionView 及其 Layout/Snapshot/Tier 辅助、MosPlanningController、MosRunwayWidget 及其 Interaction、MosParamsPanel、MosGeneratorDialog、TargetCardWidget、PlanCardWidget、AlertPanel）+ 雷达页 GPR 组件（GprView、GprBScanWidget、GprSuspectPanel）；承担 UI 组合与大部分协调 | `Common`、`Core`、`Detection`、`GPR` |
 | `Core` | `src/Core/`、`include/Core/` | AirportData、AirportSceneFactory、DemoScenarioProvider、SimulationWorkflow、DroneTelemetrySimulator、DetectionSimulator（无当前调用方，保留备用回退）；MOS 合成数据模型（MosTypes）、输入包络校验（MosValidation）、确定性合成 fixture 生成器（MosFixtureGenerator）、合成修复估算器（MosEstimator）、合成规划器（MosPlanner/MosPlannerProgressive）、规划会话（MosPlanningSession） | 无项目依赖 |
 | `Detection` | `src/Detection/`、`include/Detection/` | DetectionEngine、PatchCoreDetector、YoloClassifier：ONNX 双阶段 UXO 检测推理（PatchCore 异常检测 + YOLOv8-cls 分类），模型文件位于 `assets/models/` | 无项目依赖（链接 `onnxruntime` 与 `Qt5::Core/Gui/Concurrent`） |
 | `Common` | `src/Common/`、`include/Common/` | GlobalStyle（UI 样式）、MockDataGenerator（无当前调用方） | 无项目依赖（注：`Core` 不链接 `Common`；`Common` 通过公共头文件目录引用 `Core/Data/Types.h`，构成隐藏依赖） |
+| `GPR` | `src/GPR/`、`include/GPR/` | MALA 样例数据解析与候选检测：GprRadarHeader（`.rad` 采集参数）、GprBScanData（`.rd3` 懒加载 + 逐通道 t0 校正）、GprTrack（`.cor` RTK 轨迹解析与平滑插值）、GprDataset（H/L × 16 通道清单扫描）、GprThresholdDetector（阈值候选检测，输出仅供人工复核）；样例数据经 `GPR_SAMPLE_DATA_DIR` 外部路径引用，不接真实设备 | 无项目依赖（仅链接 `Qt5::Core`，不含 Widgets 代码） |
 
-外部依赖：根 CMake 查找 `Qt5::Network` 与 `Qt5::Sql`，但无生产目标链接使用；ZeroMQ、PostgreSQL 只做可选探测；当前没有 MQTT 依赖；ONNX Runtime 头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库（`third_party/onnxruntime/`），需本地部署后才能构建，由 `Detection` 库链接，模型资产路径经 `DETECTION_ASSETS_DIR` 以开发期绝对路径注入。根 CMake 另定义 17 个测试目标（6 个检测/通用 + 11 个 MOS），测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
+外部依赖：根 CMake 查找 `Qt5::Network` 与 `Qt5::Sql`，但无生产目标链接使用；ZeroMQ、PostgreSQL 只做可选探测；当前没有 MQTT 依赖；ONNX Runtime 头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库（`third_party/onnxruntime/`），需本地部署后才能构建，由 `Detection` 库链接，模型资产路径经 `DETECTION_ASSETS_DIR` 以开发期绝对路径注入。根 CMake 另定义 23 个测试目标（6 个检测/通用 + 11 个 MOS + 6 个 GPR），测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
 
 `MainWindow` 库内 `MosPlanningController` 拥有同步 `MosReplanWorker`（值持有，`Qt::DirectConnection` 直连），不引入生产 `QThread`；worker 调用 plain Core `MosPlanner::planProgressive` 后同步返回完成结果。`DecisionView` 只持有 `MosPlanningSnapshot` 副本，不拥有会话状态、不发起规划、不联网。`MosRunwayWidget` 的 P0 渲染只绘制并命中当前选中档位（`m_selectedTier`），在单一共享坐标系下使用各向同性 `pxPerM`（X/Y 共用同一比例），障碍物影响圆像素半径 = `influenceRadius × pxPerM`，绘制与命中测试共用同一公式且无钳制或系数。
 

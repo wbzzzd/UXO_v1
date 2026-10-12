@@ -32,6 +32,8 @@
 
 原始未压缩素材保存在仓库外，不入库。
 
+GPR 样例数据（MALA 格式，约 235MB）不入库：经编译期宏 `GPR_SAMPLE_DATA_DIR` 以开发期绝对路径注入（默认 `/mnt/d/工作/排弹/数据集/001`），与 `DETECTION_ASSETS_DIR` 模式一致。数据缺失时雷达页显示降级态；GPR 测试中依赖真实数据的用例自动跳过，合成 fixture 用例不受影响。
+
 激活环境：
 
 ```bash
@@ -103,6 +105,12 @@ ctest --test-dir build --output-on-failure
 | `mos_planner_closure` | 独立穷举 oracle、supplied-tier 校验与完成结果重算守卫 | 完整 Y 轴离散化算法、斜向搜索 |
 | `mos_ui_closure` | 生成器浮点半径、合成参数措辞与 controller-owned 导出 | 真实导出目标、外部存储、网络 |
 | `mos_runway_closure` | 快照参数化几何、缩放/平移、选中档位单方案命中，以及 `influenceRadius × pxPerM` 影响圆半径契约 | 真实跑道几何、3D 渲染、真实安全距离 |
+| `gpr_header` | `.rad` 采集参数键值解析与两程时间深度换算 | 未解码字段语义、真实设备全参数 |
+| `gpr_bscan` | `.rd3` 懒加载逐道访问与逐通道 t0 校正（合成 fixture + 真实数据 smoke） | 全量数据性能；真实数据用例在无数据环境自动跳过 |
+| `gpr_dataset` | 数据目录扫描聚合 H/L × 16 通道清单与缺失通道报告 | 真实目录异常全形态 |
+| `gpr_track` | `.cor` RTK 解析、道 1:1 对齐、缺行插值与高斯平滑轨迹点查询 | 真实定位精度、多趟标定 |
+| `gpr_detector` | 阈值候选检测管线（合成 B-Scan 命中 + 真实数据 smoke） | 目标类型识别（输出仅为候选，人工复核必需） |
+| `gpr_view` | 雷达页稳定对象名、频段/通道切换、降级态、疑似列表确认/误报处置与本地移除（离屏） | 渲染像素正确性、人工集成走查 |
 
 测试通过只能证明表中列出的行为，不能用于声明整个客户端或某个未覆盖面板已完成。离屏 UI 测试中的 Qt3D 上下文警告不影响当前断言，因此全部测试通过也不证明三维场景成功渲染。`video_render_capture` 与 `stop_select_flicker_repro` 必须在 XCB 和可见显示环境中运行。
 
