@@ -65,6 +65,7 @@ add_subdirectory(third_party/QtAwesome)
 add_subdirectory(src/Common)
 add_subdirectory(src/Core)
 add_subdirectory(src/Detection)
+add_subdirectory(src/GPR)
 add_subdirectory(src/MainWindow)
 add_subdirectory(src/App)
 
@@ -454,3 +455,66 @@ add_test(NAME mos_runway_closure COMMAND UXOMissionControlMosRunwayClosureTest)
 set_tests_properties(mos_runway_closure PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
 )
+
+# ---- GPR 解析层单元测试（REQ-012）----
+# 合成 fixture 为主；真实数据 smoke 由 GPR_SAMPLE_DATA_DIR 宏控制，数据缺失时自动 QSKIP。
+
+# GPR .rad 采集参数头解析测试
+add_executable(UXOMissionControlGprHeaderTest
+    tests/gpr_header_test.cpp
+)
+target_include_directories(UXOMissionControlGprHeaderTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprHeaderTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_header COMMAND UXOMissionControlGprHeaderTest)
+
+# GPR .rd3 B-Scan 懒加载读取测试（含逐通道 t0 初至估计）
+add_executable(UXOMissionControlGprBScanTest
+    tests/gpr_bscan_test.cpp
+)
+target_include_directories(UXOMissionControlGprBScanTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprBScanTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_bscan COMMAND UXOMissionControlGprBScanTest)
+
+# GPR 数据集目录扫描测试（H/L 两组 × 16 通道文件组聚合、缺失通道报告）
+add_executable(UXOMissionControlGprDatasetTest
+    tests/gpr_dataset_test.cpp
+)
+target_include_directories(UXOMissionControlGprDatasetTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprDatasetTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_dataset COMMAND UXOMissionControlGprDatasetTest)
+
+# GPR .cor RTK 轨迹解析测试（道号 1:1 对齐、间隙插值、UTC 时间戳、高斯重平滑）
+add_executable(UXOMissionControlGprTrackTest
+    tests/gpr_track_test.cpp
+)
+target_include_directories(UXOMissionControlGprTrackTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprTrackTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_track COMMAND UXOMissionControlGprTrackTest)
+
+# GPR 阈值候选检测测试（预研验证管线移植；检测仅作候选标记，人工复核必需）
+add_executable(UXOMissionControlGprDetectorTest
+    tests/gpr_detector_test.cpp
+)
+target_include_directories(UXOMissionControlGprDetectorTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprDetectorTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_detector COMMAND UXOMissionControlGprDetectorTest)
