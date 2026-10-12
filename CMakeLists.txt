@@ -65,6 +65,8 @@ add_subdirectory(third_party/QtAwesome)
 add_subdirectory(src/Common)
 add_subdirectory(src/Core)
 add_subdirectory(src/Detection)
+# REQ-012 数据平台接入：Integration 静态库（P0 纯适配器，API 通道，不进入模拟链）
+add_subdirectory(src/Integration)
 add_subdirectory(src/MainWindow)
 add_subdirectory(src/App)
 
@@ -454,3 +456,68 @@ add_test(NAME mos_runway_closure COMMAND UXOMissionControlMosRunwayClosureTest)
 set_tests_properties(mos_runway_closure PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
 )
+
+# REQ-012 W2 契约错误模型单元测试：契约 §8 错误载荷解析（10 个错误码映射、400 聚合、非法回退），纯逻辑不依赖网络
+add_executable(UXOMissionControlIntegrationApiErrorTest
+    tests/integration_api_error_test.cpp
+)
+target_include_directories(UXOMissionControlIntegrationApiErrorTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationApiErrorTest
+    Qt5::Core
+    Qt5::Test
+    Integration
+)
+add_test(NAME integration_api_error COMMAND UXOMissionControlIntegrationApiErrorTest)
+
+# REQ-012 W2 HTTP 基础设施单元测试：基址解析（UXO_API_HOST/UXO_API_PORT 覆盖与非法回退）与列表信封解析，纯逻辑不发起网络请求
+add_executable(UXOMissionControlIntegrationHttpClientTest
+    tests/integration_http_client_test.cpp
+)
+target_include_directories(UXOMissionControlIntegrationHttpClientTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationHttpClientTest
+    Qt5::Core
+    Qt5::Test
+    Qt5::Network
+    Integration
+)
+add_test(NAME integration_http_client COMMAND UXOMissionControlIntegrationHttpClientTest)
+
+# REQ-012 W3 实体映射单元测试：契约 §6 五实体字段与客户端领域模型的 JSON 映射转换（to/from 双向与非法回退），纯逻辑不依赖网络
+add_executable(UXOMissionControlIntegrationEntityMappingTest tests/integration_entity_mapping_test.cpp)
+target_include_directories(UXOMissionControlIntegrationEntityMappingTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationEntityMappingTest
+    Qt5::Core
+    Qt5::Test
+    Integration
+)
+add_test(NAME integration_entity_mapping COMMAND UXOMissionControlIntegrationEntityMappingTest)
+
+# W4 词表与模型类映射缓存集成测试（对本地实例断言形状与顺序；缺席 QSKIP）
+add_executable(UXOMissionControlIntegrationVocabularyCacheTest tests/integration_vocabulary_cache_test.cpp)
+target_include_directories(UXOMissionControlIntegrationVocabularyCacheTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationVocabularyCacheTest
+    Qt5::Core
+    Qt5::Test
+    Integration
+)
+add_test(NAME integration_vocabulary_cache COMMAND UXOMissionControlIntegrationVocabularyCacheTest)
+
+# W5 五实体 CRUD 适配集成测试（对本地实例断言健康/CRUD/分页/过滤/错误路径；缺席 QSKIP）
+add_executable(UXOMissionControlIntegrationDataPlatformApiTest tests/integration_data_platform_api_test.cpp)
+target_include_directories(UXOMissionControlIntegrationDataPlatformApiTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationDataPlatformApiTest
+    Qt5::Core
+    Qt5::Test
+    Integration
+)
+add_test(NAME integration_data_platform_api COMMAND UXOMissionControlIntegrationDataPlatformApiTest)
+
+# W6 契约一致性套件（10 错误码适配面缺口：聚合保留/类型严格性/404 变体/PUT id 错配；缺席 QSKIP）
+add_executable(UXOMissionControlIntegrationContractTest tests/integration_contract_test.cpp)
+target_include_directories(UXOMissionControlIntegrationContractTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationContractTest
+    Qt5::Core
+    Qt5::Test
+    Integration
+)
+add_test(NAME integration_contract COMMAND UXOMissionControlIntegrationContractTest)

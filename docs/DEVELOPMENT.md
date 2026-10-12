@@ -22,6 +22,7 @@
 | Qt | Qt 5.15.15（`uxo-dev` micromamba 环境） |
 | Qt 组件 | Core、Widgets、Gui、Concurrent、3DCore、3DRender、3DInput、3DExtras、Network、Sql、Test |
 | 可选探测 | ZeroMQ、PostgreSQL；当前无目标链接或使用 |
+| 数据平台实例 | 仅集成测试需要：本地数据平台（`127.0.0.1:8080` + 本地 postgres，UXO_DataPlatform 仓）；实例缺席时 `integration_vocabulary_cache`/`integration_data_platform_api`/`integration_contract` 整体 QSKIP |
 | ONNX Runtime | 1.23.2；头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库，需先本地部署 `third_party/onnxruntime/` 下的动态库才能构建 |
 | 中文字体 | Noto CJK 或等价字体 |
 
@@ -103,8 +104,16 @@ ctest --test-dir build --output-on-failure
 | `mos_planner_closure` | 独立穷举 oracle、supplied-tier 校验与完成结果重算守卫 | 完整 Y 轴离散化算法、斜向搜索 |
 | `mos_ui_closure` | 生成器浮点半径、合成参数措辞与 controller-owned 导出 | 真实导出目标、外部存储、网络 |
 | `mos_runway_closure` | 快照参数化几何、缩放/平移、选中档位单方案命中，以及 `influenceRadius × pxPerM` 影响圆半径契约 | 真实跑道几何、3D 渲染、真实安全距离 |
+| `integration_api_error` | API 错误信封解析：10 个契约错误码映射、field/code 提取、多错误聚合保留、未知码兜底 | 真实服务端错误触发 |
+| `integration_http_client` | HTTP 基址解析（默认回环 127.0.0.1:8080、环境变量覆盖）与 GET/POST/PUT 构造、超时/网络错误映射；非回环基址用例为纯函数夹具，不发真实请求 | 真实服务端业务语义 |
+| `integration_entity_mapping` | 五实体 Core 类型与契约 JSON 双向映射、枚举越界拒发、必填字段完整性 | 服务端校验结果、真实持久化 |
+| `integration_vocabulary_cache` | 九词表拉取与缓存、未知名称与服务不可用的错误传播（回环负路径） | 词表数据正典内容 |
+| `integration_data_platform_api` | 五实体 CRUD/分页/过滤对真实本地实例往返、健康检查 200 路径；pagination_invalid/duplicate_id/foreign_key_violation/not_found 四错误码实况断言 | 破坏性场景、并发、多实例 |
+| `integration_contract` | 契约过滤与错误语义对真实实例符合性门禁：invalid_enum/out_of_range/not_null/invalid_format 四码实况断言、错误聚合保留、404 field 变体、PUT 路径与体 id 错配、类型严格性、健康 200 原始形状 | internal_error 实况触发（无可靠触发器） |
 
 测试通过只能证明表中列出的行为，不能用于声明整个客户端或某个未覆盖面板已完成。离屏 UI 测试中的 Qt3D 上下文警告不影响当前断言，因此全部测试通过也不证明三维场景成功渲染。`video_render_capture` 与 `stop_select_flicker_repro` 必须在 XCB 和可见显示环境中运行。
+
+`integration_vocabulary_cache`、`integration_data_platform_api` 与 `integration_contract` 需要本地数据平台实例（`127.0.0.1:8080` + 本地 postgres）正在运行；实例缺席时这些套件整体 QSKIP，全量通过不代表其断言已执行，需直接运行对应测试二进制确认 `Totals` 行无 skipped。2026-10-12 已在监督下完成一次性破坏性实测（pg_ctl 停库约 66 秒）：健康检查 503 专属形状（`{"status":"unavailable","database":"unreachable"}`）与 `database_unavailable`（503，读/写路径）对真实实例断言通过，与契约 §3/§8 文档值逐字一致；`internal_error`（500）无可靠触发器，仅由 `integration_api_error` 解析层覆盖。
 
 ## 5. 当前构建目标
 

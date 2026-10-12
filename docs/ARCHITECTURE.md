@@ -17,7 +17,7 @@ CURRENT 与 TARGET 不一致只表示架构缺口，不能通过修改需求迁�
 
 ## 2. CURRENT 工程概览与构建目标
 
-当前是单进程 Qt 桌面应用：`MainWindow` 组合界面并承担大部分协调；`Core` 提供本地模拟、目标状态机和部分 3D 支持；所有状态在内存中，无外部集成或持久化。
+当前是单进程 Qt 桌面应用：`MainWindow` 组合界面并承担大部分协调；`Core` 提供本地模拟、目标状态机和部分 3D 支持；所有状态在内存中。数据平台适配器库 `Integration`（REQ-012）已实现并对本地数据平台实例完成契约一致性验证，但尚未接入应用装配，运行时仍无外部集成或持久化。
 
 下图的箭头表示 CMake 链接依赖（A -> B 表示 A 链接 B）。Qt 是外部依赖，测试目标、配置和文件不是生产模块，均不画入。
 
@@ -27,6 +27,7 @@ flowchart LR
     MainWindow --> Core["Core<br/>(静态库)"]
     MainWindow --> Common["Common<br/>(静态库)"]
     MainWindow --> Detection["Detection<br/>(静态库)"]
+    Integration["Integration<br/>(静态库)"] --> Core
 ```
 
 | 构建目标 | 源码位置 | 当前责任 | 直接项目依赖 |
@@ -36,8 +37,9 @@ flowchart LR
 | `Core` | `src/Core/`、`include/Core/` | AirportData、AirportSceneFactory、DemoScenarioProvider、SimulationWorkflow、DroneTelemetrySimulator、DetectionSimulator（无当前调用方，保留备用回退）；MOS 合成数据模型（MosTypes）、输入包络校验（MosValidation）、确定性合成 fixture 生成器（MosFixtureGenerator）、合成修复估算器（MosEstimator）、合成规划器（MosPlanner/MosPlannerProgressive）、规划会话（MosPlanningSession） | 无项目依赖 |
 | `Detection` | `src/Detection/`、`include/Detection/` | DetectionEngine、PatchCoreDetector、YoloClassifier：ONNX 双阶段 UXO 检测推理（PatchCore 异常检测 + YOLOv8-cls 分类），模型文件位于 `assets/models/` | 无项目依赖（链接 `onnxruntime` 与 `Qt5::Core/Gui/Concurrent`） |
 | `Common` | `src/Common/`、`include/Common/` | GlobalStyle（UI 样式）、MockDataGenerator（无当前调用方） | 无项目依赖（注：`Core` 不链接 `Common`；`Common` 通过公共头文件目录引用 `Core/Data/Types.h`，构成隐藏依赖） |
+| `Integration` | `src/Integration/`、`include/Integration/` | 数据平台 API v1 客户端适配器（REQ-012）：HTTP 客户端与错误模型（HttpClient/ApiError）、五实体双向映射（EntityMapping）、词表缓存（VocabularyCache）、五实体 CRUD/分页/过滤与健康检查（DataPlatformApi）；按 P0 纯适配器范围仅测试目标链接，未接入 `UXOMissionControl` 装配 | `Core`（另链接 `Qt5::Network`） |
 
-外部依赖：根 CMake 查找 `Qt5::Network` 与 `Qt5::Sql`，但无生产目标链接使用；ZeroMQ、PostgreSQL 只做可选探测；当前没有 MQTT 依赖；ONNX Runtime 头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库（`third_party/onnxruntime/`），需本地部署后才能构建，由 `Detection` 库链接，模型资产路径经 `DETECTION_ASSETS_DIR` 以开发期绝对路径注入。根 CMake 另定义 17 个测试目标（6 个检测/通用 + 11 个 MOS），测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
+外部依赖：根 CMake 查找 `Qt5::Network` 与 `Qt5::Sql`；`Qt5::Network` 由 `Integration` 库链接使用，`Qt5::Sql` 仍无生产目标链接（数据平台接入经 HTTP/JSON 契约，客户端不直连数据库）；ZeroMQ、PostgreSQL 只做可选探测；当前没有 MQTT 依赖；ONNX Runtime 头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库（`third_party/onnxruntime/`），需本地部署后才能构建，由 `Detection` 库链接，模型资产路径经 `DETECTION_ASSETS_DIR` 以开发期绝对路径注入。根 CMake 另定义 23 个测试目标（6 个检测/通用 + 11 个 MOS + 6 个数据平台集成），测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
 
 `MainWindow` 库内 `MosPlanningController` 拥有同步 `MosReplanWorker`（值持有，`Qt::DirectConnection` 直连），不引入生产 `QThread`；worker 调用 plain Core `MosPlanner::planProgressive` 后同步返回完成结果。`DecisionView` 只持有 `MosPlanningSnapshot` 副本，不拥有会话状态、不发起规划、不联网。`MosRunwayWidget` 的 P0 渲染只绘制并命中当前选中档位（`m_selectedTier`），在单一共享坐标系下使用各向同性 `pxPerM`（X/Y 共用同一比例），障碍物影响圆像素半径 = `influenceRadius × pxPerM`，绘制与命中测试共用同一公式且无钳制或系数。
 
@@ -55,9 +57,9 @@ flowchart LR
 | `Common` 混合 UI 样式与未使用的模拟数据生成，且对 `Core/Data/Types.h` 存在隐藏头文件依赖 | 责任混杂，依赖不透明 |
 | `UXOMissionControl` 是启动外壳，初始化为占位 | 无真实配置、日志、装配 |
 | 状态权威分散在 `SimulationWorkflow`、`MainWindow` 与 UI 面板 | 跨面板不一致，手工同步易错 |
-| 根 CMake 查找 `Qt5::Network`、`Qt5::Sql`、ZeroMQ、PostgreSQL 但无生产目标使用 | 误导存在外部集成 |
+| 根 CMake 查找 `Qt5::Sql`、ZeroMQ、PostgreSQL 但无生产目标使用（`Qt5::Network` 已由 `Integration` 库使用） | 误导存在更多外部集成 |
 | ONNX Runtime 头文件随源码入库、预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库并由 `Detection` 链接；模型资产路径为开发期绝对路径注入 | 新增真实外部依赖；新克隆仓库需本地部署动态库后才能构建；部署形态（安装相对路径/Qt 资源）未定，二进制可移植性受限 |
-| 外部数据边界未开始 | 无网络、存储、设备或服务适配器 |
+| 外部数据边界仅有适配器库（`Integration`，REQ-012，契约一致性已对本地数据平台实例验证），尚未接入应用装配与 UI | 网络适配器已存在但无生产消费方；存储、设备适配器仍无 |
 
 各问题的长期归属集中见第 6.1 节，避免在两处维护同一迁移决定。
 
