@@ -518,3 +518,42 @@ target_link_libraries(UXOMissionControlGprDetectorTest
     GPR
 )
 add_test(NAME gpr_detector COMMAND UXOMissionControlGprDetectorTest)
+
+# 雷达页（GprView）离屏 UI 契约测试（REQ-012 / gpr-display.md §7.3）：
+# 稳定对象名、空态降级、频段/通道切换信号、疑似意图转发、[模拟] 标注；
+# 真实样例数据用例由 GPR_SAMPLE_DATA_DIR 宏控制，数据缺失时自动 QSKIP。
+add_executable(UXOMissionControlGprViewTest
+    tests/gpr_view_test.cpp
+)
+target_include_directories(UXOMissionControlGprViewTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprViewTest
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    Qt5::Test
+    MainWindow
+    GPR
+    Core
+    Common
+)
+add_test(NAME gpr_view COMMAND UXOMissionControlGprViewTest)
+set_tests_properties(gpr_view PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
+)
+
+# 雷达页（GprView）离屏截图工具（人工核对用，非测试，不注册 add_test）：
+# 加载真实样例数据后按 1280×720 / 1920×1080 / 3840×2160 三视口抓帧；
+# 退出码 2=数据缺失 / 3=加载失败 / 4=保存失败。
+add_executable(UXOMissionControlGprScreenshotTool
+    tests/gpr_screenshot_tool.cpp
+)
+target_include_directories(UXOMissionControlGprScreenshotTool PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprScreenshotTool
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    MainWindow
+    GPR
+    Core
+    Common
+)
