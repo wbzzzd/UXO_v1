@@ -24,6 +24,8 @@ class AlertPanel;
 class DecisionView;
 class DetectionView;
 class DetectionEngine;
+class StatisticsView;
+class StatisticsController;
 
 namespace Core::MOS {
 class MosPlanningController;
@@ -152,6 +154,9 @@ private:
     DetectionView *m_detectionView;
     // MOS P0 规划控制器（应用拥有，本地合成 fixture 驱动）
     Core::MOS::MosPlanningController *m_mosController;
+    // REQ-013 统计分析页（页面栈 index 4）及其数据平台统计控制器
+    StatisticsView *m_statisticsView;
+    StatisticsController *m_statisticsController;
 
     // 工作流持有唯一可变模拟目标集合；任务和设备仅供刷新只读面板。
     Core::Simulation::SimulationWorkflow m_simulationWorkflow;

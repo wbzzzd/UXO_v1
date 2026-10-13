@@ -20,9 +20,9 @@
 | 构建系统 | CMake 3.16+ |
 | 语言 | C++17 |
 | Qt | Qt 5.15.15（`uxo-dev` micromamba 环境） |
-| Qt 组件 | Core、Widgets、Gui、Concurrent、3DCore、3DRender、3DInput、3DExtras、Network、Sql、Test |
+| Qt 组件 | Core、Widgets、Gui、Concurrent、3DCore、3DRender、3DInput、3DExtras、Network、Sql、Charts、Test |
 | 可选探测 | ZeroMQ、PostgreSQL；当前无目标链接或使用 |
-| 数据平台实例 | 仅集成测试需要：本地数据平台（`127.0.0.1:8080` + 本地 postgres，UXO_DataPlatform 仓）；实例缺席时 `integration_vocabulary_cache`/`integration_data_platform_api`/`integration_contract` 整体 QSKIP |
+| 数据平台实例 | 集成测试与客户端统计页（REQ-013）需要：本地数据平台（`127.0.0.1:8080` + 本地 postgres，UXO_DataPlatform 仓）；实例缺席时 `integration_vocabulary_cache`/`integration_data_platform_api`/`integration_contract` 整体 QSKIP，客户端统计页显示显式不可用态（不回退模拟数据） |
 | ONNX Runtime | 1.23.2；头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库，需先本地部署 `third_party/onnxruntime/` 下的动态库才能构建 |
 | 中文字体 | Noto CJK 或等价字体 |
 
@@ -110,6 +110,7 @@ ctest --test-dir build --output-on-failure
 | `integration_vocabulary_cache` | 九词表拉取与缓存、未知名称与服务不可用的错误传播（回环负路径） | 词表数据正典内容 |
 | `integration_data_platform_api` | 五实体 CRUD/分页/过滤对真实本地实例往返、健康检查 200 路径；pagination_invalid/duplicate_id/foreign_key_violation/not_found 四错误码实况断言 | 破坏性场景、并发、多实例 |
 | `integration_contract` | 契约过滤与错误语义对真实实例符合性门禁：invalid_enum/out_of_range/not_null/invalid_format 四码实况断言、错误聚合保留、404 field 变体、PUT 路径与体 id 错配、类型严格性、健康 200 原始形状 | internal_error 实况触发（无可靠触发器） |
+| `statistics_aggregation` | 统计页聚合纯函数（REQ-013）：五卡片主/副指标口径、10 分布词表分桶与合计一致性、6 趋势近 30 天 UTC 日分桶空日补 0、告警处置汇总、`page_size=100` 翻页全拉收敛；fixture 与契约词表漂移时红灯，不静默适配 | 真实实例数据、图表渲染、worker 线程与网络行为 |
 
 测试通过只能证明表中列出的行为，不能用于声明整个客户端或某个未覆盖面板已完成。离屏 UI 测试中的 Qt3D 上下文警告不影响当前断言，因此全部测试通过也不证明三维场景成功渲染。`video_render_capture` 与 `stop_select_flicker_repro` 必须在 XCB 和可见显示环境中运行。
 
@@ -123,6 +124,7 @@ UXOMissionControl executable
      -> Core static library
      -> Detection static library
      -> Common static library
+     -> Integration static library
 ```
 
 - `src/App`：应用入口和生命周期。
@@ -130,6 +132,7 @@ UXOMissionControl executable
 - `src/Detection`：ONNX 双阶段推理引擎（PatchCore 异常检测 + YOLOv8-cls 分类），链接 ONNX Runtime 与 `Qt5::Concurrent`。
 - `src/Core`：数据类型、模拟工作流和 3D 场景数据。
 - `src/Common`：全局样式与当前未接入的 MockDataGenerator。
+- `src/Integration`：数据平台 API v1 客户端适配器（REQ-012），被 `MainWindow` 链接供统计页只读消费（REQ-013）。
 
 真实模块关系以 `ARCHITECTURE.md` 和各级 `CMakeLists.txt` 为准。
 

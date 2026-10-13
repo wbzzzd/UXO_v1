@@ -22,6 +22,9 @@ set(MAINWINDOW_SOURCES
     TargetCardWidget.cpp
     PlanCardWidget.cpp
     UiIcons.cpp
+    StatisticsAggregation.cpp
+    StatisticsController.cpp
+    StatisticsView.cpp
 )
 
 set(MAINWINDOW_HEADERS
@@ -44,6 +47,10 @@ set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/TargetCardWidget.h
     ${HEADERS_DIR}/MainWindow/PlanCardWidget.h
     ${HEADERS_DIR}/MainWindow/UiIcons.h
+    ${HEADERS_DIR}/MainWindow/StatisticsAggregation.h
+    ${HEADERS_DIR}/MainWindow/StatisticsController.h
+    ${HEADERS_DIR}/MainWindow/StatisticsSnapshot.h
+    ${HEADERS_DIR}/MainWindow/StatisticsView.h
 )
 
 set(CMAKE_AUTOMOC ON)
@@ -60,10 +67,12 @@ target_link_libraries(MainWindow
     Qt5::3DCore
     Qt5::3DRender
     Qt5::3DExtras
+    Qt5::Charts
     Common
     Core
     QtAwesome
     Detection
+    Integration
 )
 
 # 编译期注入媒体资产目录宏（演示卫星图/视频路径解析，与 Detection 的

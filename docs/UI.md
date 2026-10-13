@@ -28,7 +28,7 @@ NEXT 使用单一指挥席用户，所有模拟操作和结果必须明确标注
 
 ## 3. CURRENT 主界面
 
-MainWindow 中心区由 `QStackedWidget` 承载，按导航索引切换页面：index0=态势（live）、index1=探测（live，`DetectionView`）、index2=决策/MOS（live，P0 已实现）、index3/4/5=态势占位（未实现页面回退到态势视图）。导航栏点击同时切换高亮与堆栈页面。
+MainWindow 中心区由 `QStackedWidget` 承载，按导航索引切换页面：index0=态势（live）、index1=探测（live，`DetectionView`）、index2=决策/MOS（live，P0 已实现）、index3=设备占位（栈内空页垫位对齐索引，导航仍回落态势工作区）、index4=统计（live，`StatisticsView`，数据平台真实数据只读可视化，见 §4.6）、index5=配置占位（无堆栈页，回落态势工作区）。导航栏点击同时切换高亮与堆栈页面；导航"统计"同时触发统计页快照加载。
 
 ```text
 MainWindow
@@ -46,7 +46,7 @@ MainWindow
 └── StatusBarWidget
 ```
 
-> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已编译但未在 MainWindow 中实例化。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页、探测页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 探测页（`DetectionView`，AI 检测结果自动填充 + 人工二次校验），index 2 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）。
+> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已编译但未在 MainWindow 中实例化。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页、探测页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 探测页（`DetectionView`，AI 检测结果自动填充 + 人工二次校验），index 2 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）；index 3 = 设备占位空页（仅垫位对齐导航索引，导航"设备"仍回落态势页）；index 4 = 统计页（`StatisticsView`，REQ-013，见 §4.6）。
 
 默认尺寸 1920×1080，最小尺寸 1280×720。三视口 fresh 像素验证（REQ-011，2026-08-26）：态势/探测/决策三页 × 1280×720/1920×1080/3840×2160 共 9 张离屏截图留存于 `.omo/evidence/qt-viewport-adaptation/`；1280×720 三页无区域溢出与意外裁切（探测页左表格水平滚动条为用户裁决接受项，决策页参数区部分标签换行为既有登记的紧凑可用表现），1920×1080 与修复前基线零回归（画中画时钟、告警跑马灯动画帧差异除外），3840×2160 固定 token 区域与字体不缩放、仅中心区放大。此前登记的“1280×720 决策面板约 5px 底部溢出”系失实记录（所指 `DecisionSuggestionPanel` 未纳入编译目标，见上文注），已撤销；决策页历史三视口几何证据（`.omo/evidence/mos-p0-qt-closure-final/REPORT.md`）采集于单档位渲染修正之前，仅作历史追溯。
 
@@ -74,7 +74,7 @@ MainWindow
 
 | 控件 | 状态 | 实际行为 | 缺口 |
 |------|------|----------|------|
-| 六项导航 | 部分完成 | 点击切换高亮并通过 `QStackedWidget` 路由：index0=态势（live）、index1=探测（live，AI 检测自动填充）、index2=决策/MOS（live，P0 已实现）、index3/4/5=态势占位 | 仅态势、探测与决策为 live 页面，其余三项回退到态势视图占位，未实现独立页面 |
+| 六项导航 | 部分完成 | 点击切换高亮并通过 `QStackedWidget` 路由：index0=态势（live）、index1=探测（live，AI 检测自动填充）、index2=决策/MOS（live，P0 已实现）、index4=统计（live，`StatisticsView`，进页触发快照加载）；index3/5 回落态势 | 设备（index 3）与配置（index 5）未实现独立页面，仍回退到态势视图（index 3 在栈内以空页垫位对齐索引） |
 | 目标/任务/设备 Tab | 已完成 | QTabWidget 切换三张表 | 右侧上下文不会随任务/设备选择变化 |
 | 搜索框 | 已完成 | 按表格可见文本隐藏不匹配目标行 | 只搜索目标表 |
 | 筛选按钮 | 占位 | 连接到空函数 | 无类型、威胁或状态筛选 |
@@ -116,6 +116,22 @@ MainWindow
 | `TargetDetailPanel` | 占位 | 有详情、模拟图像轮播和操作信号，但 MainWindow 未实例化 |
 | `DecisionView` | 已实现（MOS P0） | `setupUi` 已填充：左面板损毁目标列表、中心 `MosRunwayWidget` 跑道俯视图、`MosParamsPanel` 算法参数栏、右面板候选方案与当前模拟选择摘要、`MosGeneratorDialog` 生成器、`MosPlanningController` 状态机；经 `QStackedWidget` index2 路由，导航"决策"进入 live 页面。P0 画布仅渲染当前选择档位，目标影响圆与 MOS 共用各向同性米制坐标比例 |
 | `DeviceControlView` | 占位 | 包含两个空白子面板，未接入 MainWindow |
+
+### 4.6 统计页（StatisticsView，数据平台真实数据）
+
+统计页（REQ-013）经导航 index 4 路由，全部数据来自本地数据平台实例的实时只读快照，不消费任何模拟链状态，是当前唯一接入外部数据平台的页面（数据标注见本节末尾）。
+
+| 区域 | 状态 | 实际行为 | 缺口 |
+|------|------|----------|------|
+| 顶部状态条 | 已完成 | 显示"数据快照：时间（本地时间，手动刷新）"与"刷新"按钮；刷新与进页加载同一入口 `triggerLoad()` | 无定时自动刷新（按批准范围为手动快照） |
+| 概览卡片区 | 已完成 | 5 张卡片：隐患目标/设备/处置任务/告警/检测记录总量 + 副指标行（今日新探测、平均置信度、近 24h 在线记录、今日新建、未处置数、异常数等本地推导值） | 无 |
+| 分布图区 | 已完成 | 10 张固定序图表：目标类型/状态/威胁等级、设备类型/状态、任务类型/状态、告警级别、检测模型类/复核状态；桶标签为词表中文名（`name_cn`），≤5 桶饼图、等级序维度柱状图 | 告警类型分布不做（`alarms.type` 为自由文本，词表待定） |
+| 趋势图区 | 已完成 | 近 30 天 UTC 日分桶折线、空日补 0；目标探测/检测记录/告警默认可见，设备登记/任务登记默认隐藏、图例可切换 | 无 |
+| 告警处理区 | 已完成 | 级别分布柱状 + 处置占比饼图 + 未处置数 + 平均处置时长（无已处置样本时显示"—"） | 无 |
+| 明细区 | 已完成 | 5 页签（目标/设备/任务/告警/检测记录）服务端分页表格，每页 20 行；页签首次激活懒加载，过滤下拉映射契约起步过滤集 | 行序为服务端默认序（列表端点无排序参数） |
+| 页面三态 | 已完成 | 加载中（进度指示，首次进入）/ 就绪（快照展示）/ 不可用（显式"数据平台不可用"错误文案 + 失败原因 + 重试按钮，零数据渲染）；已有数据时刷新失败仅行内提示并保留旧内容（置灰不清空） | 无 |
+
+**数据源标注**：统计页为数据平台真实接入（只读、零写回），数据实例默认 `127.0.0.1:8080`（`UXO_API_HOST`/`UXO_API_PORT` 可覆盖）；实例不可用时显示显式不可用态，不以模拟数据冒充真实数据，因此页面不带"模拟"角标。这与态势/探测/决策三页的本地模拟数据构成明确的数据源边界。
 
 ## 5. CURRENT 可完成的 UI 流程
 

@@ -23,6 +23,7 @@ find_package(Qt5 REQUIRED COMPONENTS
     Test
     Multimedia
     MultimediaWidgets
+    Charts
 )
 
 find_package(ZeroMQ QUIET)
@@ -521,3 +522,14 @@ target_link_libraries(UXOMissionControlIntegrationContractTest
     Integration
 )
 add_test(NAME integration_contract COMMAND UXOMissionControlIntegrationContractTest)
+
+# REQ-013 统计聚合单元测试：五实体统计聚合纯逻辑（不依赖网络）
+add_executable(UXOMissionControlStatisticsAggregationTest tests/statistics_aggregation_test.cpp)
+target_include_directories(UXOMissionControlStatisticsAggregationTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlStatisticsAggregationTest
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Test
+    MainWindow
+)
+add_test(NAME statistics_aggregation COMMAND UXOMissionControlStatisticsAggregationTest)

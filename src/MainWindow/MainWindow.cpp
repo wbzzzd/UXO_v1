@@ -10,6 +10,8 @@
 #include "MainWindow/DecisionView.h"
 #include "MainWindow/DetectionView.h"
 #include "MainWindow/MosPlanningController.h"
+#include "MainWindow/StatisticsView.h"
+#include "MainWindow/StatisticsController.h"
 
 #include "Core/Data/Types.h"
 #include "Core/Simulation/DemoScenarioProvider.h"
@@ -114,6 +116,8 @@ MainWindow::MainWindow(QWidget *parent)
     , m_situationPage(nullptr)
     , m_decisionView(nullptr)
     , m_mosController(nullptr)
+    , m_statisticsView(nullptr)
+    , m_statisticsController(nullptr)
     , m_currentDroneLat(0.0)
     , m_currentDroneLng(0.0)
     , m_currentDroneAlt(0.0)
@@ -146,6 +150,10 @@ void MainWindow::setupUi()
     // MOS P0 控制器在 UI 构造前创建，确保 createConnections 可接线
     m_mosController = new Core::MOS::MosPlanningController(this);
     m_mosController->setObjectName(QStringLiteral("mosPlanningController"));
+
+    // REQ-013 统计控制器先于页面构造创建，统计页构造时接管其信号
+    m_statisticsController = new StatisticsController(this);
+    m_statisticsController->setObjectName(QStringLiteral("statisticsController"));
 
     createMenuBar();
     createMainLayout();
@@ -296,6 +304,13 @@ void MainWindow::createMainLayout()
     m_pageStack->addWidget(m_situationPage);    // index 0
     m_pageStack->addWidget(m_detectionView);     // index 1
     m_pageStack->addWidget(m_decisionView);      // index 2
+    // 导航"设备"项尚无实现页面：占位空页垫位 index 3，
+    // 保证统计分析页与导航 index 4 对齐（REQ-013）
+    m_pageStack->addWidget(new QWidget);         // index 3（设备占位）
+    // 统计分析页（REQ-013）：页面栈 index 4
+    m_statisticsView = new StatisticsView(m_statisticsController);
+    m_statisticsView->setObjectName(QStringLiteral("statisticsPage"));
+    m_pageStack->addWidget(m_statisticsView);   // index 4
     m_pageStack->setCurrentIndex(0);
     mainLayout->addWidget(m_pageStack, 1);
 
@@ -883,12 +898,17 @@ void MainWindow::onNavigationChanged(int index)
     qDebug() << "Navigation changed to:" << index;
 
     // 路由：导航 index 1（探测）切到探测页，index 2（决策）切到 MOS 决策页，
-    // 其余 index 保持态势工作区
+    // index 4（统计）切到统计分析页，其余 index 保持态势工作区
     if (!m_pageStack) {
         return;
     }
-    int page = (index == 1) ? 1 : (index == 2) ? 2 : 0;
+    int page = (index == 1) ? 1 : (index == 2) ? 2 : (index == 4) ? 4 : 0;
     m_pageStack->setCurrentIndex(page);
+
+    // 进入统计页触发快照加载/刷新（页内自带三态与置灰不清空逻辑，REQ-013 A3）
+    if (index == 4 && m_statisticsView) {
+        m_statisticsView->triggerLoad();
+    }
 }
 
 void MainWindow::onRefreshSimulationRequested()
