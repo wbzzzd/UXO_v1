@@ -2,11 +2,11 @@
 
 ## 会话目标
 
-在 `feature/gpr-display` 分支（worktree `/home/lin/UXO_v1-gpr`）完成 REQ-012（探地雷达样例数据展示与目标注入）的实现阶段 2/3/4：雷达页三组件、MainWindow 统一目标注入闭环、核心文档同步。阶段 1（GPR 数据层）已于上一会话提交 `824b6fb`。
+在 `feature/gpr-display` 分支（worktree `/home/lin/UXO_v1-gpr`）完成 REQ-013（探地雷达样例数据展示与目标注入）的实现阶段 2/3/4：雷达页三组件、MainWindow 统一目标注入闭环、核心文档同步。阶段 1（GPR 数据层）已于上一会话提交 `824b6fb`。
 
 ## 前置事实
 
-- REQ-012 与 `docs/features/gpr-display.md` 均为 Approved，满足实施前提。
+- REQ-013 与 `docs/features/gpr-display.md` 均为 Approved，满足实施前提。
 - 样例数据 `/mnt/d/工作/排弹/数据集/001`（只读，约 235MB）经编译期宏 `GPR_SAMPLE_DATA_DIR` 引用，不入库。
 - WSL 环境 /mnt/d 小读极慢：首通道异步加载约 40s，相关测试与截图超时已放宽（120s/180s）。
 
@@ -27,7 +27,7 @@
 - PRODUCT.md §6：新增"雷达页 GPR 样例数据展示与目标注入"行（含模拟边界声明）。
 - DEVELOPMENT.md：§2 补 GPR_SAMPLE_DATA_DIR 外部路径说明；§4 测试矩阵新增 6 个 GPR 测试目标。
 - gpr-display.md：§3.1 步骤 8 候选移除语义；§5.3 阶段 3 实现补充；§9 待确认项 6 标记已解决（σ=500 道 ≈10m 高斯平滑）。
-- REQ-012.md：填写实现事实（阶段 1-3 证据链），声明人工集成走查未执行，状态保持 Approved。
+- REQ-013.md：填写实现事实（阶段 1-3 证据链），声明人工集成走查未执行，状态保持 Approved。
 
 ## 验证结果
 
@@ -43,7 +43,7 @@
 
 ## 遗留事项
 
-- **未验证门禁**：gpr-display.md §7 第 4 项人工集成走查（播放 → 目标标记 → 确认 → 态势页目标表/地图/日志联动）未执行，需显示环境人工走查；通过后 REQ-012 方可转 Implemented。
+- **未验证门禁**：gpr-display.md §7 第 4 项人工集成走查（播放 → 目标标记 → 确认 → 态势页目标表/地图/日志联动）未执行，需显示环境人工走查；通过后 REQ-013 方可转 Implemented。
 - 推送 `feature/gpr-display` 至 origin 并经 GitHub 网页创建 PR 合入 main（gh CLI 未安装）。
 - 本记录未提交，待用户指示（可与走查结果一并提交）。
 
@@ -78,7 +78,7 @@
 
 ### 遗留事项（2026-10-15 更新）
 
-- 人工集成走查仍未执行（同 2026-10-12 记录；REQ-012 转 Implemented 的前置门禁，需显示环境人工操作）。
+- 人工集成走查仍未执行（同 2026-10-12 记录；REQ-013 转 Implemented 的前置门禁，需显示环境人工操作）。
 - 提交授权待用户指示（用户此前决定暂不推送；冻结修复 + 探针 + 文档 + 本记录均待提交裁决）。
 - scratch worktree `/home/lin/.cache/uxo-gpr-fuzz/prefix-check`（A/B 判别使命完成）删除与否待用户裁决。
 - 若段错误再现：从运行实例日志提取 `=== SEGV BACKTRACE ===` 段（当前活动日志 /tmp/opencode/wp8-gpr-client.log），按 .debug-journal.md 会话 2 续调查。

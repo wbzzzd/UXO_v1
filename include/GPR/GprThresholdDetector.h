@@ -1,7 +1,7 @@
 #ifndef GPR_GPRTHRESHOLDDETECTOR_H
 #define GPR_GPRTHRESHOLDDETECTOR_H
 
-// GPR 阈值候选检测（REQ-012）：gpr-display.md §5.4 Python 预研验证管线的 C++ 移植。
+// GPR 阈值候选检测（REQ-013）：gpr-display.md §5.4 Python 预研验证管线的 C++ 移植。
 // 管线：逐道去直流 + 初至截断 → 滑窗背景去除（±50 道）→ 滑动 RMS 包络（16 样本）
 // → 深度白化增益（≤10×）→ 时窗分位阈值 → 形态学膨胀（±15 道 / ±9 样本）
 // → 8-邻域连通成分 → 面积过滤 → 外接框中心候选。

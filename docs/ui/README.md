@@ -17,9 +17,9 @@
 | 设备 | Devices | `DEV-` | 详细清单已交付 | 已交付 | 已交付 |
 | 统计 | Statistics | `STA-` | 详细清单已交付 | 已交付 | 已交付 |
 | 配置 | Configuration | `CFG-` | 详细清单已交付 | 已交付 | 已交付 |
-| 雷达 | Radar | `GPR-` | CURRENT 已实现（REQ-012 待 §7.4 人工走查） | 无（Qt 直接实现） | Qt 三视口截图在 `.omo/evidence/gpr-display/`（不入库） |
+| 雷达 | Radar | `GPR-` | CURRENT 已实现（REQ-013 待 §7.4 人工走查） | 无（Qt 直接实现） | Qt 三视口截图在 `.omo/evidence/gpr-display/`（不入库） |
 
-> 雷达页为 REQ-012 增量：六页原型体系之外的 Qt 直接实现页（无 HTML 原型），逐控件规格见 [`pages/gpr.md`](pages/gpr.md)；上表其余六行仍为原型体系页面。
+> 雷达页为 REQ-013 增量：六页原型体系之外的 Qt 直接实现页（无 HTML 原型），逐控件规格见 [`pages/gpr.md`](pages/gpr.md)；上表其余六行仍为原型体系页面。
 
 中英文对照表是六页的统一命名约定：目录名、原型路径、截图路径均使用英文（如 `prototypes/situation/index.html`），文档标题与正文使用中文（如"态势页"），两套命名一一对应。
 
@@ -46,7 +46,7 @@
 | `application-shell.md` | 六页共用的主窗口壳、区域比例、导航、菜单、工具栏、状态栏的规格与 CURRENT 映射 |
 | `pages/index.md` | 六页一览表，每页一段：定位、关键区域、控件 ID 前缀、截图路径、原型路径 |
 | `pages/situation.md` | 态势页面完整设计契约、逐控件 `SIT-*` 清单、状态、交互、安全与 CURRENT 对照（详细样板） |
-| `pages/gpr.md` | 雷达页（REQ-012 增量）逐控件 `GPR-*` 规格；Qt 直接实现、无 HTML 原型 |
+| `pages/gpr.md` | 雷达页（REQ-013 增量）逐控件 `GPR-*` 规格；Qt 直接实现、无 HTML 原型 |
 | `prototypes/<page>/index.html` | 各页 HTML 原型（内联 CSS+JS，单文件，本地模拟 fixture）；六页目录平级，每目录仅含 `index.html` |
 | `images/<page>/overview-<宽x高>.png` | 各页整体设计图，三视口各一张：overview-1920x1080.png（权威）、overview-1280x720.png、overview-3840x2160.png |
 | `prototypes/assets/fa-solid-900.otf` | Font Awesome 7 Free Solid 字体（vendored 自 `third_party/QtAwesome`，六页原型 `@font-face` 以相对路径 `../assets/` 引用） |
@@ -101,7 +101,7 @@ HTML 原型已通过 GitHub Pages 托管，无需 clone 仓库，点击下方链
 ## 6. 控件 ID 约定
 
 - 每个文档化的交互控件拥有唯一且稳定的 `<PREFIX>-*` ID，区域前缀加序号，例如 `SIT-NAV-01`、`DET-LP-SEARCH`、`CFG-SB-EMERGENCY`。
-- 各页 ID 前缀固定：态势 `SIT-`、探测 `DET-`、决策 `DEC-`、设备 `DEV-`、统计 `STA-`、配置 `CFG-`；雷达 `GPR-`（REQ-012 增量，无 HTML 原型）。
+- 各页 ID 前缀固定：态势 `SIT-`、探测 `DET-`、决策 `DEC-`、设备 `DEV-`、统计 `STA-`、配置 `CFG-`；雷达 `GPR-`（REQ-013 增量，无 HTML 原型）。
 - ID 一经分配不复用；原型实现、HTML `data-testid` 与 Playwright 选择器必须使用同一 ID。
 - 仅展示、不可交互的元素（纯标签、只读数值）不分配 ID，但在控件清单中以"只读"标注。
 - 控件清单每条记录包含以下字段：标签、类型、位置、用途、样式与状态（默认/hover/focus/active/disabled）、点击结果、键盘行为、原型行为、CURRENT 映射、安全。

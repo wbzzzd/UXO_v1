@@ -22,7 +22,7 @@ set(MAINWINDOW_SOURCES
     TargetCardWidget.cpp
     PlanCardWidget.cpp
     UiIcons.cpp
-    # REQ-012 雷达页（探地雷达 B-scan 回放 + 疑似列表）
+    # REQ-013 雷达页（探地雷达 B-scan 回放 + 疑似列表）
     GprView.cpp
     GprBScanWidget.cpp
     GprSuspectPanel.cpp
@@ -67,7 +67,7 @@ target_link_libraries(MainWindow
     Qt5::3DCore
     Qt5::3DRender
     Qt5::3DExtras
-    # REQ-012 雷达页：Concurrent 用于通道数据异步加载；
+    # REQ-013 雷达页：Concurrent 用于通道数据异步加载；
     # GPR 库提供数据层 API（同时透传 GPR_SAMPLE_DATA_DIR 编译宏）
     Qt5::Concurrent
     Common

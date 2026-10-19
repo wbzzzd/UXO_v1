@@ -1,4 +1,4 @@
-// GPR .rd3 B-Scan 读取测试（REQ-012）：合成 fixture 覆盖 round-trip、极值、
+// GPR .rd3 B-Scan 读取测试（REQ-013）：合成 fixture 覆盖 round-trip、极值、
 // LRU 容量外访问、尺寸/路径校验拒绝与逐通道 t0 初至估计（含平道回退）；
 // 全通道预载覆盖内存常驻（删源文件后仍可访问）、幂等与重载复位；
 // 末尾真实数据 smoke/预载性能由 GPR_SAMPLE_DATA_DIR 编译宏驱动，目录/文件缺失时自动跳过。

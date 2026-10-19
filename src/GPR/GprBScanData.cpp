@@ -1,4 +1,4 @@
-// GprBScanData 实现：MALA .rd3 int16 小端 B-Scan 读取（REQ-012）。
+// GprBScanData 实现：MALA .rd3 int16 小端 B-Scan 读取（REQ-013）。
 // 布局事实（Python 预研已验证，gpr-display.md §5.4）：按道顺序存储，
 // 每道 SAMPLES 个 int16 小端样本；文件大小 = 道数 × SAMPLES × 2。
 // 访问策略：preloadAllTraces() 单次顺序 bulk read 驻留内存（交互路径默认）；

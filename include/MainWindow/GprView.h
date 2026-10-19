@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_GPRVIEW_H
 #define MAINWINDOW_GPRVIEW_H
 
-// 雷达页主视图（REQ-012 / gpr-display.md §5.3、§6）：经 QStackedWidget index 3 路由（§6.1）。
+// 雷达页主视图（REQ-013 / gpr-display.md §5.3、§6）：经 QStackedWidget index 3 路由（§6.1）。
 // 布局（§6.2）：
 //   顶部工具栏：数据组切换(H/L) | 通道切换(16 组 T/R 对) | 增益模式(AGC/固定/原始)
 //               | 对比度/缩放 | "模拟数据"标注（§6.4）

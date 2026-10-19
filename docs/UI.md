@@ -28,7 +28,7 @@ NEXT 使用单一指挥席用户，所有模拟操作和结果必须明确标注
 
 ## 3. CURRENT 主界面
 
-MainWindow 中心区由 `QStackedWidget` 承载，按导航索引切换页面：index0=态势（live）、index1=探测（live，`DetectionView`）、index2=决策/MOS（live，P0 已实现）、index3=雷达（live，`GprView`，REQ-012）、index4/5=态势占位（未实现页面回退到态势视图）。导航栏点击同时切换高亮与堆栈页面。
+MainWindow 中心区由 `QStackedWidget` 承载，按导航索引切换页面：index0=态势（live）、index1=探测（live，`DetectionView`）、index2=决策/MOS（live，P0 已实现）、index3=雷达（live，`GprView`，REQ-013）、index4/5=态势占位（未实现页面回退到态势视图）。导航栏点击同时切换高亮与堆栈页面。
 
 ```text
 MainWindow
@@ -46,7 +46,7 @@ MainWindow
 └── StatusBarWidget
 ```
 
-> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已编译但未在 MainWindow 中实例化。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页、探测页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 探测页（`DetectionView`，AI 检测结果自动填充 + 人工二次校验），index 2 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要），index 3 = 雷达页（`GprView`：B-Scan 伪彩剖面 + 频段/通道/增益工具栏 + 回放条 + 疑似目标面板，REQ-012）。
+> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已编译但未在 MainWindow 中实例化。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页、探测页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 探测页（`DetectionView`，AI 检测结果自动填充 + 人工二次校验），index 2 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要），index 3 = 雷达页（`GprView`：B-Scan 伪彩剖面 + 频段/通道/增益工具栏 + 回放条 + 疑似目标面板，REQ-013）。
 
 默认尺寸 1920×1080，最小尺寸 1280×720。三视口 fresh 像素验证（REQ-011，2026-08-26）：态势/探测/决策三页 × 1280×720/1920×1080/3840×2160 共 9 张离屏截图留存于 `.omo/evidence/qt-viewport-adaptation/`；1280×720 三页无区域溢出与意外裁切（探测页左表格水平滚动条为用户裁决接受项，决策页参数区部分标签换行为既有登记的紧凑可用表现），1920×1080 与修复前基线零回归（画中画时钟、告警跑马灯动画帧差异除外），3840×2160 固定 token 区域与字体不缩放、仅中心区放大。此前登记的“1280×720 决策面板约 5px 底部溢出”系失实记录（所指 `DecisionSuggestionPanel` 未纳入编译目标，见上文注），已撤销；决策页历史三视口几何证据（`.omo/evidence/mos-p0-qt-closure-final/REPORT.md`）采集于单档位渲染修正之前，仅作历史追溯。
 
@@ -74,7 +74,7 @@ MainWindow
 
 | 控件 | 状态 | 实际行为 | 缺口 |
 |------|------|----------|------|
-| 六项导航 | 部分完成 | 点击切换高亮并通过 `QStackedWidget` 路由：index0=态势（live）、index1=探测（live，AI 检测自动填充）、index2=决策/MOS（live，P0 已实现）、index3=雷达（live，REQ-012）、index4/5=态势占位 | 仅态势、探测、决策与雷达为 live 页面，其余两项回退到态势视图占位，未实现独立页面 |
+| 六项导航 | 部分完成 | 点击切换高亮并通过 `QStackedWidget` 路由：index0=态势（live）、index1=探测（live，AI 检测自动填充）、index2=决策/MOS（live，P0 已实现）、index3=雷达（live，REQ-013）、index4/5=态势占位 | 仅态势、探测、决策与雷达为 live 页面，其余两项回退到态势视图占位，未实现独立页面 |
 | 目标/任务/设备 Tab | 已完成 | QTabWidget 切换三张表 | 右侧上下文不会随任务/设备选择变化 |
 | 搜索框 | 已完成 | 按表格可见文本隐藏不匹配目标行 | 只搜索目标表 |
 | 筛选按钮 | 占位 | 连接到空函数 | 无类型、威胁或状态筛选 |
@@ -92,7 +92,7 @@ MainWindow
 | 探测阶段视频面板 | 部分完成 | QMediaPlayer + QVideoWidget 播放本地演示视频，每 3 秒抽帧送 `DetectionEngine` ONNX 推理；探测工具栏 [开始]/[结束]/[重置] 控制视频与检测引擎 | 本地文件回放非真实视频流；多路分屏 |
 | 视频叠加层 | 已完成 | HUD-only（十字准星、REC 指示、遥测 LAT/LON/ALT/HDG、时间码）；不绘制检测框；鼠标事件透传给下层视频控件 | 检测算法已由 `DetectionEngine` 接入，HUD 按设计保持 HUD-only |
 | 探测页（DetectionView） | 已完成 | 导航 index 1 独立页面：AI 检测结果表自动填充（每抽帧分析一行，标注“AI 分析”来源），中心区干净原图 + 分类结果、右栏异常热力图模块，确认/拒绝（误报）人工二次校验联动目标状态机 | 无结果筛选/检索；无历史回看 |
-| 雷达页（GprView） | 已完成 | 导航 index 3 独立页面（REQ-012）：B-Scan 伪彩剖面（diverging 色标，AGC/固定/原始增益）、H/L 频段与 16 通道切换、回放条（播放/暂停/变速/进度拖拽/当前道 RTK 经纬度与时间戳）、右侧疑似目标面板（ID/道索引/深度/幅度，标注 [模拟][GPR自动检测]，[确认目标]/[标记误报]）；确认后经 RTK 平滑轨迹插值注入统一目标表与 2D 地图红点（标注 [模拟]），候选本地移除防重复注入，误报仅记日志；数据缺失时显示降级态 | 通道横向偏移未校正（RTK 阵列中心近似）；人工集成走查未执行 |
+| 雷达页（GprView） | 已完成 | 导航 index 3 独立页面（REQ-013）：B-Scan 伪彩剖面（diverging 色标，AGC/固定/原始增益）、H/L 频段与 16 通道切换、回放条（播放/暂停/变速/进度拖拽/当前道 RTK 经纬度与时间戳）、右侧疑似目标面板（ID/道索引/深度/幅度，标注 [模拟][GPR自动检测]，[确认目标]/[标记误报]）；确认后经 RTK 平滑轨迹插值注入统一目标表与 2D 地图红点（标注 [模拟]），候选本地移除防重复注入，误报仅记日志；数据缺失时显示降级态 | 通道横向偏移未校正（RTK 阵列中心近似）；人工集成走查未执行 |
 | 模拟告警列表 | 部分完成 | 启动时 3 条模拟告警 + 探测阶段每目标追加 1 条 [模拟] 告警，计数同步 | 条目点击 TODO；无确认和检索 |
 | 模拟确认/处置/完成 | 已完成 | 按目标状态启用按钮，推进四状态工作流 | 不联动任务和设备 |
 | 模拟操作日志 | 部分完成 | 显示目标选择、状态变化和拒绝操作；探测阶段目标注入追加日志 | 仅内存；无筛选、导出或回放 |

@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_GPRBSCANWIDGET_H
 #define MAINWINDOW_GPRBSCANWIDGET_H
 
-// 雷达页 B-Scan 伪彩剖面组件（REQ-012 / gpr-display.md §5.3、§6.2）：
+// 雷达页 B-Scan 伪彩剖面组件（REQ-013 / gpr-display.md §5.3、§6.2）：
 // QImage 映射渲染（diverging seismic 类色标：负-蓝 / 零-白 / 正-红；
 // P99.8 截幅 + γ=0.8 显示映射，§5.4 显示参数建议）。
 // 增益三模式：AGC（默认，逐道滑动 RMS 时变增益）/ 固定（逐深度行白化增益，上限 10×，

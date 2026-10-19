@@ -1,7 +1,7 @@
 #ifndef GPR_GPRDATASET_H
 #define GPR_GPRDATASET_H
 
-// GPR 数据集目录扫描（REQ-012）：聚合样例数据目录中的 H/L 两组 × 16 通道文件组。
+// GPR 数据集目录扫描（REQ-013）：聚合样例数据目录中的 H/L 两组 × 16 通道文件组。
 // 命名事实（实测，gpr-display.md §5.4）：<prefix>_<band H|L>_<channel TnRm>_<seq>.rad/.rd3；
 // .cor 为 <prefix>_001_RTK.cor（大小写不敏感）；16 通道 = TnRn + TnR(n+1)（n=1..8）。
 // 纯数据值类型：仅依赖 Qt5::Core，不含 Widgets 代码；样例数据为演示/模拟用途。

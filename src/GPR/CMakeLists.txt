@@ -1,4 +1,4 @@
-# GPR 静态库 - MALA 探地雷达样例数据解析与阈值候选检测（REQ-012）
+# GPR 静态库 - MALA 探地雷达样例数据解析与阈值候选检测（REQ-013）
 # 纯数据层：仅依赖 Qt5::Core，不含 Widgets 代码，解析与检测逻辑以纯数据测试覆盖。
 # 设计基线：docs/features/gpr-display.md §5.2；格式与检测结论：§5.4（Python 预研已验证）。
 

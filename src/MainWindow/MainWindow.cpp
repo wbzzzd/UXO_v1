@@ -295,7 +295,7 @@ void MainWindow::createMainLayout()
     m_decisionView = new DecisionView;
     m_decisionView->setObjectName(QStringLiteral("mosDecisionPage"));
 
-    // 雷达页：页面栈 index 3（REQ-012，GPR B-scan 回放 + 疑似列表，全部标注模拟/演示）
+    // 雷达页：页面栈 index 3（REQ-013，GPR B-scan 回放 + 疑似列表，全部标注模拟/演示）
     m_gprView = new GprView;
     m_gprView->setObjectName(QStringLiteral("gprPage"));
 
@@ -968,7 +968,7 @@ void MainWindow::onNavigationChanged(int index)
     qDebug() << "Navigation changed to:" << index;
 
     // 路由：导航 index 1（探测）切到探测页，index 2（决策）切到 MOS 决策页，
-    // index 3（雷达）切到雷达页（REQ-012），其余 index 保持态势工作区
+    // index 3（雷达）切到雷达页（REQ-013），其余 index 保持态势工作区
     if (!m_pageStack) {
         return;
     }

@@ -1,4 +1,4 @@
-// GprDataset 实现：样例数据目录扫描与 H/L × 16 通道文件组聚合（REQ-012）。
+// GprDataset 实现：样例数据目录扫描与 H/L × 16 通道文件组聚合（REQ-013）。
 // 命名事实（实测，gpr-display.md §5.4）：文件名尾部三段为 <band>_<channel>_<seq>，
 // seq 为纯数字序号；同一 band/channel 可能存在多序号重复文件，按文件名序取首个。
 

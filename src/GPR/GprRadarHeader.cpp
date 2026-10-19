@@ -1,4 +1,4 @@
-// GprRadarHeader 实现：MALA .rad 头文件键值对解析（REQ-012）。
+// GprRadarHeader 实现：MALA .rad 头文件键值对解析（REQ-013）。
 // 格式事实以实测样例为准（gpr-display.md §5.4）：SAMPLES:512、TIMEWINDOW:110.000、
 // DISTANCE INTERVAL:0.02、ANTENNAS:800（与实测主频矛盾，不作频率依据）。
 

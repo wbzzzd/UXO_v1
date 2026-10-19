@@ -1,4 +1,4 @@
-// GPR .rad 头解析测试（REQ-012）：合成 fixture 覆盖实测格式合法头、缺必需键、
+// GPR .rad 头解析测试（REQ-013）：合成 fixture 覆盖实测格式合法头、缺必需键、
 // 数值非法、未知键、空白/行尾/分隔符变体，并校验 dtNs/depthForSample 两程换算数学；
 // 末尾真实数据 smoke 由 GPR_SAMPLE_DATA_DIR 编译宏驱动，目录/文件缺失时自动跳过。
 

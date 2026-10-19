@@ -18,7 +18,7 @@ NavigationWidget::NavigationWidget(QWidget *parent)
         {"situation", "态势"},
         {"detect",    "探测"},
         {"decision",  "决策"},
-        {"radar",     "雷达"},   // REQ-012：原"设备"占位改为雷达页（gpr-display.md §6.1/§9.4）
+        {"radar",     "雷达"},   // REQ-013：原"设备"占位改为雷达页（gpr-display.md §6.1/§9.4）
         {"stats",     "统计"},
         {"config",    "配置"}
     };

@@ -1,7 +1,7 @@
 #ifndef GPR_GPRTRACK_H
 #define GPR_GPRTRACK_H
 
-// GprTrack：.cor RTK 轨迹解析（MALA 样例格式，REQ-012 / gpr-display.md §5.2）。
+// GprTrack：.cor RTK 轨迹解析（MALA 样例格式，REQ-013 / gpr-display.md §5.2）。
 //
 // .cor 格式事实（Python 预研已验证，见 docs/features/gpr-display.md §5.4）：
 //   每行 14 个空格分隔字段，1 基编号：

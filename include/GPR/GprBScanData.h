@@ -1,7 +1,7 @@
 #ifndef GPR_GPRBSCANDATA_H
 #define GPR_GPRBSCANDATA_H
 
-// GPR .rd3 B-Scan 数据读取（MALA 格式，REQ-012）：int16 小端、按道顺序存储。
+// GPR .rd3 B-Scan 数据读取（MALA 格式，REQ-013）：int16 小端、按道顺序存储。
 // 样例数据 7297 道 × 512 样本（约 7.5 MB/文件）；加载工作者线程经 preloadAllTraces()
 // 单次顺序 bulk read 把整通道驻留内存，消除 GUI/检测路径上的逐道磁盘小读
 // （/mnt/d 9p 小读放大是雷达页交互冻结根因）；未预载时保留按道懒加载 + LRU 缓存

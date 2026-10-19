@@ -456,7 +456,7 @@ set_tests_properties(mos_runway_closure PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
 )
 
-# ---- GPR 解析层单元测试（REQ-012）----
+# ---- GPR 解析层单元测试（REQ-013）----
 # 合成 fixture 为主；真实数据 smoke 由 GPR_SAMPLE_DATA_DIR 宏控制，数据缺失时自动 QSKIP。
 
 # GPR .rad 采集参数头解析测试
@@ -519,7 +519,7 @@ target_link_libraries(UXOMissionControlGprDetectorTest
 )
 add_test(NAME gpr_detector COMMAND UXOMissionControlGprDetectorTest)
 
-# 雷达页（GprView）离屏 UI 契约测试（REQ-012 / gpr-display.md §7.3）：
+# 雷达页（GprView）离屏 UI 契约测试（REQ-013 / gpr-display.md §7.3）：
 # 稳定对象名、空态降级、频段/通道切换信号、疑似意图转发、[模拟] 标注；
 # 真实样例数据用例由 GPR_SAMPLE_DATA_DIR 宏控制，数据缺失时自动 QSKIP。
 add_executable(UXOMissionControlGprViewTest

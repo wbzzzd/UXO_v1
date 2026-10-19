@@ -1,4 +1,4 @@
-// 雷达页（GprView）离屏 UI 契约测试（REQ-012 / gpr-display.md §7.3）：
+// 雷达页（GprView）离屏 UI 契约测试（REQ-013 / gpr-display.md §7.3）：
 //   1) 稳定对象名存在（GprView/GprSuspectPanel/GprBScanWidget 全部契约对象名）；
 //   2) 无效数据路径 → §6.3 空态降级（状态页提示 + 回放控件禁用）；
 //   3) 真实样例数据：频段/通道切换信号、首通道异步加载完成（数据缺失自动 QSKIP）；

@@ -1,4 +1,4 @@
-// GPR 雷达页截图工具（REQ-012 / gpr-display.md §7 验收）：
+// GPR 雷达页截图工具（REQ-013 / gpr-display.md §7 验收）：
 // offscreen 渲染 GprView（默认样例数据集），按三视口（1280x720 / 1920x1080 / 3840x2160）
 // 保存 PNG，用于雷达页布局、B-Scan 成像与 [模拟] 标注的视觉核对。
 // 仅本地样例数据（GPR_SAMPLE_DATA_DIR 宏），不连接设备或网络；

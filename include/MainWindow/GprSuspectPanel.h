@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_GPRSUSPECTPANEL_H
 #define MAINWINDOW_GPRSUSPECTPANEL_H
 
-// 雷达页疑似目标面板（REQ-012 / gpr-display.md §5.3、§6.2）：
+// 雷达页疑似目标面板（REQ-013 / gpr-display.md §5.3、§6.2）：
 // 列表列：ID / 道索引 / 深度(m) / 幅度；标题含 [模拟][GPR自动检测] 标注（§6.4）。
 // [确认目标]/[标记误报] 仅在选中行时可用（§6.3 禁用态）；
 // 检测列表为空或无选中时按钮保持禁用。

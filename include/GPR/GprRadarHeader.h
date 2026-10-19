@@ -1,7 +1,7 @@
 #ifndef GPR_GPRRADARHEADER_H
 #define GPR_GPRRADARHEADER_H
 
-// GPR .rad 头文件解析（MALA 格式，REQ-012）：键值对文本，键可含空格（如 "DISTANCE INTERVAL"）。
+// GPR .rad 头文件解析（MALA 格式，REQ-013）：键值对文本，键可含空格（如 "DISTANCE INTERVAL"）。
 // 实测分隔符为 ':'（同时容忍 '='），值可含空格（如 "NOT VALID FIELD"）。
 // 纯数据值类型：仅依赖 Qt5::Core，不含 Widgets 代码；样例数据为演示/模拟用途。
 // 设计基线：docs/features/gpr-display.md §5.2；格式事实见 §5.4。

@@ -84,7 +84,7 @@ private slots:
     void onTargetConfirmed(const QString& targetId);
     void onTargetRejected(const QString& targetId);
 
-    // 雷达页人工校验回调（REQ-012：确认 → 统一目标注入；误报 → 仅记日志，
+    // 雷达页人工校验回调（REQ-013：确认 → 统一目标注入；误报 → 仅记日志，
     // 疑似候选列表由 GprView 自行移除，§5.3 状态所有权）
     void onGprSuspectConfirmed(int suspectId);
     void onGprSuspectFalsePositive(int suspectId);
@@ -163,7 +163,7 @@ private:
     Core::Simulation::DroneTelemetrySimulator *m_droneSimulator;
     DetectionEngine *m_detectionEngine;
 
-    // 页面栈：index 0 = 态势工作区，index 1 = 探测页，index 2 = MOS 决策页，index 3 = 雷达页（REQ-012）
+    // 页面栈：index 0 = 态势工作区，index 1 = 探测页，index 2 = MOS 决策页，index 3 = 雷达页（REQ-013）
     QStackedWidget *m_pageStack;
     QWidget *m_situationPage;
     DecisionView *m_decisionView;
