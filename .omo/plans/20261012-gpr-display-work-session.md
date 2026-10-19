@@ -82,3 +82,35 @@
 - 提交授权待用户指示（用户此前决定暂不推送；冻结修复 + 探针 + 文档 + 本记录均待提交裁决）。
 - scratch worktree `/home/lin/.cache/uxo-gpr-fuzz/prefix-check`（A/B 判别使命完成）删除与否待用户裁决。
 - 若段错误再现：从运行实例日志提取 `=== SEGV BACKTRACE ===` 段（当前活动日志 /tmp/opencode/wp8-gpr-client.log），按 .debug-journal.md 会话 2 续调查。
+
+---
+
+## 后续会话记录（2026-10-19 main 合并与 REQ-013 让号）
+
+### 背景
+
+- main 于 2026-10-14 经 PR #21 合入 `feature/data-platform-integration`（`484f3fb`），注册 REQ-012=数据平台接入（Implemented，Integration 适配器库 + 6 契约测试），与本分支 10-12 注册的 REQ-012=探地雷达样例数据展示撞号；`docs/requirements/` 以 main 为权威，本分支让号。
+
+### 变更（三提交 + 本记录）
+
+- `5746101` 文档：GPR 需求让号为 REQ-013 —— `docs/requirements/REQ-012.md` 改名 `REQ-013.md`（文件内 ID/标题同步），32 个文件 REQ-012→REQ-013 机械替换（注册表段落/表行、gpr-display.md、UI.md、源码/CMake/测试注释），`git grep REQ-012` 复核为零（合并前）。
+- `4ed0976` 文档：本记录改名 `20261012-work-session.md` → `20261012-gpr-display-work-session.md`，避开与 main 侧同名会话记录的 add/add 冲突。
+- `5546793` 合并 main：`--no-ff` 并入 `484f3fb`。6 处冲突中 REQ-012.md 与会话记录经前置两提交自动消解；4 处内容冲突（`CMakeLists.txt`、`docs/ARCHITECTURE.md`、`docs/DEVELOPMENT.md`、`docs/requirements/README.md`）按"两侧并存"解决：双库装配 + 双侧测试注册；模块表 GPR/Integration 双行；外部依赖段采用 main 侧 Network/Sql 表述，测试总数更正为 29（6 检测/通用 + 11 MOS + 6 GPR + 6 数据平台集成）；需求索引 REQ-012/REQ-013 双登记并按编号排序。`docs/PRODUCT.md` 自动合并（双方各一行，无冲突）。
+
+### 验证（合并后全量）
+
+- 构建：`cmake -S . -B build -DCMAKE_BUILD_TYPE=Release` + `cmake --build build -j2` 0 错误（增量，Integration 库 + 6 测试目标新编入）。
+- ctest：29 个测试目标，27 通过 / 2 失败；失败仍为既有豁免项 `video_render_capture`、`stop_select_flicker_repro`（用户 2026-10-12 裁决"先不管"）。日志 `/tmp/opencode/merge-ctest.log`（本地，不入库）。
+- GPR 6/6 全绿（gpr_bscan 28.60s 含真实数据预载性能阈值）。
+- 数据平台集成 6/6：api_error/http_client/entity_mapping 3 项纯逻辑真实断言通过；vocabulary_cache/data_platform_api/contract 3 项因 `127.0.0.1:8080` 无实例按设计 QSKIP（直跑 `UXOMissionControlIntegrationContractTest` 证据："本地数据平台实例未运行（S4 环境跳过）"，Totals: 1 passed, 0 failed, 1 skipped），与 DEVELOPMENT.md §4 记载一致；该 3 项对真实实例的断言已于 main 侧 2026-10-12 在监督下验证，本分支不重复实测。
+- `git diff --check` 干净；合并提交双亲 `4ed0976` + `484f3fb`。
+
+### 推送与 PR
+
+- `feature/gpr-display` 推送 origin：新增 `5746101`、`4ed0976`、`5546793` 与本记录提交；PR 简介以 REQ-013 表述（gh CLI 未安装，需网页创建）。
+
+### 遗留事项（2026-10-19 更新）
+
+- 人工集成走查仍未执行（REQ-013 转 Implemented 前置门禁，需显示环境人工操作：播放 → 目标标记 → 确认 → 态势页目标表/地图/日志联动）。
+- 上一节"未提交改动（截至 2026-10-15 末）"所列内容已在此前会话全部提交（`f97ca8c`…`12db50b`）并随 `12db50b` 推送，该节仅作历史记录。
+- 试合并探针克隆位于 `/tmp/opencode/merge-check`（/tmp 临时目录，随系统清理，无需处理）。
