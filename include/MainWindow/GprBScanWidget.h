@@ -15,6 +15,7 @@
 
 #include "GPR/GprThresholdDetector.h"   // GPR::GprSuspect
 
+#include <QTimer>
 #include <QWidget>
 
 namespace GPR {
@@ -40,7 +41,8 @@ public:
     void setGainMode(GainMode mode);
     GainMode gainMode() const;
 
-    // 对比度：归一化幅值线性拉伸系数（>0，1.0 = 默认）
+    // 对比度：归一化幅值线性拉伸系数（>0，1.0 = 默认）；
+    // 重建经 120ms 重启式防抖（滑块连续触发合并为单次重建，避免拖动洪泛阻塞事件循环）
     void setContrast(double factor);
     double contrast() const;
 
@@ -73,6 +75,7 @@ private:
     QList<GPR::GprSuspect> m_suspects;
     QImage m_image;        // 伪彩缓存（宽=道数，高=样本数-t0）
     int m_t0Sample = 0;    // 当前通道 t0（图像第 0 行对应的原始样本索引）
+    QTimer m_contrastDebounce;  // 对比度重建防抖（单发、重启式，超时 → rebuildImage）
 };
 
 #endif // MAINWINDOW_GPRBSCANWIDGET_H

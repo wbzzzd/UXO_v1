@@ -520,6 +520,10 @@ void GprView::startChannelLoad()
         if (r.headerOk)
             r.scanOk = r.scan.loadFromFile(entry.rd3Path, r.header.samples());
         if (r.scanOk) {
+            // 全通道预载（工作者线程单次顺序 bulk read）：消除检测与 GUI 渲染路径上
+            // 的逐道 9p 小读（增益/对比度点击触发全通道重载的冻结根因）；
+            // 失败保留逐道懒加载回退，不影响通道可用性
+            r.scan.preloadAllTraces();
             GPR::GprThresholdDetector detector;
             r.suspects = detector.detect(r.scan, r.header);
         }
@@ -541,7 +545,7 @@ void GprView::applyLoadResult(const ChannelLoadResult &result)
         return;
     }
 
-    // 拷贝代价低：GprBScanData 按路径懒加载，仅元数据与隐式共享缓存队列参与拷贝
+    // 拷贝代价低：预载道数据经 QVector 隐式共享，按值拷贝不复制样本缓冲
     m_header = result.header;
     m_scan = result.scan;
     m_suspects = result.suspects;

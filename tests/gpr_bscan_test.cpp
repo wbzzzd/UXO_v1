@@ -1,6 +1,7 @@
-// GPR .rd3 B-Scan 懒加载读取测试（REQ-012）：合成 fixture 覆盖 round-trip、极值、
+// GPR .rd3 B-Scan 读取测试（REQ-012）：合成 fixture 覆盖 round-trip、极值、
 // LRU 容量外访问、尺寸/路径校验拒绝与逐通道 t0 初至估计（含平道回退）；
-// 末尾真实数据 smoke 由 GPR_SAMPLE_DATA_DIR 编译宏驱动，目录/文件缺失时自动跳过。
+// 全通道预载覆盖内存常驻（删源文件后仍可访问）、幂等与重载复位；
+// 末尾真实数据 smoke/预载性能由 GPR_SAMPLE_DATA_DIR 编译宏驱动，目录/文件缺失时自动跳过。
 
 #include "GPR/GprBScanData.h"
 
@@ -71,8 +72,12 @@ private slots:
     void firstBreakFallbackOnFlatTrace();
     // === 无效数据初至返回哨兵 -1 ===
     void firstBreakInvalidReturnsSentinel();
+    // === 全通道预载：内存常驻（预载后删除源文件仍可访问）、幂等、重载复位 ===
+    void preloadAllTracesMemoryResident();
     // === 真实数据 smoke：GPR_SAMPLE_DATA_DIR 首个 *_H_*.rd3（缺失自动跳过）===
     void realDataSmoke();
+    // === 真实数据预载性能 smoke：预载后全道访问为内存速度（缺失自动跳过）===
+    void preloadAllTracesRealDataPerf();
 };
 
 // === 加载与逐点/整道访问 round-trip（含越界映射）===
@@ -295,6 +300,45 @@ void GprBScanTest::firstBreakInvalidReturnsSentinel()
     QCOMPARE(bscan.firstBreakSample(), -1);
 }
 
+// === 全通道预载：内存常驻（预载后删除源文件仍可访问）、幂等、重载复位 ===
+void GprBScanTest::preloadAllTracesMemoryResident()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    // 30 道 × 16 样本（道数 > LRU 容量 8），值 = 道*100 + 样本，道间可区分
+    const QVector<qint16> values = makeValues(30, 16, [](int t, int s) {
+        return qint16(t * 100 + s);
+    });
+    const QString path = writeRd3File(dir, QStringLiteral("preload.rd3"), values);
+    QVERIFY(!path.isEmpty());
+
+    GPR::GprBScanData bscan;
+    QVERIFY(bscan.loadFromFile(path, 16));
+    QVERIFY(!bscan.isFullyLoaded());
+
+    // 预载：单次顺序读入全部道数据；幂等（重复调用直接成功）
+    QVERIFY(bscan.preloadAllTraces());
+    QVERIFY(bscan.isFullyLoaded());
+    QVERIFY(bscan.preloadAllTraces());
+
+    // 删除源文件：预载后的任何访问不得再触盘
+    // （回归锁：GUI 线程经 LRU-8 逐道 9p 小读是雷达页交互冻结根因）
+    QVERIFY(QFile::remove(path));
+    for (int t = 0; t < 30; ++t) {
+        const QVector<qint16> trace = bscan.trace(t);
+        QCOMPARE(trace.size(), 16);
+        for (int s = 0; s < 16; ++s) {
+            QCOMPARE(int(trace.at(s)), t * 100 + s);
+        }
+    }
+    QCOMPARE(int(bscan.sampleAt(7, 9)), 709);
+    QVERIFY(bscan.firstBreakSample() >= 0);
+
+    // 重新加载失败 → 预载状态复位
+    QVERIFY(!bscan.loadFromFile(QDir(dir.path()).absoluteFilePath(QStringLiteral("missing.rd3")), 16));
+    QVERIFY(!bscan.isFullyLoaded());
+}
+
 // === 真实数据 smoke：GPR_SAMPLE_DATA_DIR 首个 *_H_*.rd3（缺失自动跳过）===
 void GprBScanTest::realDataSmoke()
 {
@@ -321,6 +365,48 @@ void GprBScanTest::realDataSmoke()
     QVERIFY(bscan.trace(bscan.traceCount() - 1).size() == 512);
 #else
     QSKIP("未定义 GPR_SAMPLE_DATA_DIR，跳过真实数据 smoke 测试");
+#endif
+}
+
+// === 真实数据预载性能 smoke：预载后全道访问为内存速度（缺失自动跳过）===
+void GprBScanTest::preloadAllTracesRealDataPerf()
+{
+#ifdef GPR_SAMPLE_DATA_DIR
+    const QDir sampleDir(QStringLiteral(GPR_SAMPLE_DATA_DIR));
+    if (!sampleDir.exists()) {
+        QSKIP("GPR_SAMPLE_DATA_DIR 目录不存在，跳过真实数据预载性能测试");
+    }
+    const QStringList rd3Files = sampleDir.entryList(
+        QStringList() << QStringLiteral("*_H_*.rd3"), QDir::Files, QDir::Name);
+    if (rd3Files.isEmpty()) {
+        QSKIP("GPR_SAMPLE_DATA_DIR 目录无 H 组 .rd3 文件，跳过真实数据预载性能测试");
+    }
+
+    GPR::GprBScanData bscan;
+    QVERIFY(bscan.loadFromFile(sampleDir.filePath(rd3Files.first()), 512));
+
+    // 预载 = 单次顺序 bulk read：/mnt/d（9p）实测秒级，宽松上限 30s
+    QElapsedTimer timer;
+    timer.start();
+    QVERIFY(bscan.preloadAllTraces());
+    const qint64 preloadMs = timer.elapsed();
+    QVERIFY2(preloadMs < 30000,
+             qPrintable(QStringLiteral("preloadAllTraces 耗时 %1 ms").arg(preloadMs)));
+
+    // 预载后全道访问必须为内存速度：7297 道全遍历上限 2000ms
+    // （修复前同路径经 LRU-8 逐道 9p 小读需数十秒，量级差异保证阈值无 flaky）
+    timer.restart();
+    qint64 checksum = 0;
+    for (int t = 0; t < bscan.traceCount(); ++t) {
+        checksum += bscan.trace(t).last();
+    }
+    const qint64 accessMs = timer.elapsed();
+    qDebug() << "preload ms:" << preloadMs << " full-access ms:" << accessMs
+             << " checksum:" << checksum;
+    QVERIFY2(accessMs < 2000,
+             qPrintable(QStringLiteral("预载后全道访问耗时 %1 ms").arg(accessMs)));
+#else
+    QSKIP("未定义 GPR_SAMPLE_DATA_DIR，跳过真实数据预载性能测试");
 #endif
 }
 

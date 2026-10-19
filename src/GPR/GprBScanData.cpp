@@ -1,6 +1,8 @@
-// GprBScanData 实现：MALA .rd3 int16 小端 B-Scan 懒加载读取（REQ-012）。
+// GprBScanData 实现：MALA .rd3 int16 小端 B-Scan 读取（REQ-012）。
 // 布局事实（Python 预研已验证，gpr-display.md §5.4）：按道顺序存储，
 // 每道 SAMPLES 个 int16 小端样本；文件大小 = 道数 × SAMPLES × 2。
+// 访问策略：preloadAllTraces() 单次顺序 bulk read 驻留内存（交互路径默认）；
+// 未预载时按道懒加载 + LRU（容量 8）回退。
 
 #include "GPR/GprBScanData.h"
 
@@ -80,6 +82,8 @@ bool GprBScanData::loadFromFile(const QString &path, int expectedSamples)
     m_traceCount = 0;
     m_sampleCount = 0;
     m_path.clear();
+    m_traces.clear();
+    m_fullyLoaded = false;
     m_cacheKeys.clear();
     m_cacheValues.clear();
     m_firstBreak = -1;
@@ -165,9 +169,64 @@ int GprBScanData::firstBreakSample() const
     return m_firstBreak;
 }
 
-// === 按道读取（LRU 缓存）===
+// === 全通道预载（工作者线程调用；消除交互路径逐道磁盘小读）===
+bool GprBScanData::preloadAllTraces()
+{
+    if (!m_valid) {
+        return false;
+    }
+    if (m_fullyLoaded) {
+        return true;  // 幂等：已预载直接成功
+    }
+
+    // 单次顺序 bulk read：/mnt/d（9p）逐道小读放大是雷达页交互冻结根因，
+    // 整文件一次性读入（样例通道约 7.5MB）后所有访问命中内存
+    QFile file(m_path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+    const QByteArray raw = file.readAll();
+    const qint64 expected = static_cast<qint64>(m_traceCount) * m_sampleCount * 2;
+    if (raw.size() != expected) {
+        // 短读/读异常：不预载，保留逐道懒加载回退（其自带零填充容错）
+        return false;
+    }
+
+    QVector<QVector<qint16>> all;
+    all.reserve(m_traceCount);
+    const auto *bytes = reinterpret_cast<const uchar *>(raw.constData());
+    for (int t = 0; t < m_traceCount; ++t) {
+        QVector<qint16> trace(m_sampleCount, 0);
+        const qint64 base = static_cast<qint64>(t) * m_sampleCount * 2;
+        for (int s = 0; s < m_sampleCount; ++s) {
+            // int16 小端显式字节组装（与平台字节序无关）
+            const quint16 lo = bytes[base + 2 * s];
+            const quint16 hi = bytes[base + 2 * s + 1];
+            trace[s] = static_cast<qint16>(lo | (hi << 8));
+        }
+        all.append(trace);
+    }
+    m_traces = all;
+    m_fullyLoaded = true;
+    // 预载后 LRU 缓存失去意义：复位释放
+    m_cacheKeys.clear();
+    m_cacheValues.clear();
+    return true;
+}
+
+bool GprBScanData::isFullyLoaded() const
+{
+    return m_fullyLoaded;
+}
+
+// === 按道读取（预载后命中内存；否则 LRU 缓存）===
 QVector<qint16> GprBScanData::fetchTrace(int traceIndex) const
 {
+    // 全通道预载：隐式共享拷贝返回，无数据复制
+    if (m_fullyLoaded) {
+        return m_traces.at(traceIndex);
+    }
+
     // 缓存命中：move-to-front
     const int pos = m_cacheKeys.indexOf(traceIndex);
     if (pos >= 0) {

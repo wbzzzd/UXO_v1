@@ -48,6 +48,12 @@ GprBScanWidget::GprBScanWidget(QWidget *parent)
     : QWidget(parent)
 {
     setObjectName(QStringLiteral("gprBScanWidget"));
+
+    // 对比度重建防抖：滑块 valueChanged 连续触发合并为单次重建（120ms 重启式单发）；
+    // 全通道重建即便数据驻留内存也是 CPU 密集操作，拖动洪泛会阻塞事件循环
+    m_contrastDebounce.setSingleShot(true);
+    m_contrastDebounce.setInterval(120);
+    connect(&m_contrastDebounce, &QTimer::timeout, this, &GprBScanWidget::rebuildImage);
 }
 
 GprBScanWidget::~GprBScanWidget() = default;
@@ -82,8 +88,8 @@ void GprBScanWidget::setContrast(double factor)
 {
     // 对比度仅接受正值，向下钳制
     m_contrast = std::max(factor, kMinPositive);
-    // 对比度影响显示映射 → 重建伪彩缓存
-    rebuildImage();
+    // 对比度影响显示映射 → 防抖后重建伪彩缓存（连续触发合并为单次）
+    m_contrastDebounce.start();
 }
 
 double GprBScanWidget::contrast() const

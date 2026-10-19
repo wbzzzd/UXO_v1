@@ -3,23 +3,65 @@
 //   2) 无效数据路径 → §6.3 空态降级（状态页提示 + 回放控件禁用）；
 //   3) 真实样例数据：频段/通道切换信号、首通道异步加载完成（数据缺失自动 QSKIP）；
 //   4) 疑似列表确认/误报意图信号经 GprView 转发，且真实数据下处置候选从本地列表移除；
-//   5) [模拟] 标注可见（工具栏"模拟数据" + 疑似面板标题 [模拟][GPR自动检测]，§6.4）。
+//   5) [模拟] 标注可见（工具栏"模拟数据" + 疑似面板标题 [模拟][GPR自动检测]，§6.4）；
+//   6) 对比度调节防抖：setContrast 不同步重建伪彩（拖动滑块全量重建是交互冻结根因），
+//      防抖超时后重建一次并体现新对比度。
 
 #include "MainWindow/GprView.h"
 #include "MainWindow/GprBScanWidget.h"
 #include "MainWindow/GprSuspectPanel.h"
 
+#include "GPR/GprBScanData.h"
+#include "GPR/GprRadarHeader.h"
 #include "GPR/GprThresholdDetector.h"
 
 #include <QtTest/QtTest>
 #include <QComboBox>
 #include <QDir>
+#include <QImage>
 #include <QLabel>
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QSlider>
 #include <QStackedWidget>
 #include <QTableWidget>
+#include <QTemporaryDir>
+
+namespace {
+
+// 写入合成通道对（.rd3 int16 小端 + 最小合法 .rad），供控件级用例构造有效数据
+bool writeSyntheticChannel(const QTemporaryDir &dir, const QString &stem,
+                           const QVector<qint16> &values, int samples,
+                           QString *rd3PathOut, QString *radPathOut)
+{
+    const QString rd3Path = QDir(dir.path()).absoluteFilePath(stem + QStringLiteral(".rd3"));
+    QFile rd3(rd3Path);
+    if (!rd3.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+    for (const qint16 v : values) {
+        const quint16 u = static_cast<quint16>(v);
+        const char bytes[2] = { static_cast<char>(u & 0xFF), static_cast<char>((u >> 8) & 0xFF) };
+        rd3.write(bytes, 2);
+    }
+    rd3.close();
+
+    const QString radPath = QDir(dir.path()).absoluteFilePath(stem + QStringLiteral(".rad"));
+    QFile rad(radPath);
+    if (!rad.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+    rad.write(QStringLiteral("SAMPLES:%1\nTIMEWINDOW:110\nDISTANCE INTERVAL:0.02\n")
+                  .arg(samples)
+                  .toUtf8());
+    rad.close();
+
+    *rd3PathOut = rd3Path;
+    *radPathOut = radPath;
+    return true;
+}
+
+} // namespace
 
 class GprViewTest : public QObject
 {
@@ -31,6 +73,7 @@ private slots:
     void realDatasetSwitchAndPlaybackReady();
     void suspectIntentForwarding();
     void simulationTagVisible();
+    void contrastChangeIsDebounced();
 };
 
 void GprViewTest::stableObjectNamesExist()
@@ -213,6 +256,50 @@ void GprViewTest::simulationTagVisible()
         }
     }
     QVERIFY2(tagged, "疑似面板标题缺少 [模拟][GPR自动检测] 标注");
+}
+
+// === 对比度调节防抖：setContrast 不得同步全量重建伪彩（回归锁：滑块拖动连续触发
+//     全通道重建是雷达页交互冻结根因之一）；防抖超时后重建一次并体现新对比度 ===
+void GprViewTest::contrastChangeIsDebounced()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    // 合成通道：32 道 × 64 样本，行向斜坡幅值保证对比度变化产生可见像素差
+    QVector<qint16> values;
+    values.reserve(32 * 64);
+    for (int t = 0; t < 32; ++t) {
+        for (int s = 0; s < 64; ++s) {
+            values.append(qint16((s - 32) * 100));   // -3200..3100
+        }
+    }
+    QString rd3Path;
+    QString radPath;
+    QVERIFY(writeSyntheticChannel(dir, QStringLiteral("debounce"), values, 64,
+                                  &rd3Path, &radPath));
+
+    GPR::GprBScanData scan;
+    QVERIFY(scan.loadFromFile(rd3Path, 64));
+    QVERIFY(scan.preloadAllTraces());
+    GPR::GprRadarHeader header;
+    QVERIFY(header.loadFromFile(radPath));
+    QVERIFY(header.isValid());
+
+    GprBScanWidget widget;
+    widget.resize(600, 400);
+    widget.show();
+    // Raw 增益：免 AGC 逐道归一化干扰像素差判据
+    widget.setGainMode(GprBScanWidget::GainMode::Raw);
+    widget.setScan(&scan, &header);
+    const QImage before = widget.grab().toImage();
+    QVERIFY(!before.isNull());
+
+    // 防抖语义：setContrast 返回后图像不得立即变化（旧行为为同步全量重建）
+    widget.setContrast(3.0);
+    QCOMPARE(widget.grab().toImage(), before);
+
+    // 防抖超时后重建一次，像素体现新对比度
+    QTRY_VERIFY_WITH_TIMEOUT(widget.grab().toImage() != before, 5000);
 }
 
 QTEST_MAIN(GprViewTest)
