@@ -17,8 +17,11 @@
 | [设备](#4-设备页-devices-dev) | Devices | `DEV-` | [`devices.md`](devices.md) | [`../prototypes/devices/index.html`](../prototypes/devices/index.html) | [`../images/devices/overview-1920x1080.png`](../images/devices/overview-1920x1080.png) |
 | [统计](#5-统计页-statistics-sta) | Statistics | `STA-` | [`statistics.md`](statistics.md) | [`../prototypes/statistics/index.html`](../prototypes/statistics/index.html) | [`../images/statistics/overview-1920x1080.png`](../images/statistics/overview-1920x1080.png) |
 | [配置](#6-配置页-configuration-cfg) | Configuration | `CFG-` | [`configuration.md`](configuration.md) | [`../prototypes/configuration/index.html`](../prototypes/configuration/index.html) | [`../images/configuration/overview-1920x1080.png`](../images/configuration/overview-1920x1080.png) |
+| [雷达](#7-雷达页-radar-gpr) | Radar | `GPR-` | [`gpr.md`](gpr.md) | 无（Qt 直接实现） | 无（Qt 截图在 `.omo/evidence/gpr-display/`，不入库） |
 
 所有页面共享同一套设计系统（`design-system.md`）与应用壳（`application-shell.md`），仅左/右面板内容、中心区内容、工具栏与状态栏细节按页变化。
+
+> 雷达页为 REQ-012 增量：在六页原型体系之外由 Qt 直接实现（导航位于处置决策之后，QStackedWidget index 3），无 HTML 原型与原型截图；逐控件规格以 [`gpr.md`](gpr.md) 与 [`../../features/gpr-display.md`](../../features/gpr-display.md) §6 为准。
 
 ## 1. 态势页 Situation (SIT)
 
@@ -133,3 +136,22 @@
 **HTML 原型**：[`../prototypes/configuration/index.html`](../prototypes/configuration/index.html)（单文件，6 个配置分类，禁用项以单行摘要呈现）。
 
 **详细清单**：[`configuration.md`](configuration.md)（574 行，逐控件规格）。
+
+## 7. 雷达页 Radar (GPR)
+
+**定位**：探地雷达样例数据展示与目标模拟演示页（REQ-012 增量；导航位于处置决策之后，QStackedWidget index 3）。一屏呈现：顶部工具栏（频段/通道/增益/对比度/缩放/[模拟] 标注）；中心 B-Scan 伪彩剖面（回放游标 + 疑似目标标记 + 状态页）；右栏疑似目标面板（候选表 + 确认/误报）；底部回放条（播放/倍速/进度/位置）。数据为只读样例（模拟/演示用途）；确认目标经统一目标注入链路进入态势页目标表/地图/日志。Qt 直接实现，无 HTML 原型；REQ-012 待 §7.4 人工走查后转 Implemented。
+
+**关键区域**：
+
+| 区域 | 位置 | 内容 |
+|------|------|------|
+| A 顶部工具栏 | 整行 | 频段 H/L、通道 1–16、增益 AGC/固定/原始、对比度（90px）、缩放（90px）、[模拟] 标注 |
+| B 中心 | 自适应 | B-Scan 伪彩剖面、回放游标、疑似目标标记、ready/loading/empty/error 状态页 |
+| C 右面板 | 320px 固定 | 疑似目标候选表（ID/道索引/深度(m)/幅度）、[确认目标]/[标记误报] |
+| D 底部回放条 | 整行 | 播放/暂停、倍速 1×/2×/4×、进度条（步进 10 道）、位置标签（道 n/N \| RTK \| 时间戳） |
+
+**控件 ID 前缀**：`GPR-`，包括 `GPR-T-01`–`GPR-T-06`（工具栏）、`GPR-C-01`–`GPR-C-04`（中心区）、`GPR-P-01`–`GPR-P-04`（回放条）、`GPR-S-01`–`GPR-S-04`（右栏面板），共 18 个 ID；Qt objectName 一律 `gpr*` 前缀（UI 契约测试锁定）。
+
+**HTML 原型**：无（Qt 直接实现，未经过 HTML 原型阶段）。
+
+**详细清单**：[`gpr.md`](gpr.md)（逐控件规格，含设计依据专题）。
