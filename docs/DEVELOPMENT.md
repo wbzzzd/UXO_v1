@@ -33,6 +33,8 @@
 
 原始未压缩素材保存在仓库外，不入库。
 
+GPR 样例数据（MALA 格式，约 235MB）不入库：经编译期宏 `GPR_SAMPLE_DATA_DIR` 以开发期绝对路径注入（默认 `/mnt/d/工作/排弹/数据集/001`），与 `DETECTION_ASSETS_DIR` 模式一致。数据缺失时雷达页显示降级态；GPR 测试中依赖真实数据的用例自动跳过，合成 fixture 用例不受影响。
+
 激活环境：
 
 ```bash
@@ -104,6 +106,12 @@ ctest --test-dir build --output-on-failure
 | `mos_planner_closure` | 独立穷举 oracle、supplied-tier 校验与完成结果重算守卫 | 完整 Y 轴离散化算法、斜向搜索 |
 | `mos_ui_closure` | 生成器浮点半径、合成参数措辞与 controller-owned 导出 | 真实导出目标、外部存储、网络 |
 | `mos_runway_closure` | 快照参数化几何、缩放/平移、选中档位单方案命中，以及 `influenceRadius × pxPerM` 影响圆半径契约 | 真实跑道几何、3D 渲染、真实安全距离 |
+| `gpr_header` | `.rad` 采集参数键值解析与两程时间深度换算 | 未解码字段语义、真实设备全参数 |
+| `gpr_bscan` | `.rd3` 整读预载（常驻断言：预载后删源文件仍可访问）与未预载懒加载回退、逐通道 t0 校正（合成 fixture + 真实数据 smoke 与预载性能阈值） | 全数据集整体性能；真实数据用例在无数据环境自动跳过 |
+| `gpr_dataset` | 数据目录扫描聚合 H/L × 16 通道清单与缺失通道报告 | 真实目录异常全形态 |
+| `gpr_track` | `.cor` RTK 解析、道 1:1 对齐、缺行插值与高斯平滑轨迹点查询 | 真实定位精度、多趟标定 |
+| `gpr_detector` | 阈值候选检测管线（合成 B-Scan 命中 + 真实数据 smoke） | 目标类型识别（输出仅为候选，人工复核必需） |
+| `gpr_view` | 雷达页稳定对象名、频段/通道切换、降级态、疑似列表确认/误报处置与本地移除、对比度 120ms 防抖（离屏） | 渲染像素正确性、人工集成走查 |
 | `integration_api_error` | API 错误信封解析：10 个契约错误码映射、field/code 提取、多错误聚合保留、未知码兜底 | 真实服务端错误触发 |
 | `integration_http_client` | HTTP 基址解析（默认回环 127.0.0.1:8080、环境变量覆盖）与 GET/POST/PUT 构造、超时/网络错误映射；非回环基址用例为纯函数夹具，不发真实请求 | 真实服务端业务语义 |
 | `integration_entity_mapping` | 五实体 Core 类型与契约 JSON 双向映射、枚举越界拒发、必填字段完整性 | 服务端校验结果、真实持久化 |

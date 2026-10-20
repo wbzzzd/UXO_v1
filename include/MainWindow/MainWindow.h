@@ -23,7 +23,13 @@ class TargetDetailOverlay;
 class AlertPanel;
 class DecisionView;
 class DetectionView;
+class GprView;
 class DetectionEngine;
+
+namespace GPR {
+struct GprSuspect;
+struct GprTrackPoint;
+}
 
 namespace Core::MOS {
 class MosPlanningController;
@@ -78,6 +84,11 @@ private slots:
     void onTargetConfirmed(const QString& targetId);
     void onTargetRejected(const QString& targetId);
 
+    // 雷达页人工校验回调（REQ-013：确认 → 统一目标注入；误报 → 仅记日志，
+    // 疑似候选列表由 GprView 自行移除，§5.3 状态所有权）
+    void onGprSuspectConfirmed(int suspectId);
+    void onGprSuspectFalsePositive(int suspectId);
+
     // 三向联动: 目标表/地图/视频框 任一选中 -> 同步其他两区
     void onSelectTargetEverywhere(const QString& targetId);
 
@@ -114,6 +125,13 @@ private:
     // 从 AI 分析结果构造 TargetInfo: 类型/置信度取最优分类, 坐标由异常 patch 推算
     Core::TargetInfo createDetectedTarget(const ImageDetectionResult& result,
                                           const QString& targetId) const;
+    // 从 GPR 确认候选构造 TargetInfo：坐标取平滑轨迹点（x=经度, y=纬度），
+    // 来源标注 [GPR自动检测][模拟]（gpr-display.md §3.1 步骤 10）
+    Core::TargetInfo createGprConfirmedTarget(const GPR::GprSuspect& suspect,
+                                              const GPR::GprTrackPoint& point,
+                                              const QString& band,
+                                              const QString& channel,
+                                              const QString& targetId) const;
 
     // 检测证据记录（内存中冻结，不持久化）
     struct DetectionEvidence {
@@ -145,11 +163,12 @@ private:
     Core::Simulation::DroneTelemetrySimulator *m_droneSimulator;
     DetectionEngine *m_detectionEngine;
 
-    // P0 最小页面栈：index 0 = 态势工作区，index 1 = MOS 决策页
+    // 页面栈：index 0 = 态势工作区，index 1 = 探测页，index 2 = MOS 决策页，index 3 = 雷达页（REQ-013）
     QStackedWidget *m_pageStack;
     QWidget *m_situationPage;
     DecisionView *m_decisionView;
     DetectionView *m_detectionView;
+    GprView *m_gprView;
     // MOS P0 规划控制器（应用拥有，本地合成 fixture 驱动）
     Core::MOS::MosPlanningController *m_mosController;
 

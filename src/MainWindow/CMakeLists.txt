@@ -22,6 +22,10 @@ set(MAINWINDOW_SOURCES
     TargetCardWidget.cpp
     PlanCardWidget.cpp
     UiIcons.cpp
+    # REQ-013 雷达页（探地雷达 B-scan 回放 + 疑似列表）
+    GprView.cpp
+    GprBScanWidget.cpp
+    GprSuspectPanel.cpp
 )
 
 set(MAINWINDOW_HEADERS
@@ -44,6 +48,9 @@ set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/TargetCardWidget.h
     ${HEADERS_DIR}/MainWindow/PlanCardWidget.h
     ${HEADERS_DIR}/MainWindow/UiIcons.h
+    ${HEADERS_DIR}/MainWindow/GprView.h
+    ${HEADERS_DIR}/MainWindow/GprBScanWidget.h
+    ${HEADERS_DIR}/MainWindow/GprSuspectPanel.h
 )
 
 set(CMAKE_AUTOMOC ON)
@@ -60,10 +67,14 @@ target_link_libraries(MainWindow
     Qt5::3DCore
     Qt5::3DRender
     Qt5::3DExtras
+    # REQ-013 雷达页：Concurrent 用于通道数据异步加载；
+    # GPR 库提供数据层 API（同时透传 GPR_SAMPLE_DATA_DIR 编译宏）
+    Qt5::Concurrent
     Common
     Core
     QtAwesome
     Detection
+    GPR
 )
 
 # 编译期注入媒体资产目录宏（演示卫星图/视频路径解析，与 Detection 的

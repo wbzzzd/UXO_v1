@@ -65,6 +65,7 @@ add_subdirectory(third_party/QtAwesome)
 add_subdirectory(src/Common)
 add_subdirectory(src/Core)
 add_subdirectory(src/Detection)
+add_subdirectory(src/GPR)
 # REQ-012 数据平台接入：Integration 静态库（P0 纯适配器，API 通道，不进入模拟链）
 add_subdirectory(src/Integration)
 add_subdirectory(src/MainWindow)
@@ -457,6 +458,107 @@ set_tests_properties(mos_runway_closure PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
 )
 
+# ---- GPR 解析层单元测试（REQ-013）----
+# 合成 fixture 为主；真实数据 smoke 由 GPR_SAMPLE_DATA_DIR 宏控制，数据缺失时自动 QSKIP。
+
+# GPR .rad 采集参数头解析测试
+add_executable(UXOMissionControlGprHeaderTest
+    tests/gpr_header_test.cpp
+)
+target_include_directories(UXOMissionControlGprHeaderTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprHeaderTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_header COMMAND UXOMissionControlGprHeaderTest)
+
+# GPR .rd3 B-Scan 懒加载读取测试（含逐通道 t0 初至估计）
+add_executable(UXOMissionControlGprBScanTest
+    tests/gpr_bscan_test.cpp
+)
+target_include_directories(UXOMissionControlGprBScanTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprBScanTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_bscan COMMAND UXOMissionControlGprBScanTest)
+
+# GPR 数据集目录扫描测试（H/L 两组 × 16 通道文件组聚合、缺失通道报告）
+add_executable(UXOMissionControlGprDatasetTest
+    tests/gpr_dataset_test.cpp
+)
+target_include_directories(UXOMissionControlGprDatasetTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprDatasetTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_dataset COMMAND UXOMissionControlGprDatasetTest)
+
+# GPR .cor RTK 轨迹解析测试（道号 1:1 对齐、间隙插值、UTC 时间戳、高斯重平滑）
+add_executable(UXOMissionControlGprTrackTest
+    tests/gpr_track_test.cpp
+)
+target_include_directories(UXOMissionControlGprTrackTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprTrackTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_track COMMAND UXOMissionControlGprTrackTest)
+
+# GPR 阈值候选检测测试（预研验证管线移植；检测仅作候选标记，人工复核必需）
+add_executable(UXOMissionControlGprDetectorTest
+    tests/gpr_detector_test.cpp
+)
+target_include_directories(UXOMissionControlGprDetectorTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprDetectorTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_detector COMMAND UXOMissionControlGprDetectorTest)
+
+# 雷达页（GprView）离屏 UI 契约测试（REQ-013 / gpr-display.md §7.3）：
+# 稳定对象名、空态降级、频段/通道切换信号、疑似意图转发、[模拟] 标注；
+# 真实样例数据用例由 GPR_SAMPLE_DATA_DIR 宏控制，数据缺失时自动 QSKIP。
+add_executable(UXOMissionControlGprViewTest
+    tests/gpr_view_test.cpp
+)
+target_include_directories(UXOMissionControlGprViewTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprViewTest
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    Qt5::Test
+    MainWindow
+    GPR
+    Core
+    Common
+)
+add_test(NAME gpr_view COMMAND UXOMissionControlGprViewTest)
+set_tests_properties(gpr_view PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
+)
+
+# 雷达页（GprView）离屏截图工具（人工核对用，非测试，不注册 add_test）：
+# 加载真实样例数据后按 1280×720 / 1920×1080 / 3840×2160 三视口抓帧；
+# 退出码 2=数据缺失 / 3=加载失败 / 4=保存失败。
+add_executable(UXOMissionControlGprScreenshotTool
+    tests/gpr_screenshot_tool.cpp
+)
+target_include_directories(UXOMissionControlGprScreenshotTool PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprScreenshotTool
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    MainWindow
+    GPR
+    Core
+    Common
+)
 # REQ-012 W2 契约错误模型单元测试：契约 §8 错误载荷解析（10 个错误码映射、400 聚合、非法回退），纯逻辑不依赖网络
 add_executable(UXOMissionControlIntegrationApiErrorTest
     tests/integration_api_error_test.cpp
