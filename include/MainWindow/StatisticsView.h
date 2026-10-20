@@ -1,10 +1,10 @@
 #ifndef MAINWINDOW_STATISTICSVIEW_H
 #define MAINWINDOW_STATISTICSVIEW_H
 
-// REQ-013 统计页视图（数据平台只读消费端，导航 index 4）。
-// 依据 docs/requirements/REQ-013「统计项清单」与 docs/features/statistics-data-platform.md §2/§3：
+// REQ-014 统计页视图（数据平台只读消费端，导航 index 4）。
+// 依据 docs/requirements/REQ-014「统计项清单」与 docs/features/statistics-data-platform.md §2/§3：
 //   - 全部数据经 StatisticsController 值类型信号到达（快照/明细分页），无任何模拟回退；
-//     数据平台不可用时展示显式不可用态与重试入口（REQ-013 A3），不显示编造数据；
+//     数据平台不可用时展示显式不可用态与重试入口（REQ-014 A3），不显示编造数据；
 //   - 快照携带词表副本（9 表 61 项）驱动过滤下拉与明细词表列显示，UI 不访问 VocabularyCache；
 //   - 三态页面：加载中 / 错误（消息+重试）/ 就绪（快照时间行 + 5 概览卡片 + 10 分布图 +
 //     近 30 天趋势 + 告警处理统计 + 5 实体明细分页表）；

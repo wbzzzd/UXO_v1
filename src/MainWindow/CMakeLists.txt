@@ -25,6 +25,10 @@ set(MAINWINDOW_SOURCES
     StatisticsAggregation.cpp
     StatisticsController.cpp
     StatisticsView.cpp
+    # REQ-013 雷达页（探地雷达 B-scan 回放 + 疑似列表）
+    GprView.cpp
+    GprBScanWidget.cpp
+    GprSuspectPanel.cpp
 )
 
 set(MAINWINDOW_HEADERS
@@ -51,6 +55,9 @@ set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/StatisticsController.h
     ${HEADERS_DIR}/MainWindow/StatisticsSnapshot.h
     ${HEADERS_DIR}/MainWindow/StatisticsView.h
+    ${HEADERS_DIR}/MainWindow/GprView.h
+    ${HEADERS_DIR}/MainWindow/GprBScanWidget.h
+    ${HEADERS_DIR}/MainWindow/GprSuspectPanel.h
 )
 
 set(CMAKE_AUTOMOC ON)
@@ -68,10 +75,14 @@ target_link_libraries(MainWindow
     Qt5::3DRender
     Qt5::3DExtras
     Qt5::Charts
+    # REQ-013 雷达页：Concurrent 用于通道数据异步加载；
+    # GPR 库提供数据层 API（同时透传 GPR_SAMPLE_DATA_DIR 编译宏）
+    Qt5::Concurrent
     Common
     Core
     QtAwesome
     Detection
+    GPR
     Integration
 )
 

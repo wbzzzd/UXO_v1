@@ -1,6 +1,6 @@
-// REQ-013 统计页聚合层实现：纯函数，输入全量实体转储 + 词表副本 + 基准时刻，
+// REQ-014 统计页聚合层实现：纯函数，输入全量实体转储 + 词表副本 + 基准时刻，
 // 输出快照全部统计内容（卡片/分布/趋势/告警汇总）。
-// 口径见 docs/requirements/REQ-013「统计项清单」与
+// 口径见 docs/requirements/REQ-014「统计项清单」与
 // docs/features/statistics-data-platform.md §5（聚合语义）/§9（图型规则）。
 
 #include "MainWindow/StatisticsAggregation.h"

@@ -2,18 +2,18 @@
 
 ## 会话目标
 
-完成 REQ-013 统计页数据平台可视化全周期：需求 Draft→Approved（用户 2026-10-13 批准）→ 冻结接口契约 → `feature/statistics-page` 分支实现（W1 数据层 / W2 UI 层 / W3 集成）→ A2/A3/A6 实测验收 → W4 文档回写 → `Implemented`。执行计划：`.omo/plans/20261013-statistics-page-plan.md`（§8 进度台账为逐阶段证据权威）。
+完成 REQ-014 统计页数据平台可视化全周期：需求 Draft→Approved（用户 2026-10-13 批准）→ 冻结接口契约 → `feature/statistics-page` 分支实现（W1 数据层 / W2 UI 层 / W3 集成）→ A2/A3/A6 实测验收 → W4 文档回写 → `Implemented`。执行计划：`.omo/plans/20261013-statistics-page-plan.md`（§8 进度台账为逐阶段证据权威）。
 
 ## 执行内容
 
-1. REQ-013 状态翻转 `Approved` + §9 四项决策落定；冻结 `include/MainWindow/StatisticsSnapshot.h`、`StatisticsController.h` 接口契约（此后未改）；建分支 `feature/statistics-page`（基 `133669f`）。
+1. REQ-014 状态翻转 `Approved` + §9 四项决策落定；冻结 `include/MainWindow/StatisticsSnapshot.h`、`StatisticsController.h` 接口契约（此后未改）；建分支 `feature/statistics-page`（基 `133669f`）。
 2. W1 数据层（委托通道 `ses_eccd23235ffefK73Rcdqp5GKip`）：`StatisticsAggregation` 纯函数聚合（契约无聚合端点 → 客户端 page_size=100 翻页全拉本地聚合）、`StatisticsController`（MainWindow 层首个真 QThread 控制器：worker 懒建独占 HttpClient/DataPlatformApi/VocabularyCache，值拷贝信号、revision 守卫、析构 quit+wait）、`tests/statistics_aggregation_test.cpp`。
 3. W2 UI 层（委托通道 `ses_eccd13d5affesdY4etAOEPH8PH`）：`StatisticsView` 三态页（加载中 / 显式不可用+重试 / 就绪，1230 行）、MainWindow 接线（页面栈 index 4=统计页，index 3=设备占位 filler，导航 case 4 触发 triggerLoad 懒加载）、全部 CMake（根 +Charts、MainWindow +3 源 4 头、测试目标 `UXOMissionControlStatisticsAggregationTest`）。
 4. W3 集成：全量构建 107/107 CONFIGURE/BUILD 退出码 0；全量 ctest 22/24，失败集合精确 = HEAD 预存 `{video_render_capture, stop_select_flicker_repro}`（REQ-012 会话记录 line 18 铁证），判定零回归；`statistics_aggregation`（#24）与 integration #18–#23 全过。
 5. A2 真实数据核验：独立脚本直打数据平台 API 聚合作地面真值，与离屏 harness（`QT_QPA_PLATFORM=offscreen` 实例化真实 MainWindow，`/tmp/opencode/a2h/` 临时工具未入库）捕获的 controller 信号落盘比对，**73/73 项 PASS**；截图确认图表渲染与中文无乱码。两项比对曾 FAIL 均证为比对脚本伪报（"近24小时在线"标签含数字 24 → 改尾部匹配；真值平均处置时长曾 round 1dp → 改全精度），实现零改动。
 6. A6 线程回收：harness 三次运行均干净退出（退出码 0），worker quit+wait 即时返回无挂死。
 7. A3 不可用态：**连接拒绝代理法**（免停库）：`UXO_API_PORT=18099` 指死端口 → 首抓失败 → 显式不可用态（红色错误文案 + 重试按钮可见、零数据渲染）→ 启动 python TCP 代理 18099→8080（自检 health 200）→ 第 11 次点击真实重试按钮恢复完整数据，`A3_EXIT=0`。首轮编排失败根因 = shell `&&` 链与结尾 `&` 优先级歧义致代理未监听，改独立编排脚本 `a3_run.sh` 后一次通过。
-8. W4 文档回写（委托 writing 通道 `ses_ecc4e26b5ffeM0izwFht58y678`）：UI.md（新增 §4.6 统计页节 + 路由/导航修正）、ARCHITECTURE.md（§2 模块表/mermaid/QThread 纪律段、§3 外部数据边界）、DEVELOPMENT.md（+Charts、测试登记、构建树）、PRODUCT.md（§5.5 首消费方句、§6 已完成行）、REQ-013.md → `Implemented`（+验收结果 A1–A6 + 实现事实）、requirements/README.md 两处索引、features/statistics-data-platform.md → `Implemented`（+§10 完成记录）。
+8. W4 文档回写（委托 writing 通道 `ses_ecc4e26b5ffeM0izwFht58y678`）：UI.md（新增 §4.6 统计页节 + 路由/导航修正）、ARCHITECTURE.md（§2 模块表/mermaid/QThread 纪律段、§3 外部数据边界）、DEVELOPMENT.md（+Charts、测试登记、构建树）、PRODUCT.md（§5.5 首消费方句、§6 已完成行）、REQ-014.md → `Implemented`（+验收结果 A1–A6 + 实现事实）、requirements/README.md 两处索引、features/statistics-data-platform.md → `Implemented`（+§10 完成记录）。
 
 ## 验证结果
 
@@ -21,7 +21,7 @@
 - **A2 73/73**：卡片 49/36/18/18/18 与全部副指标、10 分布计数多重集 + 中文词表标签、6 趋势 30 点 + 非零日字典（仅 10-11/10-13）+ defaultVisible=TTTTFF、告警汇总 handled 9 / unhandled 9 / 平均处置 0.15333333333333332s 全精度一致、明细 5 页签 total/行数/首行；视觉证据链（整页/整窗/明细 + 13 张 QChartView 抓图，趋势图标题与图例、饼柱数值、明细表 7 列与页脚"第 1 / 1 页 · 共 18 条"均确认）。
 - **A3**：不可用态文案 `数据平台不可用：health: HTTP 0 network_error 网络层请求失败（无 HTTP 响应）` 红色显式展示 + 重试可见；恢复后五卡片 + 图表全量渲染。
 - **A6**：三次干净退出。
-- **W4 复核**（主 agent）：`git status` 仅预期文件；状态翻转计数命中（REQ-013 ×3 / features ×2 / README 索引两处）；W4 零源码树改动（src/include/tests 改动全部属 W1–W3 实现批）。
+- **W4 复核**（主 agent）：`git status` 仅预期文件；状态翻转计数命中（REQ-014 ×3 / features ×2 / README 索引两处）；W4 零源码树改动（src/include/tests 改动全部属 W1–W3 实现批）。
 
 ### 用户实测验证（2026-10-13，提交推送后用户亲自操作）
 

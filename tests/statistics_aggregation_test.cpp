@@ -1,6 +1,6 @@
-// REQ-013 统计页聚合层单元测试：验证纯函数 aggregateStatistics 的全部口径
+// REQ-014 统计页聚合层单元测试：验证纯函数 aggregateStatistics 的全部口径
 //（清单 A 概览卡片 / B 分布图 / C 日趋势 / D 告警处理统计，见
-// docs/requirements/REQ-013 与 docs/features/statistics-data-platform.md
+// docs/requirements/REQ-014 与 docs/features/statistics-data-platform.md
 // §5 聚合语义 / §9 图型规则）。
 // 全部实体与词表为本地合成数据（不触网、不依赖数据平台服务）；
 // 时间基准统一固定为 2026-10-13 12:00 UTC，趋势窗口 = [2026-09-14, 2026-10-13]。

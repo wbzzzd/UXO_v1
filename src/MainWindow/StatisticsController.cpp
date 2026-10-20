@@ -1,4 +1,4 @@
-// REQ-013 统计页控制器实现：controller/worker 双对象 + 真 QThread。
+// REQ-014 统计页控制器实现：controller/worker 双对象 + 真 QThread。
 // - controller（UI 线程）：revision 自增派发快照请求，陈旧结果（revision 不匹配）丢弃；
 // - worker（m_workerThread）：懒建并独占 DataPlatformApi/VocabularyCache，
 //   快照任务 = 健康检查 → 词表加载 → 五实体全量分页拉取 → 纯聚合 → 补全元数据；

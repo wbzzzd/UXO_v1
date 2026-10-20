@@ -1,4 +1,4 @@
-// REQ-013 统计页视图实现（UI 层：数据平台只读消费端，导航 index 4）。
+// REQ-014 统计页视图实现（UI 层：数据平台只读消费端，导航 index 4）。
 // 纪律：
 //   - 本文件只经 StatisticsController 的值类型信号槽交互，不接触任何 Integration/Core
 //     对象；全部渲染输入来自 StatisticsSnapshot / StatisticsListPage 值拷贝；
@@ -263,7 +263,7 @@ void StatisticsView::buildUi()
     loadingLabel->setAlignment(Qt::AlignCenter);
     loadingLayout->addWidget(loadingLabel);
 
-    // ---- 状态二：数据平台不可用（显式错误 + 重试，REQ-013 A3）----
+    // ---- 状态二：数据平台不可用（显式错误 + 重试，REQ-014 A3）----
     m_errorPage = new QWidget(this);
     QVBoxLayout *errorLayout = new QVBoxLayout(m_errorPage);
     errorLayout->addStretch();
@@ -652,7 +652,7 @@ QLineEdit *StatisticsView::addIdFilter(QHBoxLayout *layout, const QString &place
 // 进页加载 / 手动刷新与三态切换
 // ============================================================================
 
-// 进页加载与手动刷新同一入口：刷新期间旧内容整体置灰不清空（REQ-013 A3 交互）
+// 进页加载与手动刷新同一入口：刷新期间旧内容整体置灰不清空（REQ-014 A3 交互）
 void StatisticsView::triggerLoad()
 {
     m_readyContent->setEnabled(false);

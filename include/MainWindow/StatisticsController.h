@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_STATISTICSCONTROLLER_H
 #define MAINWINDOW_STATISTICSCONTROLLER_H
 
-// REQ-013 统计页控制器：MainWindow 层首个真 QThread 控制器。
+// REQ-014 统计页控制器：MainWindow 层首个真 QThread 控制器。
 // 模式沿用 MosPlanningController（include/MainWindow/MosPlanningController.h）：
 //   - 值拷贝进/出：快照请求仅带 revision，列表请求按值携带过滤器；
 //   - revision 守卫：陈旧快照完成结果在 controller 侧丢弃，不向 UI 转发；

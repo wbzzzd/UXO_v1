@@ -1,8 +1,8 @@
 #ifndef MAINWINDOW_STATISTICSSNAPSHOT_H
 #define MAINWINDOW_STATISTICSSNAPSHOT_H
 
-// REQ-013 统计页数据快照（值类型）：worker 线程聚合完成后经排队信号整体回投 UI 线程。
-// 依据 docs/requirements/REQ-013「统计项清单」与 docs/features/statistics-data-platform.md §5：
+// REQ-014 统计页数据快照（值类型）：worker 线程聚合完成后经排队信号整体回投 UI 线程。
+// 依据 docs/requirements/REQ-014「统计项清单」与 docs/features/statistics-data-platform.md §5：
 //   - 全部数据来自本地数据平台真实数据（只读）；UI 线程只持有本值类型，不接触任何
 //     Integration/Core 对象指针或引用；
 //   - 快照携带词表副本（9 表 61 项，加载后只读）：分布桶标签、明细区词表列与过滤下拉
