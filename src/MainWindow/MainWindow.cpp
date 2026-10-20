@@ -841,6 +841,16 @@ void MainWindow::onSourceModeChanged(Core::Uplink::SourceMode mode)
     }
     // 状态栏 [模拟模式] 标识与数据源联动
     m_statusBarWidget->setSimulationMode(mode == Core::Uplink::SourceMode::Simulation);
+    // 切源清空上一数据源的探测产物：目标列表/地图标记/无人机航迹/检测框/探测页结果，
+    // 避免旧源目标在新源下残留（模拟目标切真实后不消失问题，C 项修复）
+    m_leftPanel->setTargets({});
+    m_tacticalMap->clearTargets();
+    m_tacticalMap->clearDroneTrack();
+    m_videoPiP->overlay()->clear();
+    m_targetDetailOverlay->reset();
+    m_detectionView->clearResults();
+    m_targetCounter = 0;
+    m_evidenceByTargetId.clear();
     updateSourceBadge();
     updateSourceControlStates();
 }
@@ -880,6 +890,10 @@ void MainWindow::onLinkStateChanged(Core::Uplink::LinkState state)
         // 曾连接后断链: 不自动切回模拟，数据流入暂停等待用户处理（§6.1）
         m_statusBarWidget->addAlarm(
             QStringLiteral("[链路] 真实链路断链，数据流入暂停（不自动切回模拟）"));
+        // D2-a 修复：停止真实源复位运行标志——段控件与「开始」按钮解锁，两击重连路径成立；
+        // stop() 重发 Disconnected 经源/管理器双层变更守卫抑制，无信号重入；
+        // 模式保持 RealLink、徽标保持断链——保留「不自动切回模拟，用户裁决」语义（§6.1）
+        m_telemetryManager->stop();
         break;
     default:
         break;
@@ -1302,7 +1316,7 @@ void MainWindow::updateSourceBadge()
     } else {
         switch (m_telemetryManager->linkState()) {
         case Core::Uplink::LinkState::Connected:
-            text = QStringLiteral("真实数据");
+            text = QStringLiteral("真实数据·已连接");
             color = GlobalStyle::Colors::TierBlue;
             break;
         case Core::Uplink::LinkState::Connecting:

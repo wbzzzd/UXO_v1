@@ -13,9 +13,15 @@
 #include <QPushButton>
 #include <QEvent>
 #include <QTimer>
+#include <QTime>
 
 // 标题栏高度 (像素, 对齐原型 --pip-titlebar-h: 24px)
 static constexpr int kTitleBarHeight = 24;
+// 直播源自动重连参数（REQ-012 WP7 ④ 黑屏修复）: 基础退避 1s 指数增长、
+// 封顶 5s、无限重试；稳定播放 ≥30s 后的故障视为新故障从头退避
+static constexpr int kReconnectBaseDelayMs = 1000;
+static constexpr int kReconnectMaxDelayMs = 5000;
+static constexpr int kStablePlayResetMs = 30000;
 
 VideoStreamPanel::VideoStreamPanel(QWidget *parent)
     : QWidget(parent)
@@ -85,6 +91,20 @@ void VideoStreamPanel::setupUi()
     m_videoWidget->installEventFilter(this);
     m_overlay->setGeometry(m_videoWidget->rect());
 
+    // 断流重连提示徽标（WP7 验收②）: 直播链路中断期间在视频区中央显示
+    // 「重连中」提示, 直播恢复后隐藏; 默认隐藏不影响正常观感。
+    // 作为 QVideoWidget 子 widget 与 HUD 叠加层同层渲染（非原生叠加与
+    // 原生视频表面直接叠放会有合成冲突, 同 overlay 的根因处理方式）
+    m_reconnectBadge = new QLabel(m_videoWidget);
+    m_reconnectBadge->setAlignment(Qt::AlignCenter);
+    // (c) 警示橙 #FFB84D 不在全局 QSS 词表, 徽标属一次性提示元素,
+    // 保留内联样式（同 VideoBackground 内联先例）
+    m_reconnectBadge->setStyleSheet(
+        QStringLiteral("background-color: rgba(0, 0, 0, 170);"
+                       "color: #FFB84D; border-radius: 6px;"
+                       "padding: 6px 14px; font-weight: bold;"));
+    m_reconnectBadge->hide();
+
     mainLayout->addWidget(m_videoArea, 1);
 
     // QMediaPlayer: 输出到 QVideoWidget (原生渲染)
@@ -106,6 +126,16 @@ void VideoStreamPanel::setupUi()
             this, &VideoStreamPanel::onStateChanged);
     connect(m_player, &QMediaPlayer::mediaStatusChanged,
             this, &VideoStreamPanel::onMediaStatusChanged);
+    // 播放器错误信号（error 与 getter 同名，Qt5 须 QOverload 消歧）:
+    // 直播源错误按链路中断转入自动重连（REQ-012 WP7 ④ 黑屏修复）
+    connect(m_player, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
+            this, &VideoStreamPanel::onPlayerError);
+
+    // 直播自动重连定时器: 单次触发，到点重设媒体并重播
+    m_reconnectTimer = new QTimer(this);
+    m_reconnectTimer->setSingleShot(true);
+    connect(m_reconnectTimer, &QTimer::timeout,
+            this, &VideoStreamPanel::onReconnectTimeout);
 
     m_extractionTimer = new QTimer(this);
     m_extractionTimer->setInterval(3000);
@@ -198,6 +228,10 @@ bool VideoStreamPanel::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == m_videoWidget && event->type() == QEvent::Resize) {
         m_overlay->setGeometry(m_videoWidget->rect());
+        // ② 视频区缩放时保持重连徽标居中（仅可见时调整, 避免无谓 move）
+        if (m_reconnectBadge && m_reconnectBadge->isVisible()) {
+            centerReconnectBadge();
+        }
     }
     return QWidget::eventFilter(watched, event);
 }
@@ -223,6 +257,8 @@ void VideoStreamPanel::loadVideo(const QString& path)
     m_liveSource = false;
     m_liveClock.invalidate();
     m_lastFrame = QImage();
+    // 撤销挂起的自动重连（旧直播源的重连对新源无意义）
+    stopReconnect();
     m_player->setMedia(QUrl::fromLocalFile(path));
 }
 
@@ -234,8 +270,10 @@ void VideoStreamPanel::loadStreamUrl(const QString& url)
         return;
     }
     m_liveSource = true;
+    m_liveUrl = QUrl(url);  // 缓存直播源: 中断后据此重建管道
     m_liveClock.invalidate();
     m_lastFrame = QImage();
+    stopReconnect();  // 手动换源=新一轮连接预算，撤销旧重连排程
     m_player->setMedia(QUrl(url));
 }
 
@@ -247,6 +285,10 @@ void VideoStreamPanel::play()
     }
     m_player->play();
     m_extractionTimer->start();
+    // 起播即开稳态窗口: 直播稳定播放 ≥30s 后的故障按新故障从头退避
+    if (m_liveSource) {
+        m_stablePlayStamp.start();
+    }
 }
 
 void VideoStreamPanel::pause()
@@ -326,13 +368,29 @@ void VideoStreamPanel::onStateChanged(QMediaPlayer::State state)
     // HUD 动画 (REC 闪烁/时间码) 仅播放中驱动; 停止/暂停时停掉 500ms 重绘,
     // 避免持续重绘停止态原生视频表面 (结束->选中后黑块闪烁根因)
     m_overlay->setHudActive(state == QMediaPlayer::PlayingState);
+    // ② 直播恢复播放=链路已通, 撤下「重连中」徽标（与 BufferedMedia 双保险,
+    // 覆盖后端不发 BufferedMedia 的场景; 断流重试中的短暂 Playing 会被随后的
+    // 错误重新点亮徽标, 该瞬时闪隐可接受）
+    if (state == QMediaPlayer::PlayingState) {
+        hideReconnectBadge();
+    }
     emit stateChanged(state);
 }
 
 void VideoStreamPanel::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
 {
-    // 直播流无「结尾」语义: EndOfMedia/videoEnded 不适用（REQ-012 WP5 裁决④）
+    // 直播流无「结尾」语义（REQ-012 WP5 裁决④）: 不发 videoEnded、不 pause。
+    // 但 EndOfMedia/InvalidMedia 对直播意味着「链路中断」（如中转重启截断流），
+    // 转入自动重连而非静默黑屏（REQ-012 WP7 ④ 黑屏修复）
     if (m_liveSource) {
+        // ② 媒体数据实际缓冲到位 = 链路已恢复, 撤下「重连中」徽标
+        if (status == QMediaPlayer::BufferedMedia) {
+            hideReconnectBadge();
+        }
+        if (status == QMediaPlayer::EndOfMedia
+                || status == QMediaPlayer::InvalidMedia) {
+            scheduleReconnect(QStringLiteral("媒体状态 %1").arg(int(status)));
+        }
         return;
     }
     // 媒体到达结尾: 暂停播放并发出 videoEnded 信号
@@ -352,15 +410,128 @@ void VideoStreamPanel::onFrameProbed(const QVideoFrame &frame)
     if (fmt != QImage::Format_Invalid) {
         m_lastFrame = QImage(copy.bits(), copy.width(), copy.height(),
                              copy.bytesPerLine(), fmt).copy();
+        // 新帧到位, 递增序号允许下一次抽帧送检
+        ++m_frameSerial;
     }
     copy.unmap();
 }
 
 void VideoStreamPanel::onExtractionTimer()
 {
-    if (m_lastFrame.isNull()) {
+    // 幽灵目标修复: 仅在拦截到新帧后才送检; 视频流停滞/中断时
+    // m_lastFrame 冻结不变, 不再把同一帧反复送检测引擎产生重复目标
+    if (m_lastFrame.isNull() || m_frameSerial == m_lastExtractedSerial) {
         return;
     }
+    m_lastExtractedSerial = m_frameSerial;
     // 时间戳统一走 position(): 文件源=播放器位置, 直播源=本地时钟（REQ-012 WP5 裁决④）
     emit frameExtracted(m_lastFrame, position());
+}
+
+// 撤销挂起的自动重连并复位计数（换源时调用: 旧源的重连对新源无意义）
+void VideoStreamPanel::stopReconnect()
+{
+    if (m_reconnectTimer) {
+        m_reconnectTimer->stop();
+    }
+    m_reconnectAttempts = 0;
+    m_stablePlayStamp.invalidate();
+    // ② 换源撤销重连时同步撤下断流提示徽标
+    hideReconnectBadge();
+}
+
+// 直播链路中断后排程自动重连: 退避 1s→2s→4s→封顶 5s 无限重试；
+// 稳定播放 ≥30s 后的故障按新故障从头退避；同一故障周期内重复错误只排程一次
+void VideoStreamPanel::scheduleReconnect(const QString& reason)
+{
+    if (!m_liveSource) {
+        return;  // 文件源错误不属于链路中断，保持原有语义不自动恢复
+    }
+    if (m_reconnectTimer->isActive()) {
+        return;  // 本周期已排程（error 与 InvalidMedia 常并发到达），不叠加
+    }
+    if (m_stablePlayStamp.isValid()
+            && m_stablePlayStamp.elapsed() >= kStablePlayResetMs) {
+        // 上一轮连接曾稳定运行: 视为新故障，退避从头计
+        m_reconnectAttempts = 0;
+    }
+    m_stablePlayStamp.invalidate();
+    // 移位封顶 3 防 int 溢出（1000<<3=8000 已超 5s 上限，qMin 兜底）
+    const int shift = qMin(m_reconnectAttempts, 3);
+    const int delayMs = qMin(kReconnectMaxDelayMs, kReconnectBaseDelayMs << shift);
+    ++m_reconnectAttempts;
+    qWarning() << "[VideoStreamPanel] 直播链路中断:" << reason
+               << "|" << m_reconnectAttempts << "次重连将于" << delayMs << "ms 后执行";
+    // ② 断流期间在视频区中央显示「重连中」徽标（带尝试次数）
+    showReconnectBadge();
+    // 停掉残留的半死管道，重连时经 setMedia 重建
+    m_player->stop();
+    m_reconnectTimer->start(delayMs);
+}
+
+// 播放器错误回调: 直播源的网络/资源错误按链路中断转入自动重连
+void VideoStreamPanel::onPlayerError(QMediaPlayer::Error error)
+{
+    if (!m_liveSource) {
+        return;
+    }
+    scheduleReconnect(QStringLiteral("播放器错误 %1: %2")
+                          .arg(int(error))
+                          .arg(m_player->errorString()));
+}
+
+// 重连到点: 重设媒体强制重建 GStreamer 管道（半死管道仅 play() 无法复活）；
+// 经 play() 统一处理稳态窗口与抽帧定时器，本地直播时钟保持连续（时间戳单调）
+void VideoStreamPanel::onReconnectTimeout()
+{
+    if (!m_liveSource) {
+        return;  // 等待期间已切回文件源，放弃本次重连
+    }
+    qWarning() << "[VideoStreamPanel] 自动重连: setMedia + play";
+    m_player->setMedia(m_liveUrl);
+    play();
+}
+
+// === 断流重连提示徽标（WP7 验收②: 断流期间画面给出可感知的重连提示）===
+
+// 显示徽标: 更新尝试次数文案并居中到视频区, 同时输出时间戳日志供验收取证
+void VideoStreamPanel::showReconnectBadge()
+{
+    if (!m_reconnectBadge) {
+        return;
+    }
+    m_reconnectBadge->setText(
+        QStringLiteral("视频连接中断，正在重连…（第 %1 次）")
+            .arg(m_reconnectAttempts));
+    centerReconnectBadge();
+    m_reconnectBadge->raise();
+    m_reconnectBadge->show();
+    qWarning() << "[VideoStreamPanel]"
+               << QTime::currentTime().toString("hh:mm:ss.zzz")
+               << "断流提示徽标已显示（第" << m_reconnectAttempts
+               << "次重连已排程）";
+}
+
+// 隐藏徽标: 直播恢复/切源时调用; 仅在可见时隐藏并打日志, 避免刷屏
+void VideoStreamPanel::hideReconnectBadge()
+{
+    if (!m_reconnectBadge || !m_reconnectBadge->isVisible()) {
+        return;
+    }
+    m_reconnectBadge->hide();
+    qWarning() << "[VideoStreamPanel]"
+               << QTime::currentTime().toString("hh:mm:ss.zzz")
+               << "断流提示徽标已隐藏（直播恢复）";
+}
+
+// 徽标居中: 按当前文本自适应尺寸后摆放到视频区中央（父 widget 坐标系）
+void VideoStreamPanel::centerReconnectBadge()
+{
+    if (!m_reconnectBadge || !m_videoWidget) {
+        return;
+    }
+    m_reconnectBadge->adjustSize();
+    const QRect r = m_videoWidget->rect();
+    m_reconnectBadge->move(r.center().x() - m_reconnectBadge->width() / 2,
+                           r.center().y() - m_reconnectBadge->height() / 2);
 }

@@ -58,6 +58,9 @@ void MqttTelemetrySource::start()
 {
     m_running = true;
     if (m_client->isConnected()) {
+        // 已连路径直接补齐契约主题订阅（连接可能绕过了 onClientConnectionEstablished），
+        // 再宣告 Connected，杜绝"已连接但无数据"的僵尸态（D1 修复）
+        subscribeContractTopics();
         setLinkState(LinkState::Connected);
         return;
     }
@@ -88,16 +91,25 @@ bool MqttTelemetrySource::isRunning() const
 void MqttTelemetrySource::onClientConnectionEstablished()
 {
     if (!m_running) {
+        // 非运行期收到连接建立事件（迟到回调/僵尸会话）：立即断开，
+        // 避免保活一个未订阅的半活连接污染后续 start() 的 isConnected 判定（D2 修复）
+        m_client->disconnectFromBroker();
         return;
     }
     // 连接建立后订阅契约主题；单项失败仅告警不中断（另一主题仍可用）
+    subscribeContractTopics();
+    setLinkState(LinkState::Connected);
+}
+
+void MqttTelemetrySource::subscribeContractTopics()
+{
+    // 订阅契约主题；单项失败仅告警不中断（另一主题仍可用）
     if (!m_client->subscribe(QString::fromLatin1(TOPIC_OSD_FILTER), OSD_QOS)) {
         qWarning() << "[MqttTelemetrySource] OSD 主题订阅失败:" << TOPIC_OSD_FILTER;
     }
     if (!m_client->subscribe(QString::fromLatin1(TOPIC_EVENTS_FILTER), EVENTS_QOS)) {
         qWarning() << "[MqttTelemetrySource] events 主题订阅失败:" << TOPIC_EVENTS_FILTER;
     }
-    setLinkState(LinkState::Connected);
 }
 
 void MqttTelemetrySource::onClientConnectionDropped(const QString &reason)

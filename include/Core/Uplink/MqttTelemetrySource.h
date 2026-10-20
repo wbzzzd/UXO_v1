@@ -40,6 +40,8 @@ private slots:
     void onClientMessageArrived(const QString &topic, const QString &payload);
 
 private:
+    // 订阅契约主题（OSD/events），供连接建立回调与 start() 已连补订路径复用
+    void subscribeContractTopics();
     // 解析 OSD 遥测报文，有效则发 telemetryUpdated
     void handleOsdPayload(const QString &payload);
     // 解析事件报文（HMS 等），有效则发 alertReceived

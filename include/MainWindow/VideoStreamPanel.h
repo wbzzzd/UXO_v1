@@ -10,6 +10,7 @@
 #include <QMediaPlayer>
 #include <QElapsedTimer>
 #include <QImage>
+#include <QUrl>
 
 class QLabel;
 class QPushButton;
@@ -81,10 +82,25 @@ private slots:
     void onStateChanged(QMediaPlayer::State state);
     void onMediaStatusChanged(QMediaPlayer::MediaStatus status);
     void onExtractionTimer();
+    // 直播源播放器错误: 按链路中断转入自动重连（WP7 ④ 黑屏修复）
+    void onPlayerError(QMediaPlayer::Error error);
+    // 重连定时器到点: 重设媒体并重播
+    void onReconnectTimeout();
 
 private:
     void setupUi();
     void createTitleBar();
+    // 直播链路中断后排程一次自动重连（指数退避，仅直播源生效）
+    void scheduleReconnect(const QString& reason);
+    // 撤销挂起的重连并复位计数（换源时调用）
+    void stopReconnect();
+    // === 断流重连提示徽标（WP7 验收②: 断流期间画面给出可感知的重连提示）===
+    // 显示「重连中」徽标并更新尝试次数（每次排程重连时调用）
+    void showReconnectBadge();
+    // 隐藏徽标（直播恢复缓冲/恢复播放或切源时调用）
+    void hideReconnectBadge();
+    // 按当前文本自适应尺寸并居中到视频区（显示时与视频区缩放时调用）
+    void centerReconnectBadge();
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -102,13 +118,28 @@ protected:
     QVideoWidget *m_videoWidget;
     QVideoProbe *m_probe;
     QImage m_lastFrame;
+    // 帧序号: 每拦截到一帧有效视频帧递增, 用于抽帧去重
+    quint64 m_frameSerial = 0;
+    // 上次抽帧时已送检的帧序号; 与 m_frameSerial 相等表示无新帧
+    quint64 m_lastExtractedSerial = 0;
     // 直播源状态（REQ-012 WP5 裁决④）: URL 源置位，文件语义点按直播适配
     bool m_liveSource = false;
     // 直播本地时钟: play() 首次启动、换源失效；直播 position/抽帧时间戳走此时钟
     QElapsedTimer m_liveClock;
+    // === 直播源自动重连状态（REQ-012 WP7 ④ 黑屏修复）===
+    // 直播源 URL 缓存: 中断后据此重建管道（面板仍不解析协议，§9-2 护栏不变）
+    QUrl m_liveUrl;
+    // 单次触发重连定时器（指数退避控制）
+    QTimer *m_reconnectTimer = nullptr;
+    // 本轮故障已连续重连次数（决定下次退避时长）
+    int m_reconnectAttempts = 0;
+    // 本次起播时刻: 稳定播放 ≥30s 后的故障按新故障从头退避
+    QElapsedTimer m_stablePlayStamp;
     QTimer *m_extractionTimer = nullptr;
     VideoOverlayWidget *m_overlay;
     QWidget *m_videoArea;
+    // 断流重连提示徽标: 覆盖在视频画面中央, 默认隐藏（WP7 验收②）
+    QLabel *m_reconnectBadge = nullptr;
 };
 
 #endif

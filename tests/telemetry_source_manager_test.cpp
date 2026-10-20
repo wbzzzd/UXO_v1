@@ -133,7 +133,8 @@ void TelemetrySourceManagerTest::modeSwitchBasics()
     manager.setMode(Core::Uplink::SourceMode::RealLink);
     QCOMPARE(manager.mode(), Core::Uplink::SourceMode::RealLink);
     QCOMPARE(modeSpy.count(), 1);
-    QVERIFY(!manager.isRunning());  // 原本未运行，新源不自动启动
+    // 新契约（死锁修复）：进入真实链路即自动启动连接，运行标志恒置位（与本机 1883 有无网关无关）
+    QVERIFY(manager.isRunning());
 
     manager.setMode(Core::Uplink::SourceMode::RealLink);  // 同模式幂等
     QCOMPARE(modeSpy.count(), 1);
@@ -142,8 +143,12 @@ void TelemetrySourceManagerTest::modeSwitchBasics()
     QCOMPARE(manager.mode(), Core::Uplink::SourceMode::Simulation);
     QCOMPARE(modeSpy.count(), 2);
 
-    // 未运行状态切换：链路状态恒为 Disconnected，不发 linkStateChanged
-    QCOMPARE(linkSpy.count(), 0);
+    // 新契约：真实链路自动启动时同步发出 Connecting→Disconnected 两拍
+    // （MqttUplinkClient::connectToBroker 同步连接、失败即回 Disconnected）；
+    // 切回模拟时链路状态已是 Disconnected，不再发拍。
+    // 注意：本断言要求本机 1883 无 MQTT 网关在线——网关在线时 Connecting 会保持到
+    // 切回模拟才补一拍 Disconnected（count=3），Connected 随后经队列回调到达
+    QCOMPARE(linkSpy.count(), 2);
     QCOMPARE(manager.linkState(), Core::Uplink::LinkState::Disconnected);
 }
 

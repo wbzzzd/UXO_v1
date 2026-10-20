@@ -89,12 +89,16 @@ void TelemetrySourceManager::setMode(SourceMode mode)
     connect(newSource, &ITelemetrySource::linkStateChanged,
             this, &TelemetrySourceManager::onSourceLinkState);
 
+    // 先广播模式切换再启动新源：MainWindow 在 modeChanged 中复位 Connecting 标志；
+    // 若先 start() 同步发出 Connecting 再复位，后续断链会被误判为残留信号、断链告警成死代码（D1 修复）
+    emit modeChanged(mode);
+
     // 保持原运行状态：旧源在跑则新源自动启动
-    if (wasRunning) {
+    // 真实链路例外：进入即自动连接（契约 §6.1 语义；连接失败经 onSourceLinkState 走断链自动回退）。
+    // 否则真实源无法经 UI 启动：段控件运行中锁定使 wasRunning 恒假，且「开始」按钮要求已连接，形成死锁
+    if (wasRunning || mode == SourceMode::RealLink) {
         newSource->start();
     }
-
-    emit modeChanged(mode);
 }
 
 SourceMode TelemetrySourceManager::mode() const
