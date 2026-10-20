@@ -30,7 +30,7 @@ public:
 
     // 加载本地视频文件（本地模拟源）
     void loadVideo(const QString& path);
-    // 加载链路视频流 URL（真实链路源，REQ-012 WP5 裁决④⑥；
+    // 加载链路视频流 URL（真实链路源，REQ-015 WP5 裁决④⑥；
     // 面板不感知协议与对端，仅接收源——§9-2 护栏）
     void loadStreamUrl(const QString& url);
     // 当前是否为直播源（loadStreamUrl 置位，loadVideo 复位）
@@ -122,11 +122,11 @@ protected:
     quint64 m_frameSerial = 0;
     // 上次抽帧时已送检的帧序号; 与 m_frameSerial 相等表示无新帧
     quint64 m_lastExtractedSerial = 0;
-    // 直播源状态（REQ-012 WP5 裁决④）: URL 源置位，文件语义点按直播适配
+    // 直播源状态（REQ-015 WP5 裁决④）: URL 源置位，文件语义点按直播适配
     bool m_liveSource = false;
     // 直播本地时钟: play() 首次启动、换源失效；直播 position/抽帧时间戳走此时钟
     QElapsedTimer m_liveClock;
-    // === 直播源自动重连状态（REQ-012 WP7 ④ 黑屏修复）===
+    // === 直播源自动重连状态（REQ-015 WP7 ④ 黑屏修复）===
     // 直播源 URL 缓存: 中断后据此重建管道（面板仍不解析协议，§9-2 护栏不变）
     QUrl m_liveUrl;
     // 单次触发重连定时器（指数退避控制）

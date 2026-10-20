@@ -1,7 +1,7 @@
 #ifndef CORE_UPLINK_MQTTTELEMETRYSOURCE_H
 #define CORE_UPLINK_MQTTTELEMETRYSOURCE_H
 
-// 真实链路遥测数据源（REQ-012 M4E WP3）
+// 真实链路遥测数据源（REQ-015 M4E WP3）
 // 通过 MQTT 订阅机场网关转发的无人机 OSD 与事件报文（报文格式见
 // scripts/sim_telemetry.py），解析后以 ITelemetrySource 统一信号发布。
 // 只读订阅，不发布任何下行命令。

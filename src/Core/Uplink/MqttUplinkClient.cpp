@@ -1,4 +1,4 @@
-// MQTT 上行链路客户端实现（REQ-012 M4E WP3）
+// MQTT 上行链路客户端实现（REQ-015 M4E WP3）
 // 同步 connect/subscribe + 超时兜底；Paho 回调经 QMetaObject::invokeMethod
 // 排队回 Qt 事件循环，保证上层信号全部在 Qt 主线程触发。
 

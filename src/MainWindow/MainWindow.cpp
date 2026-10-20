@@ -57,7 +57,7 @@ constexpr int kPipTitleBarHeight = 24;
 constexpr int kPipHeight = kPipVideoHeight + kPipTitleBarHeight;
 constexpr int kPipMargin = 12;
 constexpr int kMapToolbarHeight = 32;
-// 「告警与日志」条带固定高度（REQ-012 WP4, 1280x720 布局硬约束上限 140px）:
+// 「告警与日志」条带固定高度（REQ-015 WP4, 1280x720 布局硬约束上限 140px）:
 // 720p 垂直预算 720 - 菜单栏(~30) - 状态栏(28) - 资源条(36) - 工具栏(32) = ~594px，
 // 条带固定 140 后地图主舞台仍保有 ~454px（> 视频 PiP 全高 294px），地图 stretch=1 不变。
 // 固定而非最大高度：QTextEdit 自然 sizeHint(约 192px) 会把弹性高度顶满 140 上限，
@@ -172,7 +172,7 @@ void MainWindow::setupUi()
     createMenuBar();
     createMainLayout();
 
-    // 创建遥测数据源管理器（持有本地模拟源+真实链路源，REQ-012 WP3）与 AI 检测引擎
+    // 创建遥测数据源管理器（持有本地模拟源+真实链路源，REQ-015 WP3）与 AI 检测引擎
     // （在 createConnections 之前，供信号槽接线；manager 为 MainWindow 子对象，
     //  模拟源由 manager 持有，findChild<DroneTelemetrySimulator*>() 递归可达）
     m_telemetryManager = new Core::Uplink::TelemetrySourceManager(this);
@@ -318,7 +318,7 @@ void MainWindow::createMainLayout()
     // 浮层经关闭按钮自行隐藏不经过 reposition，需事件过滤同步其阴影层
     m_targetDetailOverlay->installEventFilter(this);
 
-    // 数据源徽标（REQ-012 WP3）: 地图舞台左上角常显当前遥测来源与链路状态，
+    // 数据源徽标（REQ-015 WP3）: 地图舞台左上角常显当前遥测来源与链路状态，
     // 文案/语义色由 updateSourceBadge() 统一维护；鼠标事件穿透不遮挡地图交互
     m_sourceBadge = new QLabel(m_mapContainer);
     m_sourceBadge->setObjectName(QStringLiteral("mapSourceBadge"));
@@ -327,7 +327,7 @@ void MainWindow::createMainLayout()
 
     centerLayout->addWidget(m_mapContainer, 1);
 
-    // 3d. 「告警与日志」条带（REQ-012 WP4）: 地图主舞台正下方，AlertPanel（复活
+    // 3d. 「告警与日志」条带（REQ-015 WP4）: 地图主舞台正下方，AlertPanel（复活
     // 孤儿组件）与 EventLogWidget 横向并列各半宽；固定高度不超过 140px（720p 硬约束，
     // 见 kAlertLogStripHeight）。条带位于布局流内而非浮层，不遮挡地图鼠标交互。
     QWidget *alertLogStrip = new QWidget(centerArea);
@@ -378,7 +378,7 @@ void MainWindow::createMapToolbar()
     layout->setContentsMargins(8, 0, 8, 0);
     layout->setSpacing(4);
 
-    // 数据源分段控件（REQ-012 WP3）: [本地模拟|真实链路] 互斥切换，位于探测控制按钮左侧
+    // 数据源分段控件（REQ-015 WP3）: [本地模拟|真实链路] 互斥切换，位于探测控制按钮左侧
     // （m4e-drone-integration.md §6.6）。全局 QSS 的 flat 规则晚于 :checked 规则且同特异度，
     // 会覆盖选中态，故分段按钮不走 btnVariant="flat"，改用内联令牌样式（与 DecisionView
     // 档位按钮同模式）: 未选中=ToolbarBackground，选中=Selection 令牌，禁用=PanelBackground
@@ -503,7 +503,7 @@ void MainWindow::createMapToolbar()
     layout->addWidget(pickCoordBtn);
 
     layout->addStretch();
-    // 原 [模拟] 工具栏角标已由地图舞台左上数据源徽标取代（REQ-012 WP3，见 updateSourceBadge）
+    // 原 [模拟] 工具栏角标已由地图舞台左上数据源徽标取代（REQ-015 WP3，见 updateSourceBadge）
 
     // 探测控制按钮信号
     connect(m_startBtn, &QPushButton::clicked, this, &MainWindow::onStartDetection);
@@ -550,7 +550,7 @@ void MainWindow::createConnections()
         m_statusBarWidget->addAlarm(QStringLiteral("[AI] 检测引擎错误: %1").arg(message));
     });
 
-    // 遥测数据源管理器（REQ-012 WP3）: 模拟/真实链路统一信号转发
+    // 遥测数据源管理器（REQ-015 WP3）: 模拟/真实链路统一信号转发
     // 遥测 -> 地图无人机标记 + 航迹 + 视频 HUD（HUD 跟随当前源，无来源差异）
     connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::telemetryUpdated,
             this, &MainWindow::onTelemetryUpdated);
@@ -560,7 +560,7 @@ void MainWindow::createConnections()
     // 链路状态 -> §6.1 状态机（连接失败回退模拟/断链提示不自动切回）
     connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::linkStateChanged,
             this, &MainWindow::onLinkStateChanged);
-    // 真实链路 HMS 告警 -> onAlertReceived 槽（REQ-012 WP4）:
+    // 真实链路 HMS 告警 -> onAlertReceived 槽（REQ-015 WP4）:
     // 冻结级别映射后分发「告警与日志」双区 + 状态栏轻提示（取代 WP3 丢弃 code 的 lambda）
     connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::alertReceived,
             this, &MainWindow::onAlertReceived);
@@ -669,7 +669,7 @@ void MainWindow::loadMockData()
     m_tacticalMap->setSatelliteImage(mediaDir + QStringLiteral("/") + QString::fromUtf8(kSatelliteFile));
 
     // 视频: 加载演示视频文件（与卫星底图同一 media 目录）；路径缓存供数据源
-    // 切回本地模拟时重载（REQ-012 WP5 裁决⑥）
+    // 切回本地模拟时重载（REQ-015 WP5 裁决⑥）
     m_localVideoPath = mediaDir + QStringLiteral("/") + QString::fromUtf8(kVideoFile);
     m_videoPiP->loadVideo(m_localVideoPath);
 
@@ -821,7 +821,7 @@ void MainWindow::onSourceSegmentClicked(int id)
 // 数据源模式切换回调: 同步分段选中态/状态栏模拟标识/徽标/控件可用性
 void MainWindow::onSourceModeChanged(Core::Uplink::SourceMode mode)
 {
-    // 视频源互斥（REQ-012 WP5 裁决⑥）: 真实链路→流 URL（环境变量 UXO_VIDEO_RTSP_URL），
+    // 视频源互斥（REQ-015 WP5 裁决⑥）: 真实链路→流 URL（环境变量 UXO_VIDEO_RTSP_URL），
     // 本地模拟→演示视频；面板不感知协议与对端（§9-2 护栏），仅由本处重设源
     if (mode == Core::Uplink::SourceMode::RealLink) {
         m_videoPiP->loadStreamUrl(videoStreamUrlFromEnv());
@@ -902,7 +902,7 @@ void MainWindow::onLinkStateChanged(Core::Uplink::LinkState state)
     updateSourceControlStates();
 }
 
-// HMS 告警事件回调（REQ-012 WP4）: 冻结级别映射 -> 告警面板 + 事件日志双区分发，
+// HMS 告警事件回调（REQ-015 WP4）: 冻结级别映射 -> 告警面板 + 事件日志双区分发，
 // 并保留状态栏轻提示（沿袭 WP3 行为）
 void MainWindow::onAlertReceived(const Core::Uplink::AlertEvent &event)
 {

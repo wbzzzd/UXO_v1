@@ -44,7 +44,7 @@ class TrackStore;
 // 导航(80px) | 左pane(可折叠40/320px) | 中心区(设备资源条36px + 地图主舞台 + 告警与日志条带140px)
 // 地图主舞台上浮动: 视频PiP(左下480x270) + 目标详情浮层(右上340px) + 数据源徽标(左上)
 // 探测工具栏: [本地模拟|真实链路] [重置][开始][结束] 驱动无人机遥测+AI 检测（视频抽帧）
-// 遥测数据源经 TelemetrySourceManager 统一管理: 本地模拟 / 真实链路（REQ-012 WP3）
+// 遥测数据源经 TelemetrySourceManager 统一管理: 本地模拟 / 真实链路（REQ-015 WP3）
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -75,7 +75,7 @@ private slots:
     void onStopDetection();
     void onResetDetection();
 
-    // 数据源回调（TelemetrySourceManager 统一转发，REQ-012 WP3）
+    // 数据源回调（TelemetrySourceManager 统一转发，REQ-015 WP3）
     void onTelemetryUpdated(const Core::Uplink::TelemetryData& data);
     void onSourceSegmentClicked(int id);  // 分段控件切换数据源
     void onSourceModeChanged(Core::Uplink::SourceMode mode);
@@ -150,7 +150,7 @@ private:
 
     QWidget *m_mapContainer;
     VideoStreamPanel *m_videoPiP;
-    // 本地演示视频路径（loadMockData 解析后缓存；数据源切回本地模拟时重载，REQ-012 WP5 裁决⑥）
+    // 本地演示视频路径（loadMockData 解析后缓存；数据源切回本地模拟时重载，REQ-015 WP5 裁决⑥）
     QString m_localVideoPath;
     // 浮动面板阴影底衬（PiP 与目标详情浮层的投影层，见 MainWindow.cpp 匿名命名空间）
     QWidget *m_pipShadowLayer;
@@ -160,13 +160,13 @@ private:
     QPushButton *m_startBtn;       // 探测工具栏 [开始]
     QPushButton *m_stopBtn;        // 探测工具栏 [结束]
     QPushButton *m_resetBtn;       // 探测工具栏 [重置]
-    // 数据源分段控件: [本地模拟|真实链路] 互斥切换（REQ-012 WP3）
+    // 数据源分段控件: [本地模拟|真实链路] 互斥切换（REQ-015 WP3）
     QButtonGroup *m_sourceGroup;         // 互斥组，按钮 id=SourceMode 枚举值
     QPushButton *m_simSourceBtn;         // 分段 [本地模拟]
     QPushButton *m_realSourceBtn;        // 分段 [真实链路]
     QLabel *m_sourceBadge;               // 地图舞台左上数据源徽标
 
-    // 「告警与日志」区（REQ-012 WP4）: 态势页地图下方条带，告警面板与事件日志各半宽
+    // 「告警与日志」区（REQ-015 WP4）: 态势页地图下方条带，告警面板与事件日志各半宽
     AlertPanel *m_alertPanel;       // 左半: HMS 告警列表（复活孤儿组件）
     EventLogWidget *m_eventLog;     // 右半: 只读追加式事件日志
 

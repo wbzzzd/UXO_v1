@@ -1,7 +1,7 @@
 #ifndef CORE_UPLINK_MQTTUPLINKCLIENT_H
 #define CORE_UPLINK_MQTTUPLINKCLIENT_H
 
-// MQTT 上行链路客户端（REQ-012 M4E WP3）
+// MQTT 上行链路客户端（REQ-015 M4E WP3）
 // 基于 Paho MQTT C++ 封装连接、订阅与消息回调，将 Paho 回调线程的事件
 // 以 Qt 信号排队转发回 Qt 事件循环；只订阅不发布，不解析业务报文。
 

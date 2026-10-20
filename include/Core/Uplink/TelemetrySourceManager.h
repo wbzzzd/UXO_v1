@@ -1,7 +1,7 @@
 #ifndef CORE_UPLINK_TELEMETRYSOURCEMANAGER_H
 #define CORE_UPLINK_TELEMETRYSOURCEMANAGER_H
 
-// 遥测数据源管理器（REQ-012 WP3）
+// 遥测数据源管理器（REQ-015 WP3）
 // 持有本地模拟源与真实链路源，按 SourceMode 切换当前源并向 UI 转发统一信号；
 // 真实链路停滞判定（>5s 无遥测）在此实现；断链不自动切回模拟（由 UI 裁决，
 // 见 docs/features/m4e-drone-integration.md §6.1）。

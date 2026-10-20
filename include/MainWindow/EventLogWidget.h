@@ -9,7 +9,7 @@ class QLabel;
 class QVBoxLayout;
 class QTextEdit;
 
-// 只读追加式事件日志视图（REQ-012 WP4「告警与日志」区右半）
+// 只读追加式事件日志视图（REQ-015 WP4「告警与日志」区右半）
 // 每条含 HH:mm:ss 时间戳 + 级别语义色正文；容量上限 200 条，超出自动丢弃最旧。
 // 级别语义色与 AlertPanel 的级别着色使用同一映射（DangerRed/ThreatHigh/ThreatMedium/TextSecondary）。
 class EventLogWidget : public QWidget

@@ -105,13 +105,13 @@ ctest --test-dir build --output-on-failure
 | `mos_planner_closure` | 独立穷举 oracle、supplied-tier 校验与完成结果重算守卫 | 完整 Y 轴离散化算法、斜向搜索 |
 | `mos_ui_closure` | 生成器浮点半径、合成参数措辞与 controller-owned 导出 | 真实导出目标、外部存储、网络 |
 | `mos_runway_closure` | 快照参数化几何、缩放/平移、选中档位单方案命中，以及 `influenceRadius × pxPerM` 影响圆半径契约 | 真实跑道几何、3D 渲染、真实安全距离 |
-| `telemetry_source_manager` | 数据源互斥切换（本地模拟/真实链路）与两级检测状态契约 | 真实 MQTT 网关在线行为（运行前提＝本机 1883 无 broker；keepalive 定制→REQ-014） |
+| `telemetry_source_manager` | 数据源互斥切换（本地模拟/真实链路）与两级检测状态契约 | 真实 MQTT 网关在线行为（运行前提＝本机 1883 无 broker；keepalive 定制→REQ-017） |
 | `track_store` | TrackStore 列映射与 `UXO_TRACKSTORE*` 配置解析纯逻辑 | 真实数据库落库（DB 验证走 /tmp harness，不进 ctest） |
 | `video_source_config` | `UXO_VIDEO_RTSP_URL` 环境解析与默认本地测试流回退 | 视频流实际渲染（归 `video_render_capture`，xcb 环境） |
 
 测试通过只能证明表中列出的行为，不能用于声明整个客户端或某个未覆盖面板已完成。离屏 UI 测试中的 Qt3D 上下文警告不影响当前断言，因此全部测试通过也不证明三维场景成功渲染。`video_render_capture` 与 `stop_select_flicker_repro` 必须在 XCB 和可见显示环境中运行。
 
-台架联调（REQ-012 真实链路验证）：本地 broker（amqtt 用户态）＋ 遥测注入 `scripts/sim_telemetry.py` ＋ ffmpeg RTSP→HTTP 中继 ＋ 客户端环境变量 `UXO_VIDEO_RTSP_URL`；完整复现命令（runbook）见 `.omo/evidence/wp7-rc-integration/wp7-acceptance-report.md` §7。EMQX 部署用仓根 `docker-compose.yml`，属部署现场关注项，不在本仓构建/测试门禁内。运行 ctest 前必须先停本地 broker（`telemetry_source_manager` 契约：前提为本机 1883 无 MQTT 网关）。
+台架联调（REQ-015 真实链路验证）：本地 broker（amqtt 用户态）＋ 遥测注入 `scripts/sim_telemetry.py` ＋ ffmpeg RTSP→HTTP 中继 ＋ 客户端环境变量 `UXO_VIDEO_RTSP_URL`；完整复现命令（runbook）见 `.omo/evidence/wp7-rc-integration/wp7-acceptance-report.md` §7。EMQX 部署用仓根 `docker-compose.yml`，属部署现场关注项，不在本仓构建/测试门禁内。运行 ctest 前必须先停本地 broker（`telemetry_source_manager` 契约：前提为本机 1883 无 MQTT 网关）。
 
 ## 5. 当前构建目标
 

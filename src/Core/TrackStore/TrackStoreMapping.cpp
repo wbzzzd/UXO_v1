@@ -1,4 +1,4 @@
-// MQTT 报文 → 数据库行 的纯函数映射实现（REQ-012 M4E 落库 WP6）
+// MQTT 报文 → 数据库行 的纯函数映射实现（REQ-015 M4E 落库 WP6）
 // 帧有效性规则与 MqttTelemetrySource 对齐：坐标缺失/非数值、MSDK 未定位
 // 哨兵 (0,0)（|lat|<=1e-7 且 |lon|<=1e-7）整帧丢弃；数值提取只接受
 // 整数值 JSON number 落整数列（非整数记 SQL NULL），double 列原样透传。

@@ -1,7 +1,7 @@
 #ifndef CORE_UPLINK_TELEMETRYTYPES_H
 #define CORE_UPLINK_TELEMETRYTYPES_H
 
-// 上行链路公共类型（REQ-012 M4E 接入 WP3）
+// 上行链路公共类型（REQ-015 M4E 接入 WP3）
 // 内部同构遥测结构与数据源/链路状态枚举：本地模拟源与真实链路源（MQTT）
 // 输出同一形状，UI 不感知来源差异。
 
@@ -33,7 +33,7 @@ enum class LinkState {
     Stalled        // 停滞（>5s 无 OSD，由 TelemetrySourceManager 判定）
 };
 
-// 告警事件（REQ-012 WP4）：结构化携带 HMS 级别，取代 WP3 的 code+text 纯文本信号
+// 告警事件（REQ-015 WP4）：结构化携带 HMS 级别，取代 WP3 的 code+text 纯文本信号
 // （WP3 在源头把 level 折叠进文案导致 UI 无法按级别着色/映射，WP4 改为数值直传）。
 // level 语义对齐 docs/interfaces/接口规格-MSDK对接.md events 契约：
 //   0/1/2 = HMS 提示/警告/严重；-1 = 无级别事件（device_exit_hms 解除通知、未识别 method 透传）。

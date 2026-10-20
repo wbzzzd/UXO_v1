@@ -17,7 +17,7 @@
 
 // 标题栏高度 (像素, 对齐原型 --pip-titlebar-h: 24px)
 static constexpr int kTitleBarHeight = 24;
-// 直播源自动重连参数（REQ-012 WP7 ④ 黑屏修复）: 基础退避 1s 指数增长、
+// 直播源自动重连参数（REQ-015 WP7 ④ 黑屏修复）: 基础退避 1s 指数增长、
 // 封顶 5s、无限重试；稳定播放 ≥30s 后的故障视为新故障从头退避
 static constexpr int kReconnectBaseDelayMs = 1000;
 static constexpr int kReconnectMaxDelayMs = 5000;
@@ -127,7 +127,7 @@ void VideoStreamPanel::setupUi()
     connect(m_player, &QMediaPlayer::mediaStatusChanged,
             this, &VideoStreamPanel::onMediaStatusChanged);
     // 播放器错误信号（error 与 getter 同名，Qt5 须 QOverload 消歧）:
-    // 直播源错误按链路中断转入自动重连（REQ-012 WP7 ④ 黑屏修复）
+    // 直播源错误按链路中断转入自动重连（REQ-015 WP7 ④ 黑屏修复）
     connect(m_player, QOverload<QMediaPlayer::Error>::of(&QMediaPlayer::error),
             this, &VideoStreamPanel::onPlayerError);
 
@@ -262,7 +262,7 @@ void VideoStreamPanel::loadVideo(const QString& path)
     m_player->setMedia(QUrl::fromLocalFile(path));
 }
 
-// 直播源加载（REQ-012 WP5 裁决④⑥）: 面板只接收 URL、不解析协议与对端（§9-2 护栏）；
+// 直播源加载（REQ-015 WP5 裁决④⑥）: 面板只接收 URL、不解析协议与对端（§9-2 护栏）；
 // 换源清空缓存帧，直播时钟待 play() 首次启动
 void VideoStreamPanel::loadStreamUrl(const QString& url)
 {
@@ -299,7 +299,7 @@ void VideoStreamPanel::pause()
 
 void VideoStreamPanel::seek(qint64 ms)
 {
-    // 直播流无进度语义, seek 禁用（REQ-012 WP5 裁决④）
+    // 直播流无进度语义, seek 禁用（REQ-015 WP5 裁决④）
     if (m_liveSource) {
         return;
     }
@@ -317,7 +317,7 @@ qint64 VideoStreamPanel::position() const
 
 qint64 VideoStreamPanel::duration() const
 {
-    // 直播流无时长语义, 恒 0（REQ-012 WP5 裁决④）
+    // 直播流无时长语义, 恒 0（REQ-015 WP5 裁决④）
     if (m_liveSource) {
         return 0;
     }
@@ -356,7 +356,7 @@ void VideoStreamPanel::onPositionChanged(qint64 ms)
 
 void VideoStreamPanel::onDurationChanged(qint64 ms)
 {
-    // 直播流无时长语义, 抑制 durationChanged（REQ-012 WP5 裁决④）
+    // 直播流无时长语义, 抑制 durationChanged（REQ-015 WP5 裁决④）
     if (m_liveSource) {
         return;
     }
@@ -379,9 +379,9 @@ void VideoStreamPanel::onStateChanged(QMediaPlayer::State state)
 
 void VideoStreamPanel::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
 {
-    // 直播流无「结尾」语义（REQ-012 WP5 裁决④）: 不发 videoEnded、不 pause。
+    // 直播流无「结尾」语义（REQ-015 WP5 裁决④）: 不发 videoEnded、不 pause。
     // 但 EndOfMedia/InvalidMedia 对直播意味着「链路中断」（如中转重启截断流），
-    // 转入自动重连而非静默黑屏（REQ-012 WP7 ④ 黑屏修复）
+    // 转入自动重连而非静默黑屏（REQ-015 WP7 ④ 黑屏修复）
     if (m_liveSource) {
         // ② 媒体数据实际缓冲到位 = 链路已恢复, 撤下「重连中」徽标
         if (status == QMediaPlayer::BufferedMedia) {
@@ -424,7 +424,7 @@ void VideoStreamPanel::onExtractionTimer()
         return;
     }
     m_lastExtractedSerial = m_frameSerial;
-    // 时间戳统一走 position(): 文件源=播放器位置, 直播源=本地时钟（REQ-012 WP5 裁决④）
+    // 时间戳统一走 position(): 文件源=播放器位置, 直播源=本地时钟（REQ-015 WP5 裁决④）
     emit frameExtracted(m_lastFrame, position());
 }
 

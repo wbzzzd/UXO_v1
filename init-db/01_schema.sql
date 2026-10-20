@@ -1,4 +1,4 @@
--- UXO 排弹系统 · 轨迹库初始化（REQ-012 WP6 TrackStore，docker 首次启动自动执行）
+-- UXO 排弹系统 · 轨迹库初始化（REQ-015 WP6 TrackStore，docker 首次启动自动执行）
 -- 收编自开工包 uxo_m4e_kickstart/deploy/init-db/01_schema.sql（2026-10-11 verbatim 收编）：
 -- 仅 trajectory / events 两表；laser_targets / task / media 三表按 WP6 裁决④不收录
 -- （laser_targets 计划原文不启用；task/media 一期无数据源）。

@@ -1,7 +1,7 @@
 #ifndef CORE_TRACKSTORE_TRACKSTORECONFIG_H
 #define CORE_TRACKSTORE_TRACKSTORECONFIG_H
 
-// TrackStore 连接配置（REQ-012 M4E 落库 WP6）
+// TrackStore 连接配置（REQ-015 M4E 落库 WP6）
 // 仅从环境变量读取，密码绝不打印明文；未启用时上层不创建任何数据库连接。
 
 #include <QString>

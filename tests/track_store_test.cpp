@@ -1,4 +1,4 @@
-// TrackStore 映射层单测（REQ-012 M4E 落库 WP6）
+// TrackStore 映射层单测（REQ-015 M4E 落库 WP6）
 // 覆盖：主题 SN 提取合法/非法用例、OSD 轨迹行 20 键全字段提取与缺省键 SQL NULL、
 // ts_utc 信封时间戳与回退、无效帧丢弃（非 JSON/缺坐标/(0,0) 未定位哨兵）、
 // events 行映射（method/level/data/raw）、混合级别取最大整数、启用开关默认关闭。

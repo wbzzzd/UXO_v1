@@ -15,7 +15,7 @@
 
 **目标**：把当前单目标状态演示扩展为完整本地模拟指挥环。NEXT 是已确认产品边界但尚未批准的需求草案，以下 ID 与语义保留。REQ-008（探测阶段动态演示，时间线驱动方案）已被 REQ-009 取代，状态为 `Superseded`。REQ-009（无人机探测态势演示）与 REQ-010（UI 视觉治理）为 `Implemented`，实现事实见各自需求文件。其余需求全部状态为 `Draft`，不得直接指导实现。
 
-NEXT 切片包含 REQ-001~REQ-006（均为 `Draft`）。REQ-007 为 NEXT 切片之外的独立候选（P0 `Implemented`，P1/P2 `Draft`），不并入 NEXT 切片。REQ-010 为 NEXT 切片之外的独立候选（UI 视觉治理，`Implemented`），不并入 NEXT 切片。REQ-011 为 NEXT 切片之外的独立候选（Qt 客户端三视口适配，`Approved`），不并入 NEXT 切片。REQ-012 为 NEXT 切片之外的独立候选（真实 M4E 无人机数据接入，`Implemented`），不并入 NEXT 切片。REQ-013（客户端视频通路长跑稳定性）与 REQ-014（MQTT 链路健壮性与可观测性）为 REQ-012 台架验收派生的独立候选（均 `Draft`），不并入 NEXT 切片。
+NEXT 切片包含 REQ-001~REQ-006（均为 `Draft`）。REQ-007 为 NEXT 切片之外的独立候选（P0 `Implemented`，P1/P2 `Draft`），不并入 NEXT 切片。REQ-010 为 NEXT 切片之外的独立候选（UI 视觉治理，`Implemented`），不并入 NEXT 切片。REQ-011 为 NEXT 切片之外的独立候选（Qt 客户端三视口适配，`Approved`），不并入 NEXT 切片。REQ-015 为 NEXT 切片之外的独立候选（真实 M4E 无人机数据接入，`Implemented`），不并入 NEXT 切片。REQ-016（客户端视频通路长跑稳定性）与 REQ-017（MQTT 链路健壮性与可观测性）为 REQ-015 台架验收派生的独立候选（均 `Draft`），不并入 NEXT 切片。
 
 ## 需求索引
 
@@ -32,9 +32,9 @@ NEXT 切片包含 REQ-001~REQ-006（均为 `Draft`）。REQ-007 为 NEXT 切片�
 | REQ-009 | 无人机探测态势演示 | `Implemented` | [REQ-009.md](REQ-009.md) |
 | REQ-010 | UI 视觉治理 | `Implemented` | [REQ-010.md](REQ-010.md) |
 | REQ-011 | Qt 客户端三视口适配 | `Approved` | [REQ-011.md](REQ-011.md) |
-| REQ-012 | 真实 M4E 无人机数据接入 | `Implemented` | [REQ-012.md](REQ-012.md) |
-| REQ-013 | 客户端视频通路长跑稳定性 | `Draft` | [REQ-013.md](REQ-013.md) |
-| REQ-014 | MQTT 链路健壮性与可观测性 | `Draft` | [REQ-014.md](REQ-014.md) |
+| REQ-015 | 真实 M4E 无人机数据接入 | `Implemented` | [REQ-015.md](REQ-015.md) |
+| REQ-016 | 客户端视频通路长跑稳定性 | `Draft` | [REQ-016.md](REQ-016.md) |
+| REQ-017 | MQTT 链路健壮性与可观测性 | `Draft` | [REQ-017.md](REQ-017.md) |
 
 ## 范围与批准门禁
 

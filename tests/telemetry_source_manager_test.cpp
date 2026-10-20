@@ -1,4 +1,4 @@
-// 遥测数据源管理器单测（REQ-012 M4E WP3；WP4 告警用例改断言结构化 AlertEvent 三字段）
+// 遥测数据源管理器单测（REQ-015 M4E WP3；WP4 告警用例改断言结构化 AlertEvent 三字段）
 // 覆盖：默认态、模拟遥测转发、模式切换语义（保持运行状态）、真实链路连接失败路径、
 // OSD/事件解析契约（docs/interfaces/接口规格-MSDK对接.md）、真实链路停滞状态机。
 // 用 QTEST_GUILESS_MAIN 而非 QTEST_MAIN：Core 目标经普通 target_link_libraries 传递

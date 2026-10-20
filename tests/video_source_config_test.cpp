@@ -1,4 +1,4 @@
-// 视频源环境配置单测（REQ-012 M4E WP5 裁决⑤）
+// 视频源环境配置单测（REQ-015 M4E WP5 裁决⑤）
 // 覆盖：UXO_VIDEO_RTSP_URL 未设置回退默认测试流、设置非空值原样生效、
 // 空串视同未设置回退默认。
 // 用 QTEST_GUILESS_MAIN：纯 QCoreApplication，无 QPA 平台插件依赖（与 WP6 单测一致）。

@@ -1,4 +1,4 @@
-// 遥测数据源管理器实现（REQ-012 M4E WP3）
+// 遥测数据源管理器实现（REQ-015 M4E WP3）
 // 持有模拟/真实两源并按 SourceMode 互斥切换；真实链路 >5s 无遥测判停滞；
 // 断链不自动切回模拟（由 UI 裁决，见 docs/features/m4e-drone-integration.md §6.1）。
 

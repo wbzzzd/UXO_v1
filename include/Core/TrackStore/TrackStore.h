@@ -1,7 +1,7 @@
 #ifndef CORE_TRACKSTORE_TRACKSTORE_H
 #define CORE_TRACKSTORE_TRACKSTORE_H
 
-// 轨迹/事件落库门面（REQ-012 M4E 落库 WP6）
+// 轨迹/事件落库门面（REQ-015 M4E 落库 WP6）
 // 前台 QObject 门面：接收原始 MQTT 报文并转投后台线程的 Worker（唯一触库点）。
 // 本头文件不包含任何 <QSql*> 头，UI/调用方只需 QtCore。
 

@@ -1,6 +1,6 @@
 # 接口规格 · MSDK App ↔ 排弹系统（MQTT 契约 V2.0）
 
-版本：V2.0 ｜ 日期：2026-10-10 ｜ 状态：双方契约，本项目自维护 ｜ 关联需求：REQ-012（Approved）
+版本：V2.0 ｜ 日期：2026-10-10 ｜ 状态：双方契约，本项目自维护 ｜ 关联需求：REQ-015（Approved）
 
 > 本文收编自《M4E对接开工包》`uxo_m4e_kickstart/docs/接口规格-MSDK对接.md` V1.0（2026-10-08），按 2026-10-09/10 项目裁决改写，V1.0 原文不再维护。与 V1.0 的差异：
 >
@@ -112,7 +112,7 @@
 
 客户端可按 `thing/product/+/osd`、`thing/product/+/events` 通配订阅。
 
-## 6. 验收口径（对齐 REQ-012 真机单层）
+## 6. 验收口径（对齐 REQ-015 真机单层）
 
 - 开机静止：`mosquitto_sub` 抓包可见本规格 ★ 字段全齐；客户端显示真实遥测、HMS 事件与"真实数据"标识。
 - 手持/短距移动：态势地图显示真实航迹。
@@ -120,7 +120,7 @@
 
 ## 附录 A：开发/CI 模拟器（`scripts/sim_telemetry.py`）与契约差异
 
-本仓 `scripts/sim_telemetry.py` 为开发回路与 CI 回归工具，**不是验收依据**（REQ-012 验收为真机单层）。原封收编自开工包 `simulator/sim_telemetry.py`（2026-10-08，md5 `5e0d022eb7bc24baac773f48718756c7` 收编时核对一致）；开工包不再演进，本仓副本为唯一使用版本（仅一处适配：连接失败提示中的 compose 路径指向仓根）。
+本仓 `scripts/sim_telemetry.py` 为开发回路与 CI 回归工具，**不是验收依据**（REQ-015 验收为真机单层）。原封收编自开工包 `simulator/sim_telemetry.py`（2026-10-08，md5 `5e0d022eb7bc24baac773f48718756c7` 收编时核对一致）；开工包不再演进，本仓副本为唯一使用版本（仅一处适配：连接失败提示中的 compose 路径指向仓根）。
 
 用法：`python3 scripts/sim_telemetry.py [--broker 127.0.0.1] [--port 1883] [--sn 1581F5BKSIMUL001] [--speedup 1.0]`；依赖 `pip install paho-mqtt`；Ctrl+C 停止。
 

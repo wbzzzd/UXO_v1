@@ -48,7 +48,7 @@ MainWindow
 └── StatusBarWidget
 ```
 
-> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已随 REQ-012 在态势页中心区底部『告警/事件』条带实例化（与新建 `EventLogWidget` 横向并列）。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页、探测页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 探测页（`DetectionView`，AI 检测结果自动填充 + 人工二次校验），index 2 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）。
+> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已随 REQ-015 在态势页中心区底部『告警/事件』条带实例化（与新建 `EventLogWidget` 横向并列）。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页、探测页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 探测页（`DetectionView`，AI 检测结果自动填充 + 人工二次校验），index 2 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）。
 
 默认尺寸 1920×1080，最小尺寸 1280×720。三视口 fresh 像素验证（REQ-011，2026-08-26）：态势/探测/决策三页 × 1280×720/1920×1080/3840×2160 共 9 张离屏截图留存于 `.omo/evidence/qt-viewport-adaptation/`；1280×720 三页无区域溢出与意外裁切（探测页左表格水平滚动条为用户裁决接受项，决策页参数区部分标签换行为既有登记的紧凑可用表现），1920×1080 与修复前基线零回归（画中画时钟、告警跑马灯动画帧差异除外），3840×2160 固定 token 区域与字体不缩放、仅中心区放大。此前登记的“1280×720 决策面板约 5px 底部溢出”系失实记录（所指 `DecisionSuggestionPanel` 未纳入编译目标，见上文注），已撤销；决策页历史三视口几何证据（`.omo/evidence/mos-p0-qt-closure-final/REPORT.md`）采集于单档位渲染修正之前，仅作历史追溯。
 
@@ -119,7 +119,7 @@ MainWindow
 | `DecisionView` | 已实现（MOS P0） | `setupUi` 已填充：左面板损毁目标列表、中心 `MosRunwayWidget` 跑道俯视图、`MosParamsPanel` 算法参数栏、右面板候选方案与当前模拟选择摘要、`MosGeneratorDialog` 生成器、`MosPlanningController` 状态机；经 `QStackedWidget` index2 路由，导航"决策"进入 live 页面。P0 画布仅渲染当前选择档位，目标影响圆与 MOS 共用各向同性米制坐标比例 |
 | `DeviceControlView` | 占位 | 包含两个空白子面板，未接入 MainWindow |
 
-### 4.6 真实数据接入（REQ-012，2026-10-20 关单）
+### 4.6 真实数据接入（REQ-015，2026-10-20 关单）
 
 态势页与探测页支持本地模拟/真实 M4E 遥测互斥接入（只读），真实链路 UI 状态全程与模拟明确区分：
 
@@ -127,7 +127,7 @@ MainWindow
 |------|------|----------|------|
 | 数据源分段控件 | 已完成 | 地图工具栏左侧 [本地模拟｜真实链路] 互斥切换（2×88px≈180px）；切「真实链路」即自动连接；连接失败（未曾连上）自动回退本地模拟；断链（曾连接）不自动切回模拟，段控件与「开始」保持可用（切「本地模拟」再切回「真实链路」两击重连） | 无 |
 | 数据源徽标 | 已完成 | 地图舞台左上角常显、鼠标穿透；五态：演示数据(模拟)/连接中…/真实数据/数据停滞（>5s 无遥测）/真实数据·断链 | 无 |
-| 两级数据链路检测 | 已完成 | 遥测停滞（>5s 无 OSD）与 MQTT 断链分两级徽标呈现，互不串扰；断链不回落模拟源 | keepalive 未定制、断链客户端日志缺失（REQ-014） |
+| 两级数据链路检测 | 已完成 | 遥测停滞（>5s 无 OSD）与 MQTT 断链分两级徽标呈现，互不串扰；断链不回落模拟源 | keepalive 未定制、断链客户端日志缺失（REQ-017） |
 | HMS 告警/事件条带 | 已完成 | HMS 级别 0/1/2→提示/警告/严重（-1/未知→提示）；正文 `[HMS] code — text`；AlertPanel 与 EventLogWidget 双区分发＋状态栏轻提示；事件日志容量 200 条滚动丢弃最旧 | 无 |
 | HUD 遥测 | 已完成 | LAT/LON/ALT/HDG 与时间码跟随当前数据源（模拟或真实） | 室内无定位信号时位置字段为空 |
 | 真实航迹 | 环境受限 | 遥测位置三件套非空即驱动地图航迹/标点 | 室内实测 21,203 帧位置三件套 0% 非空；真实 GPS 通路待外场验证 |
@@ -160,7 +160,7 @@ MainWindow
 
 `mos_decision_ui`、`mos_decision_view` 与 `mos_ui_closure` 自动验证上述流程，覆盖 happy / invalid / no-solution / tier / generator，以及真实 `DEC-GEN-JSON` 按钮到 controller 的 canonical export 工作流；导出不改变已提交 revision、选择或日志。历史三视口几何证据采集于本轮单档位渲染修正之前，修正后的多视口证据尚未刷新。离屏渲染（`QT_QPA_PLATFORM=offscreen`）不构成原生 GPU/窗口管理像素保真证据；WSLg xcb 烟雾仅证明进程在原生平台启动并存活。
 
-真实链路数据接入（REQ-012）可完成的 UI 流程：
+真实链路数据接入（REQ-015）可完成的 UI 流程：
 
 ```text
 数据源分段控件切「真实链路」

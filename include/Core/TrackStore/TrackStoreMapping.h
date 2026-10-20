@@ -1,7 +1,7 @@
 #ifndef CORE_TRACKSTORE_TRACKSTOREMAPPING_H
 #define CORE_TRACKSTORE_TRACKSTOREMAPPING_H
 
-// MQTT 报文 → 数据库行 的纯函数映射（REQ-012 M4E 落库 WP6）
+// MQTT 报文 → 数据库行 的纯函数映射（REQ-015 M4E 落库 WP6）
 // 无副作用、不触库：OSD 轨迹帧与 events 事件帧各映射为一个 QVariantMap 行，
 // 行键与 SQL 绑定占位符一一对应；无效帧返回 std::nullopt 由上层静默丢弃。
 

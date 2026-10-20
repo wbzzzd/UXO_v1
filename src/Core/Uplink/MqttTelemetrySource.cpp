@@ -1,4 +1,4 @@
-// 真实链路遥测数据源实现（REQ-012 M4E WP3）
+// 真实链路遥测数据源实现（REQ-015 M4E WP3）
 // 订阅机场网关 MQTT 主题，解析 Cloud API 信封（契约见 docs/interfaces/接口规格-MSDK对接.md）：
 // OSD 提取经纬度/高度/航向发 telemetryUpdated；events 按 method 分发 HMS 告警与通用事件。
 

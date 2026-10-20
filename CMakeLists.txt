@@ -28,7 +28,7 @@ find_package(Qt5 REQUIRED COMPONENTS
 find_package(ZeroMQ QUIET)
 find_package(PostgreSQL QUIET)
 
-# Eclipse Paho MQTT C/C++ 库（REQ-012 M4E 真实链路遥测）。
+# Eclipse Paho MQTT C/C++ 库（REQ-015 M4E 真实链路遥测）。
 # mqttpp3 的 NEEDED 依赖 libpaho-mqtt3as.so.1，而 DT_RUNPATH 不传递间接依赖，
 # 故 3a/3as/mqttpp3 三个库均建 IMPORTED 目标并直接链接（WP3 核查结论，
 # 见 .omo/plans/20261010-req012-m4e-implementation.md）。
@@ -507,7 +507,7 @@ set_tests_properties(mos_runway_closure PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
 )
 
-# REQ-012 M4E WP3 遥测数据源管理器单测（纯 QCoreApplication，无需 QPA 平台插件；
+# REQ-015 M4E WP3 遥测数据源管理器单测（纯 QCoreApplication，无需 QPA 平台插件；
 # 全局 AUTOMOC + CMAKE_INCLUDE_CURRENT_DIR 覆盖 moc 生成与 .moc 包含解析）
 add_executable(UXOMissionControlTelemetrySourceManagerTest
     tests/telemetry_source_manager_test.cpp
@@ -522,7 +522,7 @@ target_link_libraries(UXOMissionControlTelemetrySourceManagerTest
 )
 add_test(NAME telemetry_source_manager COMMAND UXOMissionControlTelemetrySourceManagerTest)
 
-# REQ-012 M4E WP6 落库映射单测（纯 QCoreApplication，无需 QPA 平台插件；
+# REQ-015 M4E WP6 落库映射单测（纯 QCoreApplication，无需 QPA 平台插件；
 # 覆盖主题 SN 提取、OSD 轨迹行 20 键映射、events 行映射、无效帧丢弃与开关默认关闭；
 # 不触库，无头环境无条件执行）
 add_executable(UXOMissionControlTrackStoreTest
@@ -538,7 +538,7 @@ target_link_libraries(UXOMissionControlTrackStoreTest
 )
 add_test(NAME track_store COMMAND UXOMissionControlTrackStoreTest)
 
-# REQ-012 M4E WP5 视频源环境配置单测（纯 QCoreApplication，无需 QPA 平台插件；
+# REQ-015 M4E WP5 视频源环境配置单测（纯 QCoreApplication，无需 QPA 平台插件；
 # 覆盖 UXO_VIDEO_RTSP_URL 未设/空回退默认测试流、设置生效；
 # 配置为头文件内联实现，免链接 Core）
 add_executable(UXOMissionControlVideoSourceConfigTest

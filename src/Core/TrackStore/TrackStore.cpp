@@ -1,4 +1,4 @@
-// 轨迹/事件落库实现（REQ-012 M4E 落库 WP6）
+// 轨迹/事件落库实现（REQ-015 M4E 落库 WP6）
 // TrackStore 为前台门面；嵌套 Worker 经 moveToThread 运行在专属线程，
 // 是全文件唯一触库点（QSqlDatabase/QSqlQuery 只出现在 Worker 内）。
 // 文件末尾 #include "TrackStore.moc" 提供 Worker 的 Q_OBJECT 元对象。
