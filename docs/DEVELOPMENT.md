@@ -22,7 +22,7 @@
 | Qt | Qt 5.15.15（`uxo-dev` micromamba 环境） |
 | Qt 组件 | Core、Widgets、Gui、Concurrent、3DCore、3DRender、3DInput、3DExtras、Network、Sql、Charts、Test |
 | 可选探测 | ZeroMQ、PostgreSQL；当前无目标链接或使用 |
-| 数据平台实例 | 集成测试与客户端统计页（REQ-013）需要：本地数据平台（`127.0.0.1:8080` + 本地 postgres，UXO_DataPlatform 仓）；实例缺席时 `integration_vocabulary_cache`/`integration_data_platform_api`/`integration_contract` 整体 QSKIP，客户端统计页显示显式不可用态（不回退模拟数据） |
+| 数据平台实例 | 集成测试与客户端统计页（REQ-013）需要：本地数据平台（`127.0.0.1:8080` + 本地 postgres，UXO_DataPlatform 仓）；实例缺席时 `integration_vocabulary_cache`/`integration_data_platform_api`/`integration_contract` 整体 QSKIP，客户端统计页显示显式不可用态（不回退模拟数据）；实例库内业务数据为集成测试写路径套件历次运行的写入残留（数据平台仓无造数机制，词表由 V1 迁移正式灌入），统计页数字即反映该库现状 |
 | ONNX Runtime | 1.23.2；头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库，需先本地部署 `third_party/onnxruntime/` 下的动态库才能构建 |
 | 中文字体 | Noto CJK 或等价字体 |
 

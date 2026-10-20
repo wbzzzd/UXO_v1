@@ -23,13 +23,20 @@
 - **A6**：三次干净退出。
 - **W4 复核**（主 agent）：`git status` 仅预期文件；状态翻转计数命中（REQ-013 ×3 / features ×2 / README 索引两处）；W4 零源码树改动（src/include/tests 改动全部属 W1–W3 实现批）。
 
+### 用户实测验证（2026-10-13，提交推送后用户亲自操作）
+
+- 启动 `build/src/App/UXOMissionControl`（xcb），数据平台在线，进入统计页验证真实渲染。
+- 模拟视频开关产生新目标后统计页数字不变——确认为**只读零写回 + 模拟链隔离**的预期行为（模拟检测仅存进程内存，不写库；刷新链路本身正常）。
+- 库内数据来源确证（只读探查 UXO_DataPlatform 仓 + API 抽样）：业务数据（49/36/18/18/18）为 REQ-012 集成测试写路径套件历次运行残留（detect_time 集中于 10-11、fixture 特征值），词表 61 项由 V1 迁移正式灌入；数据平台仓无任何造数/seed 机制。
+- 统计实现方式评估：客户端翻页全拉本地聚合为契约无聚合端点下的权宜方案，终态为服务端聚合端点（契约 v1.1）；迁移触发红线与路径已补入 ARCHITECTURE.md。
+
 ## 证据说明
 
 harness 工程 `/tmp/opencode/a2h/`（main.cpp 含 a3 模式、CMakeLists 按 `build/build.ninja:3774` 权威链接序、`share/uxo/assets` 符号链接指向仓 assets 解决模型路径）、地面真值与比对脚本（`a2_ground_truth.py` / `a2-ground-truth.json` / `a2_compare.py`）、信号转储（`a2-snapshot-dump.json` / `a2-lists-dump.json`）、全部抓图（`a2-*.png` / `a3-*.png`）、A3 编排与日志（`a3_run.sh` / `a3_proxy.py` / `a3-harness.log`）——均属 /tmp 运行态易失文件，不入库。结论性数字以计划 §8 台账与本文为准，可经重跑 ctest #24 与 #18–#23 复现。
 
 ## 遗留事项
 
-- **未提交**：`feature/statistics-page` 工作区含实现批（W1–W3 源码/CMake/测试改动）+ 文档批（W4 七文件）+ 新增文件（REQ-013.md、features 设计、本计划/会话记录、Statistics* 8 文件、聚合测试）。提交须用户明确要求；commit 切分建议见计划 §commit 计划段。
+- **提交状态**：已按计划切分提交 3 个 commit（`77358eb` 登记批 / `65d3165` 实现批 / `012a88e` 会话记录）并推送 origin；PR 由用户创建。
 - **A3 真实停库实测未执行**：用户自有应用实例（PID 1658133）在线连接数据平台且未获明确停库授权；连接拒绝与服务不可用属同一 `QNetworkReply` 失败族、客户端代码路径相同，已由代理法验证。真实停库留作用户可选终验（需用户现场监督授权，参考 REQ-012 破坏性实测先例）。
 - **设计假设**：单实体 ≤1 万行（客户端全拉本地聚合的前提）；契约 v1.0.3 无聚合端点，若后续版本提供可迁服务端聚合。
 - 统计页无定时自动刷新（手动刷新/进页懒加载）；明细过滤为契约 §7 起步过滤集；词表 fixture 与契约漂移时 `statistics_aggregation` 测试红灯不静默适配。
