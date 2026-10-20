@@ -41,3 +41,35 @@ harness 工程 `/tmp/opencode/a2h/`（main.cpp 含 a3 模式、CMakeLists 按 `b
 - **设计假设**：单实体 ≤1 万行（客户端全拉本地聚合的前提）；契约 v1.0.3 无聚合端点，若后续版本提供可迁服务端聚合。
 - 统计页无定时自动刷新（手动刷新/进页懒加载）；明细过滤为契约 §7 起步过滤集；词表 fixture 与契约漂移时 `statistics_aggregation` 测试红灯不静默适配。
 - 任务端点实为 `/api/v1/missions`（契约事实，实现已按此）；数据平台本地实例部署指引仍属 UXO_DataPlatform 仓用户自理范围。
+
+## 后续会话记录（2026-10-20 main 合并与 REQ-013 让号为 REQ-014）
+
+### 背景
+
+- main 于 2026-10-20 经 PR #22（`ab3e50b`）合入 `feature/gpr-display`，注册 REQ-013=探地雷达样例数据展示与目标模拟演示（雷达页 `GprView` 占用导航"设备"位 + 6 个 GPR 测试），与本分支 2026-10-13 注册的 REQ-013=统计分析页撞号。`docs/requirements/` 以 main 为权威，main 侧不动，本分支统计页需求让号为 REQ-014——与 2026-10-19 GPR 分支 REQ-012→REQ-013 让号先例（`5746101`）同型。
+
+### 变更（合并提交 + 本记录）
+
+- `e4d0e32` 合并 main（`ab3e50b`）：6 处冲突按"两侧并存"解决——`src/MainWindow/MainWindow.cpp`（统计页与雷达页双挂载、导航注释改 REQ-014）、`src/MainWindow/CMakeLists.txt`（.cpp 源 29 = 23 基线含 UiIcons + 3 统计 + 3 GPR；两侧原文档均写 25 系漏数 UiIcons，已核数修正）、`docs/UI.md`（页面清单/导航双侧并存）、`docs/ARCHITECTURE.md`（模块表/mermaid/外部依赖双侧并存）、`docs/requirements/README.md`（REQ-013 GPR 与 REQ-014 统计双登记、按编号排序）、`docs/requirements/REQ-013.md`（add/add，取 main 侧 GPR 版）。
+- `docs/requirements/REQ-014.md` 新建：由本分支 HEAD 版 REQ-013.md 改号生成（115 行），并作两处修订——页面映射 index 3 行注明实现时为设备占位空页垫位、合并 main 后已由雷达页 `GprView` 占用（REQ-013，导航"设备"项相应改名"雷达"）；备注节追加 2026-10-20 让号说明。
+- 统计语义改号 REQ-013→REQ-014 共 16 文件：14 个全量替换（`docs/features/statistics-data-platform.md`、`docs/PRODUCT.md`、`docs/DEVELOPMENT.md`、`docs/ARCHITECTURE.md`、`.omo/plans/20261013-statistics-page-plan.md`、`.omo/plans/20261013-work-session.md`、`Statistics{Aggregation,Controller,Snapshot,View}.h`、`Statistics{Aggregation,Controller,View}.cpp`、`tests/statistics_aggregation_test.cpp`）+ 定点 2 个（根 `CMakeLists.txt`"REQ-013 统计聚合单元测试"、`MainWindow.h`"REQ-013 统计分析页"）。GPR 语义 REQ-013 一律不动，`git grep -l REQ-013` 复核余 32 文件全部为 GPR 语义。
+- 合并前已有未推送提交 `352c016`（统计页验证后文档补充，标题作于让号前故沿用 REQ-013 字样），随本批一并推送。
+- 本记录提交：补记 2026-10-20 合并与让号全过程。
+
+### 验证（合并后全量）
+
+- 构建：`cmake --build build -j2` BUILD_EXIT=0（Ninja 增量，GPR 源、MOC 与测试目标新编入）。
+- ctest：30 个测试目标，28 通过 / 2 失败；失败仍为既有豁免项 `video_render_capture`、`stop_select_flicker_repro`（用户 2026-10-12 裁决"先不管"）。日志 `/tmp/opencode/ctest-merge.log`（本地，不入库）。
+- GPR 6/6 全绿（`gpr_bscan` 18.44s 含真实数据预载性能阈值，样例数据在位）；`statistics_aggregation` 通过。
+- 数据平台集成 6 项无失败（实例缺席，直跑证据）：`api_error`（7 passed）/`http_client`（10 passed）/`entity_mapping`（12 passed）纯逻辑真实断言通过；`vocabulary_cache`（4 skipped）/`data_platform_api`（1 skipped）/`contract`（1 skipped）按设计走 S4 环境跳过路径（"本地数据平台实例未运行"），与 DEVELOPMENT.md §4 记载一致。
+- 冲突残留检查：6 处冲突文件无 `<<<<<<<`/`>>>>>>>` 标记；全仓 grep 唯一命中为二进制 PNG 误报（`docs/ui/images/situation/overview-1280x720.png`）；`git diff --name-only --diff-filter=U` 为空。
+- 历史注记：本文前文"ctest #24 与 #18–#23"为 2026-10-13 时 24 测试的编号；GPR 合并后 30 目标中统计聚合为 #30、集成 #24–#29。
+
+### 推送与 PR
+
+- `feature/statistics-page` 推送 origin：`352c016` + `e4d0e32` + 本记录提交。PR 由用户网页创建（gh CLI 未安装）：https://github.com/wbzzzd/UXO_v1/pull/new/feature/statistics-page ，**标题/简介须用 REQ-014 表述**（统计页需求已让号）。
+
+### 遗留事项（2026-10-20 更新）
+
+- 数据平台本地实例本会话期间已下线（部署属 UXO_DataPlatform 仓用户自理范围），集成三件套按 DEVELOPMENT.md S4 环境跳过口径判门；其对真实实例的断言已于 main 侧 2026-10-12 在监督下验证，本分支不重复实测。
+- 既有豁免项 `video_render_capture`、`stop_select_flicker_repro` 维持用户"先不管"裁决，未在本合并中处理。
