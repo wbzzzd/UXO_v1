@@ -11,6 +11,8 @@
 #include "MainWindow/DetectionView.h"
 #include "MainWindow/GprView.h"
 #include "MainWindow/MosPlanningController.h"
+#include "MainWindow/StatisticsView.h"
+#include "MainWindow/StatisticsController.h"
 
 #include "Core/Data/Types.h"
 #include "Core/Simulation/DemoScenarioProvider.h"
@@ -115,6 +117,8 @@ MainWindow::MainWindow(QWidget *parent)
     , m_situationPage(nullptr)
     , m_decisionView(nullptr)
     , m_mosController(nullptr)
+    , m_statisticsView(nullptr)
+    , m_statisticsController(nullptr)
     , m_currentDroneLat(0.0)
     , m_currentDroneLng(0.0)
     , m_currentDroneAlt(0.0)
@@ -147,6 +151,10 @@ void MainWindow::setupUi()
     // MOS P0 控制器在 UI 构造前创建，确保 createConnections 可接线
     m_mosController = new Core::MOS::MosPlanningController(this);
     m_mosController->setObjectName(QStringLiteral("mosPlanningController"));
+
+    // REQ-014 统计控制器先于页面构造创建，统计页构造时接管其信号
+    m_statisticsController = new StatisticsController(this);
+    m_statisticsController->setObjectName(QStringLiteral("statisticsController"));
 
     createMenuBar();
     createMainLayout();
@@ -302,7 +310,11 @@ void MainWindow::createMainLayout()
     m_pageStack->addWidget(m_situationPage);    // index 0
     m_pageStack->addWidget(m_detectionView);     // index 1
     m_pageStack->addWidget(m_decisionView);      // index 2
-    m_pageStack->addWidget(m_gprView);           // index 3
+    m_pageStack->addWidget(m_gprView);           // index 3（雷达页，REQ-013）
+    // 统计分析页（REQ-014）：页面栈 index 4，与导航 index 4（"统计"）对齐
+    m_statisticsView = new StatisticsView(m_statisticsController);
+    m_statisticsView->setObjectName(QStringLiteral("statisticsPage"));
+    m_pageStack->addWidget(m_statisticsView);   // index 4
     m_pageStack->setCurrentIndex(0);
 
     // 启动时加载默认样例数据集（目录扫描轻量，通道数据在 GprView 内异步加载）；
@@ -968,12 +980,18 @@ void MainWindow::onNavigationChanged(int index)
     qDebug() << "Navigation changed to:" << index;
 
     // 路由：导航 index 1（探测）切到探测页，index 2（决策）切到 MOS 决策页，
-    // index 3（雷达）切到雷达页（REQ-013），其余 index 保持态势工作区
+    // index 3（雷达，REQ-013）切到雷达页，index 4（统计，REQ-014）切到统计分析页，
+    // 其余 index 保持态势工作区
     if (!m_pageStack) {
         return;
     }
-    int page = (index == 1) ? 1 : (index == 2) ? 2 : (index == 3) ? 3 : 0;
+    int page = (index == 1) ? 1 : (index == 2) ? 2 : (index == 3) ? 3 : (index == 4) ? 4 : 0;
     m_pageStack->setCurrentIndex(page);
+
+    // 进入统计页触发快照加载/刷新（页内自带三态与置灰不清空逻辑，REQ-014 A3）
+    if (index == 4 && m_statisticsView) {
+        m_statisticsView->triggerLoad();
+    }
 }
 
 void MainWindow::onRefreshSimulationRequested()
