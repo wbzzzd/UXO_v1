@@ -20,8 +20,10 @@
 | 构建系统 | CMake 3.16+ |
 | 语言 | C++17 |
 | Qt | Qt 5.15.15（`uxo-dev` micromamba 环境） |
-| Qt 组件 | Core、Widgets、Gui、Concurrent、3DCore、3DRender、3DInput、3DExtras、Network、Sql、Test |
-| 可选探测 | ZeroMQ、PostgreSQL；当前无目标链接或使用 |
+| Qt 组件 | Core、Widgets、Gui、Concurrent、3DCore、3DRender、3DInput、3DExtras、Network、Sql、Multimedia、MultimediaWidgets、Test |
+| Eclipse Paho MQTT C++ | libpaho-mqtt 1.3.9 + mqttpp3 1.2.0（apt 包解包至 `~/.local/opt/paho`，免 sudo）；CMake 配置需 `-DCMAKE_PREFIX_PATH=$HOME/.local/opt/paho/usr`；mqttpp3/3as/3a 三库直链（DT_RUNPATH 不传递间接依赖） |
+| GStreamer | conda `uxo-dev` 运行时（Qt Multimedia/QMediaPlayer 后端，含 RTSP 与解码插件） |
+| 可选探测 | ZeroMQ（当前无使用）；PostgreSQL 经 Qt QPSQL 插件访问（TrackStore 落库，`UXO_TRACKSTORE` 默认关） |
 | ONNX Runtime | 1.23.2；头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库，需先本地部署 `third_party/onnxruntime/` 下的动态库才能构建 |
 | 中文字体 | Noto CJK 或等价字体 |
 
@@ -103,8 +105,13 @@ ctest --test-dir build --output-on-failure
 | `mos_planner_closure` | 独立穷举 oracle、supplied-tier 校验与完成结果重算守卫 | 完整 Y 轴离散化算法、斜向搜索 |
 | `mos_ui_closure` | 生成器浮点半径、合成参数措辞与 controller-owned 导出 | 真实导出目标、外部存储、网络 |
 | `mos_runway_closure` | 快照参数化几何、缩放/平移、选中档位单方案命中，以及 `influenceRadius × pxPerM` 影响圆半径契约 | 真实跑道几何、3D 渲染、真实安全距离 |
+| `telemetry_source_manager` | 数据源互斥切换（本地模拟/真实链路）与两级检测状态契约 | 真实 MQTT 网关在线行为（运行前提＝本机 1883 无 broker；keepalive 定制→REQ-014） |
+| `track_store` | TrackStore 列映射与 `UXO_TRACKSTORE*` 配置解析纯逻辑 | 真实数据库落库（DB 验证走 /tmp harness，不进 ctest） |
+| `video_source_config` | `UXO_VIDEO_RTSP_URL` 环境解析与默认本地测试流回退 | 视频流实际渲染（归 `video_render_capture`，xcb 环境） |
 
 测试通过只能证明表中列出的行为，不能用于声明整个客户端或某个未覆盖面板已完成。离屏 UI 测试中的 Qt3D 上下文警告不影响当前断言，因此全部测试通过也不证明三维场景成功渲染。`video_render_capture` 与 `stop_select_flicker_repro` 必须在 XCB 和可见显示环境中运行。
+
+台架联调（REQ-012 真实链路验证）：本地 broker（amqtt 用户态）＋ 遥测注入 `scripts/sim_telemetry.py` ＋ ffmpeg RTSP→HTTP 中继 ＋ 客户端环境变量 `UXO_VIDEO_RTSP_URL`；完整复现命令（runbook）见 `.omo/evidence/wp7-rc-integration/wp7-acceptance-report.md` §7。EMQX 部署用仓根 `docker-compose.yml`，属部署现场关注项，不在本仓构建/测试门禁内。运行 ctest 前必须先停本地 broker（`telemetry_source_manager` 契约：前提为本机 1883 无 MQTT 网关）。
 
 ## 5. 当前构建目标
 
@@ -119,7 +126,7 @@ UXOMissionControl executable
 - `src/App`：应用入口和生命周期。
 - `src/MainWindow`：Qt UI 组合与交互。
 - `src/Detection`：ONNX 双阶段推理引擎（PatchCore 异常检测 + YOLOv8-cls 分类），链接 ONNX Runtime 与 `Qt5::Concurrent`。
-- `src/Core`：数据类型、模拟工作流和 3D 场景数据。
+- `src/Core`：数据类型、模拟工作流、3D 场景数据、遥测上行（`Uplink/`：Paho MQTT 真实源＋模拟源＋互斥管理）与轨迹存储（`TrackStore/`：PostgreSQL QPSQL 落库，默认关）。
 - `src/Common`：全局样式与当前未接入的 MockDataGenerator。
 
 真实模块关系以 `ARCHITECTURE.md` 和各级 `CMakeLists.txt` 为准。
