@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "Core/Simulation/SimulationWorkflow.h"
+#include "Core/Uplink/TelemetryTypes.h"
 #include "Detection/DetectionTypes.h"
 
 #include <QMainWindow>
@@ -11,6 +12,7 @@
 
 class QPushButton;
 class QLabel;
+class QButtonGroup;
 
 class QStackedWidget;
 class StatusBarWidget;
@@ -21,6 +23,7 @@ class TacticalMapWidget;
 class DeviceResourceBar;
 class TargetDetailOverlay;
 class AlertPanel;
+class EventLogWidget;
 class DecisionView;
 class DetectionView;
 class GprView;
@@ -37,14 +40,19 @@ namespace Core::MOS {
 class MosPlanningController;
 }
 
-namespace Core::Simulation {
-class DroneTelemetrySimulator;
+namespace Core::Uplink {
+class TelemetrySourceManager;
+}
+
+namespace Core::TrackStore {
+class TrackStore;
 }
 
 // 主窗口: 态势页布局
-// 导航(80px) | 左pane(可折叠40/320px) | 中心区(设备资源条36px + 地图主舞台)
-// 地图主舞台上浮动: 视频PiP(左下480x270) + 目标详情浮层(右上340px)
-// 探测工具栏: [重置][开始][结束] 驱动无人机遥测+AI 检测（视频抽帧）
+// 导航(80px) | 左pane(可折叠40/320px) | 中心区(设备资源条36px + 地图主舞台 + 告警与日志条带140px)
+// 地图主舞台上浮动: 视频PiP(左下480x270) + 目标详情浮层(右上340px) + 数据源徽标(左上)
+// 探测工具栏: [本地模拟|真实链路] [重置][开始][结束] 驱动无人机遥测+AI 检测（视频抽帧）
+// 遥测数据源经 TelemetrySourceManager 统一管理: 本地模拟 / 真实链路（REQ-015 WP3）
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -75,8 +83,13 @@ private slots:
     void onStopDetection();
     void onResetDetection();
 
-    // 模拟器回调
-    void onTelemetryUpdated(double lat, double lng, double alt, double heading);
+    // 数据源回调（TelemetrySourceManager 统一转发，REQ-015 WP3）
+    void onTelemetryUpdated(const Core::Uplink::TelemetryData& data);
+    void onSourceSegmentClicked(int id);  // 分段控件切换数据源
+    void onSourceModeChanged(Core::Uplink::SourceMode mode);
+    void onLinkStateChanged(Core::Uplink::LinkState state);
+    // HMS 告警事件: 冻结级别映射 -> 告警面板 + 事件日志双区分发 + 状态栏轻提示
+    void onAlertReceived(const Core::Uplink::AlertEvent &event);
     void onVideoEnded();
 
     // AI 检测引擎回调
@@ -114,6 +127,10 @@ private:
     void createConnections();
     void loadMockData();
     void repositionFloatingWidgets();
+    // 刷新数据源徽标文案/语义色（模拟 [模拟] / 真实链路按链路状态显示）
+    void updateSourceBadge();
+    // 刷新数据源分段控件与 [开始] 可用性（运行中/连接中锁定切换）
+    void updateSourceControlStates();
 
     // 根据 TargetType 获取中文显示名称
     QString targetTypeName(Core::TargetType type) const;
@@ -153,6 +170,8 @@ private:
 
     QWidget *m_mapContainer;
     VideoStreamPanel *m_videoPiP;
+    // 本地演示视频路径（loadMockData 解析后缓存；数据源切回本地模拟时重载，REQ-015 WP5 裁决⑥）
+    QString m_localVideoPath;
     // 浮动面板阴影底衬（PiP 与目标详情浮层的投影层，见 MainWindow.cpp 匿名命名空间）
     QWidget *m_pipShadowLayer;
     QWidget *m_overlayShadowLayer;
@@ -161,8 +180,18 @@ private:
     QPushButton *m_startBtn;       // 探测工具栏 [开始]
     QPushButton *m_stopBtn;        // 探测工具栏 [结束]
     QPushButton *m_resetBtn;       // 探测工具栏 [重置]
+    // 数据源分段控件: [本地模拟|真实链路] 互斥切换（REQ-015 WP3）
+    QButtonGroup *m_sourceGroup;         // 互斥组，按钮 id=SourceMode 枚举值
+    QPushButton *m_simSourceBtn;         // 分段 [本地模拟]
+    QPushButton *m_realSourceBtn;        // 分段 [真实链路]
+    QLabel *m_sourceBadge;               // 地图舞台左上数据源徽标
 
-    Core::Simulation::DroneTelemetrySimulator *m_droneSimulator;
+    // 「告警与日志」区（REQ-015 WP4）: 态势页地图下方条带，告警面板与事件日志各半宽
+    AlertPanel *m_alertPanel;       // 左半: HMS 告警列表（复活孤儿组件）
+    EventLogWidget *m_eventLog;     // 右半: 只读追加式事件日志
+
+    Core::Uplink::TelemetrySourceManager *m_telemetryManager;  // 遥测数据源管理器（持有模拟/真实源）
+    Core::TrackStore::TrackStore *m_trackStore = nullptr;  // WP6 落库门面，未启用时保持 nullptr
     DetectionEngine *m_detectionEngine;
 
     // 页面栈：index 0 = 态势工作区，index 1 = 探测页，index 2 = MOS 决策页，index 3 = 雷达页（REQ-013）
@@ -189,6 +218,10 @@ private:
     double m_currentDroneHeading;  // 最新航向(度, 0=北, 顺时针)
 
     int m_targetCounter;  // 目标 ID 生成计数器
+
+    // 真实链路状态判定标志（区分连接失败回退与曾连接后断链，见 onLinkStateChanged）
+    bool m_realLinkConnectingSeen;  // 本轮进入真实链路后是否见过 Connecting
+    bool m_realLinkEverConnected;   // 本轮真实链路是否成功连接过
 
     QHash<QString, DetectionEvidence> m_evidenceByTargetId;
 

@@ -20,6 +20,7 @@
 |------|------|------|
 | [`features/`](features/) | 进入评审的功能增量设计；只描述相对核心基线的变化，`Draft` 不得直接指导实现 | [`features/README.md`](features/README.md) |
 | [`requirements/`](requirements/) | 需求注册表（`REQ-NNN` ID 与状态的唯一权威）；每个 REQ 独立文件，多 agent 并行加需求不冲突 | [`requirements/README.md`](requirements/README.md) |
+| [`interfaces/`](interfaces/) | 外部接口契约（本仓与外部组件/仓库之间的冻结约定）；系统级资产，不按功能单设目录 | [`interfaces/README.md`](interfaces/README.md) |
 | [`ddr/`](ddr/) | 开发决策记录（DDR）；历史决策依据，与核心基线冲突时以核心基线为准 | [`ddr/README.md`](ddr/README.md) |
 | [`research/`](research/) | 研究和技术调研资料；仅作证据引用，不直接成为需求，不进入默认开发上下文 | [`research/README.md`](research/README.md) |
 | [`archive/`](archive/) | 不再直接指导当前开发的历史资料；含已迁入的 [`archive/core-baselines/`](archive/core-baselines/) 五份旧基线；不删除内容、不破坏 Git 追溯 | [`archive/README.md`](archive/README.md) |

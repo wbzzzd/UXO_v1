@@ -14,6 +14,7 @@ set(MAINWINDOW_SOURCES
     DeviceResourceBar.cpp
     TargetDetailOverlay.cpp
     AlertPanel.cpp
+    EventLogWidget.cpp
     MosPlanningController.cpp
     MosRunwayWidget.cpp
     MosRunwayWidgetInteraction.cpp
@@ -44,6 +45,7 @@ set(MAINWINDOW_HEADERS
     ${HEADERS_DIR}/MainWindow/DeviceResourceBar.h
     ${HEADERS_DIR}/MainWindow/TargetDetailOverlay.h
     ${HEADERS_DIR}/MainWindow/AlertPanel.h
+    ${HEADERS_DIR}/MainWindow/EventLogWidget.h
     ${HEADERS_DIR}/MainWindow/MosPlanningController.h
     ${HEADERS_DIR}/MainWindow/MosRunwayWidget.h
     ${HEADERS_DIR}/MainWindow/MosParamsPanel.h

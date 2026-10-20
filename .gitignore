@@ -14,7 +14,8 @@ obj/
 *.a
 
 # Vendored onnxruntime: 运行时库不入库（仅头文件与模型资产入库）
-third_party/onnxruntime/lib/
+# 注：不带尾斜杠——worktree 中 lib 为指向主仓的 symlink，目录与 symlink 两种形态都需忽略
+third_party/onnxruntime/lib
 
 # IDE specific
 .idea/
@@ -48,6 +49,9 @@ Makefile*
 
 # Test runtime artifacts (MOS 导出产物等运行时生成文件)
 mos-sim-scenario-*.json
+
+# Python 字节码缓存（scripts/ 下 sim 工具运行产物）
+__pycache__/
 
 # Logs
 logs/

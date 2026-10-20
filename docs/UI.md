@@ -38,15 +38,17 @@ MainWindow
 ├── LeftPanelWidget（320px，目标/任务/设备三表 + 搜索 + 状态计数）
 ├── CenterArea
 │   ├── DeviceResourceBar（36px，设备资源条）
+│   ├── m_mapToolbar（探测工具栏：数据源分段控件 [本地模拟｜真实链路] + 重置/开始/结束）
 │   ├── m_mapContainer（地图主舞台）
 │   │   ├── TacticalMapWidget（2D 战术地图，卫星底图 aspect-fit）
 │   │   ├── VideoStreamPanel（视频 PiP，左下浮动 480×294）
-│   │   └── TargetDetailOverlay（目标详情浮层，右上浮动 340px 不透明）
-│   └── m_mapToolbar（探测工具栏：重置/开始/结束）
+│   │   ├── TargetDetailOverlay（目标详情浮层，右上浮动 340px 不透明）
+│   │   └── m_sourceBadge（数据源徽标，舞台左上角常显，鼠标穿透）
+│   └── 告警/事件条带（140px：AlertPanel + EventLogWidget 横向并列，HMS 事件按级别呈现）
 └── StatusBarWidget
 ```
 
-> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已编译但未在 MainWindow 中实例化。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页、探测页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 探测页（`DetectionView`，AI 检测结果自动填充 + 人工二次校验），index 2 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）；index 3 = 雷达页（`GprView`：B-Scan 伪彩剖面 + 频段/通道/增益工具栏 + 回放条 + 疑似目标面板，REQ-013）；index 4 = 统计页（`StatisticsView`，REQ-014，见 §4.6）。
+> **注**：CURRENT 编译目标中不含 `RightPanelWidget`、`DetectionControlPanel`、`BatchOperationBar`、`SituationView`、`DeviceStatusPanel`、`DecisionSuggestionPanel`（源文件存在但未纳入 CMakeLists）；`AlertPanel` 已随 REQ-015 在态势页中心区底部『告警/事件』条带实例化（与新建 `EventLogWidget` 横向并列）。§4.3/§4.4 中相关行描述的是历史规划状态，不代表当前编译产物。态势页、探测页与决策页由 `m_pageStack`（`QStackedWidget`）切换：index 0 = 态势页（`m_situationPage`，含 LeftPanelWidget + CenterArea），index 1 = 探测页（`DetectionView`，AI 检测结果自动填充 + 人工二次校验），index 2 = 决策页（`DecisionView`，内含 MosRunwayWidget / MosParamsPanel / 候选方案 / 当前模拟选择摘要）；index 3 = 雷达页（`GprView`：B-Scan 伪彩剖面 + 频段/通道/增益工具栏 + 回放条 + 疑似目标面板，REQ-013）；index 4 = 统计页（`StatisticsView`，REQ-014，见 §4.6）。
 
 默认尺寸 1920×1080，最小尺寸 1280×720。三视口 fresh 像素验证（REQ-011，2026-08-26）：态势/探测/决策三页 × 1280×720/1920×1080/3840×2160 共 9 张离屏截图留存于 `.omo/evidence/qt-viewport-adaptation/`；1280×720 三页无区域溢出与意外裁切（探测页左表格水平滚动条为用户裁决接受项，决策页参数区部分标签换行为既有登记的紧凑可用表现），1920×1080 与修复前基线零回归（画中画时钟、告警跑马灯动画帧差异除外），3840×2160 固定 token 区域与字体不缩放、仅中心区放大。此前登记的“1280×720 决策面板约 5px 底部溢出”系失实记录（所指 `DecisionSuggestionPanel` 未纳入编译目标，见上文注），已撤销；决策页历史三视口几何证据（`.omo/evidence/mos-p0-qt-closure-final/REPORT.md`）采集于单档位渲染修正之前，仅作历史追溯。
 
@@ -89,7 +91,7 @@ MainWindow
 | 区域 | 状态 | 实际行为 | 缺口 |
 |------|------|----------|------|
 | 2D 战术地图 | 部分完成 | 卫星底图（用户提供 2000×1800 北朝上 PNG）aspect-fit 铺放，不裁剪，与 WGS84 叠加层共享同一显示矩形（机场边界四角对齐底图四角）；WGS84 经纬度本地线性映射，非真实 GIS；无人机沿观察到的跑道轴向 out-and-back 巡航（本地模拟航点，非真实飞控）；目标红点 + 脉冲动画 + ID 标签，目标坐标由检测画面偏移按 UAV 航向旋转后转 WGS84 推算；点击红点与目标表双向高亮 | 设备/路径渲染；多目标重叠处理；无真实 GIS/相机姿态+DEM 精确投影 |
-| 探测阶段视频面板 | 部分完成 | QMediaPlayer + QVideoWidget 播放本地演示视频，每 3 秒抽帧送 `DetectionEngine` ONNX 推理；探测工具栏 [开始]/[结束]/[重置] 控制视频与检测引擎 | 本地文件回放非真实视频流；多路分屏 |
+| 探测阶段视频面板 | 部分完成 | 双数据源：本地模拟→QMediaPlayer + QVideoWidget 播放本地演示视频；真实链路→`UXO_VIDEO_RTSP_URL` 指定流 URL（未设/空回退本地测试流）；每 3 秒抽帧送 `DetectionEngine` ONNX 推理；探测工具栏 [开始]/[结束]/[重置] 控制视频与检测引擎；直播语义（seek 禁用、duration 恒 0、位置与抽帧时间戳走本地单调时钟）＋断流指数退避自动重连（1000→2000→4000→5000ms 封顶、稳定 ≥30s 复位；台架实测 127 周期 100% 自愈） | 多路分屏（未立项）；无录像回看 |
 | 视频叠加层 | 已完成 | HUD-only（十字准星、REC 指示、遥测 LAT/LON/ALT/HDG、时间码）；不绘制检测框；鼠标事件透传给下层视频控件 | 检测算法已由 `DetectionEngine` 接入，HUD 按设计保持 HUD-only |
 | 探测页（DetectionView） | 已完成 | 导航 index 1 独立页面：AI 检测结果表自动填充（每抽帧分析一行，标注“AI 分析”来源），中心区干净原图 + 分类结果、右栏异常热力图模块，确认/拒绝（误报）人工二次校验联动目标状态机 | 无结果筛选/检索；无历史回看 |
 | 雷达页（GprView） | 已完成 | 导航 index 3 独立页面（REQ-013）：B-Scan 伪彩剖面（diverging 色标，AGC/固定/原始增益）、H/L 频段与 16 通道切换、回放条（播放/暂停/变速/进度拖拽/当前道 RTK 经纬度与时间戳）、右侧疑似目标面板（ID/道索引/深度/幅度，标注 [模拟][GPR自动检测]，[确认目标]/[标记误报]）；确认后经 RTK 平滑轨迹插值注入统一目标表与 2D 地图红点（标注 [模拟]），候选本地移除防重复注入，误报仅记日志；数据缺失时显示降级态 | 通道横向偏移未校正（RTK 阵列中心近似）；人工集成走查未执行 |
@@ -134,6 +136,19 @@ MainWindow
 
 **数据源标注**：统计页为数据平台真实接入（只读、零写回），数据实例默认 `127.0.0.1:8080`（`UXO_API_HOST`/`UXO_API_PORT` 可覆盖）；实例不可用时显示显式不可用态，不以模拟数据冒充真实数据，因此页面不带"模拟"角标。这与态势/探测/决策三页的本地模拟数据构成明确的数据源边界。
 
+### 4.7 真实数据接入（REQ-015，2026-10-20 关单）
+
+态势页与探测页支持本地模拟/真实 M4E 遥测互斥接入（只读），真实链路 UI 状态全程与模拟明确区分：
+
+| 控件/区域 | 状态 | 实际行为 | 缺口 |
+|------|------|----------|------|
+| 数据源分段控件 | 已完成 | 地图工具栏左侧 [本地模拟｜真实链路] 互斥切换（2×88px≈180px）；切「真实链路」即自动连接；连接失败（未曾连上）自动回退本地模拟；断链（曾连接）不自动切回模拟，段控件与「开始」保持可用（切「本地模拟」再切回「真实链路」两击重连） | 无 |
+| 数据源徽标 | 已完成 | 地图舞台左上角常显、鼠标穿透；五态：演示数据(模拟)/连接中…/真实数据/数据停滞（>5s 无遥测）/真实数据·断链 | 无 |
+| 两级数据链路检测 | 已完成 | 遥测停滞（>5s 无 OSD）与 MQTT 断链分两级徽标呈现，互不串扰；断链不回落模拟源 | keepalive 未定制、断链客户端日志缺失 |
+| HMS 告警/事件条带 | 已完成 | HMS 级别 0/1/2→提示/警告/严重（-1/未知→提示）；正文 `[HMS] code — text`；AlertPanel 与 EventLogWidget 双区分发＋状态栏轻提示；事件日志容量 200 条滚动丢弃最旧 | 无 |
+| HUD 遥测 | 已完成 | LAT/LON/ALT/HDG 与时间码跟随当前数据源（模拟或真实） | 室内无定位信号时位置字段为空 |
+| 真实航迹 | 环境受限 | 遥测位置三件套非空即驱动地图航迹/标点 | 室内实测 21,203 帧位置三件套 0% 非空；真实 GPS 通路待外场验证 |
+
 ## 5. CURRENT 可完成的 UI 流程
 
 ```text
@@ -161,6 +176,20 @@ MainWindow
 ```
 
 `mos_decision_ui`、`mos_decision_view` 与 `mos_ui_closure` 自动验证上述流程，覆盖 happy / invalid / no-solution / tier / generator，以及真实 `DEC-GEN-JSON` 按钮到 controller 的 canonical export 工作流；导出不改变已提交 revision、选择或日志。历史三视口几何证据采集于本轮单档位渲染修正之前，修正后的多视口证据尚未刷新。离屏渲染（`QT_QPA_PLATFORM=offscreen`）不构成原生 GPU/窗口管理像素保真证据；WSLg xcb 烟雾仅证明进程在原生平台启动并存活。
+
+真实链路数据接入（REQ-015）可完成的 UI 流程：
+
+```text
+数据源分段控件切「真实链路」
+  -> 自动连接 MQTT broker（状态栏「真实链路已连接」）
+  -> 徽标「真实数据」、HUD 遥测跟随真实源
+  -> 视频面板自动重设为 UXO_VIDEO_RTSP_URL 流源
+  -> 点击「开始」出图（断流时徽标提示 + 指数退避自动重连）
+  -> 遥测停滞（>5s）或 MQTT 断链时徽标变色，不回落模拟源
+  -> 断链后切「本地模拟」再切回「真实链路」两击重连
+```
+
+2026-10-19 RC 真实台架验证：四阶段 127 次断流周期 100% 自愈、停滞 2h05m 无一次虚假恢复、MQTT 断链即显红徽标且不回落模拟（证据 `.omo/evidence/wp7-rc-integration/wp7-acceptance-report.md`）。
 
 ## 6. TARGET：NEXT UI 需求
 
@@ -204,6 +233,7 @@ NEXT UI 来自 `PRODUCT.md` 的完整本地模拟指挥环需求，不从当前�
 当前最小约束：
 
 - 模拟操作和结果必须明确标注“模拟”或“演示”。
+- 真实链路数据源运行时必须常显数据源徽标（五态）；模拟与真实数据不得混淆呈现，断链不得静默降级为模拟源。
 - 状态颜色不能作为唯一信息，必须同时提供文字。
 - 不显示没有行为且会误导用户的危险控制。
 - 可点击控件必须有明确反馈；纯标签不得伪装成工具按钮。

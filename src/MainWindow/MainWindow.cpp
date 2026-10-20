@@ -3,10 +3,13 @@
 #include "MainWindow/LeftPanelWidget.h"
 #include "MainWindow/NavigationWidget.h"
 #include "MainWindow/VideoStreamPanel.h"
+#include "MainWindow/VideoSourceConfig.h"
 #include "MainWindow/VideoOverlayWidget.h"
 #include "MainWindow/TacticalMapWidget.h"
 #include "MainWindow/DeviceResourceBar.h"
 #include "MainWindow/TargetDetailOverlay.h"
+#include "MainWindow/AlertPanel.h"
+#include "MainWindow/EventLogWidget.h"
 #include "MainWindow/DecisionView.h"
 #include "MainWindow/DetectionView.h"
 #include "MainWindow/GprView.h"
@@ -17,6 +20,8 @@
 #include "Core/Data/Types.h"
 #include "Core/Simulation/DemoScenarioProvider.h"
 #include "Core/Simulation/DroneTelemetrySimulator.h"
+#include "Core/TrackStore/TrackStore.h"
+#include "Core/Uplink/TelemetrySourceManager.h"
 #include "Detection/DetectionEngine.h"
 #include "Core/MOS/MosFixtureGenerator.h"
 #include "Common/GlobalStyle.h"
@@ -31,12 +36,14 @@
 #include <QStatusBar>
 #include <QLabel>
 #include <QPushButton>
+#include <QButtonGroup>
 #include <QMessageBox>
 #include <QCloseEvent>
 #include <QShowEvent>
 #include <QStackedWidget>
 #include <QCoreApplication>
 #include <QFileInfo>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QGraphicsDropShadowEffect>
@@ -53,6 +60,12 @@ constexpr int kPipTitleBarHeight = 24;
 constexpr int kPipHeight = kPipVideoHeight + kPipTitleBarHeight;
 constexpr int kPipMargin = 12;
 constexpr int kMapToolbarHeight = 32;
+// 「告警与日志」条带固定高度（REQ-015 WP4, 1280x720 布局硬约束上限 140px）:
+// 720p 垂直预算 720 - 菜单栏(~30) - 状态栏(28) - 资源条(36) - 工具栏(32) = ~594px，
+// 条带固定 140 后地图主舞台仍保有 ~454px（> 视频 PiP 全高 294px），地图 stretch=1 不变。
+// 固定而非最大高度：QTextEdit 自然 sizeHint(约 192px) 会把弹性高度顶满 140 上限，
+// 固定可避免告警条数变化引起地图舞台反复重排。
+constexpr int kAlertLogStripHeight = 140;
 
 // 模拟素材文件名（演示用，真实系统从配置加载）；完整路径在 loadMockData 中
 // 按 MEDIA_ASSETS_DIR 编译期宏（源码树）优先、安装布局 share/uxo/assets/media
@@ -111,7 +124,14 @@ MainWindow::MainWindow(QWidget *parent)
     , m_startBtn(nullptr)
     , m_stopBtn(nullptr)
     , m_resetBtn(nullptr)
-    , m_droneSimulator(nullptr)
+    , m_sourceGroup(nullptr)
+    , m_simSourceBtn(nullptr)
+    , m_realSourceBtn(nullptr)
+    , m_sourceBadge(nullptr)
+    , m_alertPanel(nullptr)
+    , m_eventLog(nullptr)
+    , m_telemetryManager(nullptr)
+    , m_trackStore(nullptr)
     , m_detectionEngine(nullptr)
     , m_pageStack(nullptr)
     , m_situationPage(nullptr)
@@ -124,6 +144,8 @@ MainWindow::MainWindow(QWidget *parent)
     , m_currentDroneAlt(0.0)
     , m_currentDroneHeading(0.0)
     , m_targetCounter(0)
+    , m_realLinkConnectingSeen(false)
+    , m_realLinkEverConnected(false)
     , m_leftPanelVisible(true)
     , m_pipMinimized(false)
     , m_pipVisible(true)
@@ -159,10 +181,21 @@ void MainWindow::setupUi()
     createMenuBar();
     createMainLayout();
 
-    // 创建遥测模拟器与 AI 检测引擎（在 createConnections 之前，供信号槽接线）
-    m_droneSimulator = new Core::Simulation::DroneTelemetrySimulator(this);
+    // 创建遥测数据源管理器（持有本地模拟源+真实链路源，REQ-015 WP3）与 AI 检测引擎
+    // （在 createConnections 之前，供信号槽接线；manager 为 MainWindow 子对象，
+    //  模拟源由 manager 持有，findChild<DroneTelemetrySimulator*>() 递归可达）
+    m_telemetryManager = new Core::Uplink::TelemetrySourceManager(this);
     m_detectionEngine = new DetectionEngine(this);
     m_detectionEngine->setObjectName(QStringLiteral("detectionEngine"));
+
+    // WP6 TrackStore：仅当 UXO_TRACKSTORE=1 时创建落库门面并订阅原始报文；
+    // 未启用时 m_trackStore 保持 nullptr，零数据库连接、零写入。
+    if (Core::TrackStore::TrackStore::isEnabledByEnv()) {
+        m_trackStore = new Core::TrackStore::TrackStore(this);
+        connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::rawMessageReceived,
+                m_trackStore, &Core::TrackStore::TrackStore::onRawMessage);
+        m_trackStore->start();
+    }
 
     createMapToolbar();
     createStatusBar();
@@ -178,8 +211,12 @@ void MainWindow::setupUi()
                         + QStringLiteral("/../share/uxo/assets/models");
     }
     m_detectionEngine->initialize(modelsDir + QStringLiteral("/patchcore_512.onnx"),
-                                  modelsDir + QStringLiteral("/yolov8_cls_224.onnx"),
-                                  modelsDir + QStringLiteral("/patchcore_params.json"));
+                                   modelsDir + QStringLiteral("/yolov8_cls_224.onnx"),
+                                   modelsDir + QStringLiteral("/patchcore_params.json"));
+
+    // 初始数据源状态: 徽标文案 + 分段控件/[开始] 可用性（默认本地模拟空起步）
+    updateSourceBadge();
+    updateSourceControlStates();
 
     repositionFloatingWidgets();
 }
@@ -290,7 +327,40 @@ void MainWindow::createMainLayout()
     // 浮层经关闭按钮自行隐藏不经过 reposition，需事件过滤同步其阴影层
     m_targetDetailOverlay->installEventFilter(this);
 
+    // 数据源徽标（REQ-015 WP3）: 地图舞台左上角常显当前遥测来源与链路状态，
+    // 文案/语义色由 updateSourceBadge() 统一维护；鼠标事件穿透不遮挡地图交互
+    m_sourceBadge = new QLabel(m_mapContainer);
+    m_sourceBadge->setObjectName(QStringLiteral("mapSourceBadge"));
+    m_sourceBadge->setProperty("labelRole", QStringLiteral("caption"));
+    m_sourceBadge->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+
     centerLayout->addWidget(m_mapContainer, 1);
+
+    // 3d. 「告警与日志」条带（REQ-015 WP4）: 地图主舞台正下方，AlertPanel（复活
+    // 孤儿组件）与 EventLogWidget 横向并列各半宽；固定高度不超过 140px（720p 硬约束，
+    // 见 kAlertLogStripHeight）。条带位于布局流内而非浮层，不遮挡地图鼠标交互。
+    QWidget *alertLogStrip = new QWidget(centerArea);
+    alertLogStrip->setObjectName(QStringLiteral("situationAlertLogStrip"));
+    alertLogStrip->setFixedHeight(kAlertLogStripHeight);
+    QHBoxLayout *stripLayout = new QHBoxLayout(alertLogStrip);
+    stripLayout->setContentsMargins(0, 0, 0, 0);
+    stripLayout->setSpacing(0);
+
+    m_alertPanel = new AlertPanel(alertLogStrip);
+    stripLayout->addWidget(m_alertPanel, 1);
+
+    // 双面板间 1px 竖分隔线（StatusBarWidget::createSeparator 同模式，颜色走 Border 令牌）
+    QFrame *stripSeparator = new QFrame(alertLogStrip);
+    stripSeparator->setObjectName(QStringLiteral("situationAlertLogSeparator"));
+    stripSeparator->setFixedWidth(1);
+    stripSeparator->setStyleSheet(
+        QStringLiteral("background-color: %1;").arg(GlobalStyle::Colors::Border));
+    stripLayout->addWidget(stripSeparator);
+
+    m_eventLog = new EventLogWidget(alertLogStrip);
+    stripLayout->addWidget(m_eventLog, 1);
+
+    centerLayout->addWidget(alertLogStrip);
 
     // 中心区加入态势工作区布局
     situationLayout->addWidget(centerArea, 1);
@@ -330,6 +400,66 @@ void MainWindow::createMapToolbar()
     QHBoxLayout *layout = new QHBoxLayout(m_mapToolbar);
     layout->setContentsMargins(8, 0, 8, 0);
     layout->setSpacing(4);
+
+    // 数据源分段控件（REQ-015 WP3）: [本地模拟|真实链路] 互斥切换，位于探测控制按钮左侧
+    // （m4e-drone-integration.md §6.6）。全局 QSS 的 flat 规则晚于 :checked 规则且同特异度，
+    // 会覆盖选中态，故分段按钮不走 btnVariant="flat"，改用内联令牌样式（与 DecisionView
+    // 档位按钮同模式）: 未选中=ToolbarBackground，选中=Selection 令牌，禁用=PanelBackground
+    constexpr int kSourceSegmentWidth = 88;  // 定宽: 2x88 + 间距 ≈ 180px（§6.6）
+    const QString segmentStyle = QStringLiteral(
+        "QPushButton {"
+        "  background-color: %1;"
+        "  color: %2;"
+        "  border: 1px solid %3;"
+        "  border-radius: 4px;"
+        "  padding: 3px 6px;"
+        "  font-size: %9px;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: %4;"
+        "}"
+        "QPushButton:checked {"
+        "  background-color: %5;"
+        "  color: %2;"
+        "  border: 2px solid %6;"
+        "  padding: 2px 5px;"
+        "}"
+        "QPushButton:disabled {"
+        "  background-color: %7;"
+        "  color: %8;"
+        "  border: 1px solid %3;"
+        "}"
+    )
+        .arg(GlobalStyle::Colors::ToolbarBackground)
+        .arg(GlobalStyle::Colors::TextPrimary)
+        .arg(GlobalStyle::Colors::Border)
+        .arg(GlobalStyle::Colors::HoverBackground)
+        .arg(GlobalStyle::Colors::SelectionBackground)
+        .arg(GlobalStyle::Colors::SelectionBorder)
+        .arg(GlobalStyle::Colors::PanelBackground)
+        .arg(GlobalStyle::Colors::TextDisabled)
+        .arg(GlobalStyle::Fonts::CaptionSize);
+    m_sourceGroup = new QButtonGroup(m_mapToolbar);  // 互斥组，按钮 id=SourceMode 枚举值
+    m_simSourceBtn = new QPushButton(QStringLiteral("本地模拟"), m_mapToolbar);
+    m_simSourceBtn->setObjectName(QStringLiteral("mapToolbarSourceSim"));
+    m_simSourceBtn->setCheckable(true);
+    m_simSourceBtn->setChecked(true);  // 默认本地模拟（空起步）
+    m_simSourceBtn->setFixedWidth(kSourceSegmentWidth);
+    m_simSourceBtn->setStyleSheet(segmentStyle);
+    m_sourceGroup->addButton(m_simSourceBtn,
+                             static_cast<int>(Core::Uplink::SourceMode::Simulation));
+    layout->addWidget(m_simSourceBtn);
+
+    m_realSourceBtn = new QPushButton(QStringLiteral("真实链路"), m_mapToolbar);
+    m_realSourceBtn->setObjectName(QStringLiteral("mapToolbarSourceReal"));
+    m_realSourceBtn->setCheckable(true);
+    m_realSourceBtn->setFixedWidth(kSourceSegmentWidth);
+    m_realSourceBtn->setStyleSheet(segmentStyle);
+    m_sourceGroup->addButton(m_realSourceBtn,
+                             static_cast<int>(Core::Uplink::SourceMode::RealLink));
+    layout->addWidget(m_realSourceBtn);
+
+    layout->addSpacing(8);
 
     // 探测控制按钮: [重置] [开始] [结束]
     // 扁平工具栏按钮：全局 QSS btnVariant="flat"（替代原共享 btnStyle 内联，下方 7 个按钮同款）
@@ -396,13 +526,7 @@ void MainWindow::createMapToolbar()
     layout->addWidget(pickCoordBtn);
 
     layout->addStretch();
-
-    auto *simTag = new QLabel(QStringLiteral("[模拟]"), m_mapToolbar);
-    simTag->setObjectName(QStringLiteral("mapToolbarSimTag"));
-    // 模拟角标：caption 排版 + 中威胁语义色（labelRole/textColor 组合，见词汇表约定 3）
-    simTag->setProperty("labelRole", QStringLiteral("caption"));
-    simTag->setProperty("textColor", QStringLiteral("medium"));
-    layout->addWidget(simTag);
+    // 原 [模拟] 工具栏角标已由地图舞台左上数据源徽标取代（REQ-015 WP3，见 updateSourceBadge）
 
     // 探测控制按钮信号
     connect(m_startBtn, &QPushButton::clicked, this, &MainWindow::onStartDetection);
@@ -449,9 +573,23 @@ void MainWindow::createConnections()
         m_statusBarWidget->addAlarm(QStringLiteral("[AI] 检测引擎错误: %1").arg(message));
     });
 
-    // 无人机遥测 -> 地图无人机标记 + 航迹 + 视频 HUD
-    connect(m_droneSimulator, &Core::Simulation::DroneTelemetrySimulator::telemetryUpdated,
+    // 遥测数据源管理器（REQ-015 WP3）: 模拟/真实链路统一信号转发
+    // 遥测 -> 地图无人机标记 + 航迹 + 视频 HUD（HUD 跟随当前源，无来源差异）
+    connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::telemetryUpdated,
             this, &MainWindow::onTelemetryUpdated);
+    // 模式切换 -> 分段选中态/状态栏模拟标识/徽标/控件可用性
+    connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::modeChanged,
+            this, &MainWindow::onSourceModeChanged);
+    // 链路状态 -> §6.1 状态机（连接失败回退模拟/断链提示不自动切回）
+    connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::linkStateChanged,
+            this, &MainWindow::onLinkStateChanged);
+    // 真实链路 HMS 告警 -> onAlertReceived 槽（REQ-015 WP4）:
+    // 冻结级别映射后分发「告警与日志」双区 + 状态栏轻提示（取代 WP3 丢弃 code 的 lambda）
+    connect(m_telemetryManager, &Core::Uplink::TelemetrySourceManager::alertReceived,
+            this, &MainWindow::onAlertReceived);
+    // 数据源分段控件: 互斥切换 本地模拟/真实链路（id=SourceMode 枚举值）
+    connect(m_sourceGroup, &QButtonGroup::idClicked,
+            this, &MainWindow::onSourceSegmentClicked);
 
     // 视频结束 -> 停止模拟器
     connect(m_videoPiP, &VideoStreamPanel::videoEnded, this, &MainWindow::onVideoEnded);
@@ -559,11 +697,13 @@ void MainWindow::loadMockData()
     m_tacticalMap->setAirportBounds(scenario.airportBounds);
     m_tacticalMap->setSatelliteImage(mediaDir + QStringLiteral("/") + QString::fromUtf8(kSatelliteFile));
 
-    // 视频: 加载演示视频文件（与卫星底图同一 media 目录）
-    m_videoPiP->loadVideo(mediaDir + QStringLiteral("/") + QString::fromUtf8(kVideoFile));
+    // 视频: 加载演示视频文件（与卫星底图同一 media 目录）；路径缓存供数据源
+    // 切回本地模拟时重载（REQ-015 WP5 裁决⑥）
+    m_localVideoPath = mediaDir + QStringLiteral("/") + QString::fromUtf8(kVideoFile);
+    m_videoPiP->loadVideo(m_localVideoPath);
 
-    // 无人机遥测模拟器: 加载航线
-    m_droneSimulator->loadRoute(scenario.droneRoute, kVideoDurationSec);
+    // 无人机遥测模拟器: 加载航线（经数据源管理器持有的模拟源）
+    m_telemetryManager->simulationSource()->loadRoute(scenario.droneRoute, kVideoDurationSec);
 
     // MOS 初始规划：seed=42 生成确定性 fixture，同步触发首次 replan 后显式推送快照
     if (m_decisionView && m_mosController) {
@@ -576,21 +716,23 @@ void MainWindow::loadMockData()
     }
 }
 
-// [开始]: 播放视频 + 启动遥测模拟器（视频抽帧定时器随播放自动启动）
+// [开始]: 播放视频 + 启动当前遥测源（视频抽帧定时器随播放自动启动）
 void MainWindow::onStartDetection()
 {
     m_videoPiP->play();
-    m_droneSimulator->start();
+    m_telemetryManager->start();
     m_statusBarWidget->addAlarm(QStringLiteral("探测已开始"));
+    updateSourceControlStates();  // 运行中锁定数据源切换
 }
 
-// [结束]: 停止视频并回 0s + 停止遥测模拟器（保留目标/地图/侧栏/选中状态）
+// [结束]: 停止视频并回 0s + 停止当前遥测源（保留目标/地图/侧栏/选中状态）
 void MainWindow::onStopDetection()
 {
     m_videoPiP->pause();
     m_videoPiP->seek(0);
-    m_droneSimulator->stop();
+    m_telemetryManager->stop();
     m_statusBarWidget->addAlarm(QStringLiteral("探测已结束，视频回 0s"));
+    updateSourceControlStates();  // 解除数据源切换锁定
 }
 
 // [重置]: 停止视频 + 复位遥测模拟器 + 清空目标/检测框/航迹/探测页结果
@@ -598,7 +740,7 @@ void MainWindow::onResetDetection()
 {
     m_videoPiP->pause();
     m_videoPiP->seek(0);
-    m_droneSimulator->reset();
+    m_telemetryManager->reset();
 
     // 清空目标
     m_simulationWorkflow.reset({});
@@ -618,22 +760,23 @@ void MainWindow::onResetDetection()
 
     repositionFloatingWidgets();
     m_statusBarWidget->addAlarm(QStringLiteral("探测已重置"));
+    updateSourceControlStates();  // 复位后恢复数据源切换
 }
 
-// 无人机遥测更新: 地图无人机标记 + 航迹 + 视频 HUD
-void MainWindow::onTelemetryUpdated(double lat, double lng, double alt, double heading)
+// 无人机遥测更新（数据源管理器统一转发）: 地图无人机标记 + 航迹 + 视频 HUD
+void MainWindow::onTelemetryUpdated(const Core::Uplink::TelemetryData& data)
 {
-    m_currentDroneLat = lat;
-    m_currentDroneLng = lng;
-    m_currentDroneAlt = alt;
-    m_currentDroneHeading = heading;
+    m_currentDroneLat = data.latitude;
+    m_currentDroneLng = data.longitude;
+    m_currentDroneAlt = data.altitude;
+    m_currentDroneHeading = data.heading;
 
     // 地图: 更新无人机位置 + 添加航迹点
-    m_tacticalMap->setDronePosition(lat, lng, heading);
-    m_tacticalMap->addTrackPoint(lat, lng);
+    m_tacticalMap->setDronePosition(data.latitude, data.longitude, data.heading);
+    m_tacticalMap->addTrackPoint(data.latitude, data.longitude);
 
     // 视频 HUD: 更新遥测显示
-    m_videoPiP->overlay()->setTelemetry(lat, lng, alt, heading);
+    m_videoPiP->overlay()->setTelemetry(data.latitude, data.longitude, data.altitude, data.heading);
 }
 
 // AI 分析结果落地: 异常帧生成目标 + 四区同步; 正常帧仅记录到探测页
@@ -687,11 +830,142 @@ void MainWindow::onFrameAnalyzed(const ImageDetectionResult& result)
     m_evidenceByTargetId.insert(targetId, evidence);
 }
 
-// 视频播放结束: 停止遥测模拟器
+// 视频播放结束: 停止当前遥测源
 void MainWindow::onVideoEnded()
 {
-    m_droneSimulator->stop();
+    m_telemetryManager->stop();
     m_statusBarWidget->addAlarm(QStringLiteral("视频播放结束，探测完成"));
+    updateSourceControlStates();
+}
+
+// 数据源分段控件: 切换 本地模拟/真实链路（运行中/连接中已被 updateSourceControlStates 锁定）
+void MainWindow::onSourceSegmentClicked(int id)
+{
+    if (m_telemetryManager == nullptr) {
+        return;
+    }
+    m_telemetryManager->setMode(static_cast<Core::Uplink::SourceMode>(id));
+}
+
+// 数据源模式切换回调: 同步分段选中态/状态栏模拟标识/徽标/控件可用性
+void MainWindow::onSourceModeChanged(Core::Uplink::SourceMode mode)
+{
+    // 视频源互斥（REQ-015 WP5 裁决⑥）: 真实链路→流 URL（环境变量 UXO_VIDEO_RTSP_URL），
+    // 本地模拟→演示视频；面板不感知协议与对端（§9-2 护栏），仅由本处重设源
+    if (mode == Core::Uplink::SourceMode::RealLink) {
+        m_videoPiP->loadStreamUrl(videoStreamUrlFromEnv());
+    } else {
+        m_videoPiP->loadVideo(m_localVideoPath);
+    }
+
+    // 同步分段选中态（程序化 setChecked 不触发 clicked/idClicked，无递归风险）
+    if (m_simSourceBtn != nullptr && m_realSourceBtn != nullptr) {
+        m_simSourceBtn->setChecked(mode == Core::Uplink::SourceMode::Simulation);
+        m_realSourceBtn->setChecked(mode == Core::Uplink::SourceMode::RealLink);
+    }
+    if (mode == Core::Uplink::SourceMode::RealLink) {
+        // 新一轮真实链路连接: 复位判定标志（区分连接失败与曾连接后断链）
+        m_realLinkConnectingSeen = false;
+        m_realLinkEverConnected = false;
+    }
+    // 状态栏 [模拟模式] 标识与数据源联动
+    m_statusBarWidget->setSimulationMode(mode == Core::Uplink::SourceMode::Simulation);
+    // 切源清空上一数据源的探测产物：目标列表/地图标记/无人机航迹/检测框/探测页结果，
+    // 避免旧源目标在新源下残留（模拟目标切真实后不消失问题，C 项修复）
+    m_leftPanel->setTargets({});
+    m_tacticalMap->clearTargets();
+    m_tacticalMap->clearDroneTrack();
+    m_videoPiP->overlay()->clear();
+    m_targetDetailOverlay->reset();
+    m_detectionView->clearResults();
+    m_targetCounter = 0;
+    m_evidenceByTargetId.clear();
+    updateSourceBadge();
+    updateSourceControlStates();
+}
+
+// 真实链路状态回调（§6.1 状态机）: 连接失败自动回退本地模拟；
+// 曾连接后断链不自动切回（提示 + 数据流入暂停，由用户裁决）
+void MainWindow::onLinkStateChanged(Core::Uplink::LinkState state)
+{
+    if (m_telemetryManager == nullptr
+            || m_telemetryManager->mode() != Core::Uplink::SourceMode::RealLink) {
+        // 模拟模式下链路信号无意义（管理器约定恒为 Disconnected）
+        return;
+    }
+    switch (state) {
+    case Core::Uplink::LinkState::Connecting:
+        m_realLinkConnectingSeen = true;
+        break;
+    case Core::Uplink::LinkState::Connected:
+        m_realLinkEverConnected = true;
+        m_statusBarWidget->addAlarm(QStringLiteral("[链路] 真实链路已连接"));
+        break;
+    case Core::Uplink::LinkState::Stalled:
+        m_statusBarWidget->addAlarm(QStringLiteral("[链路] 数据停滞（>5s 无遥测）"));
+        break;
+    case Core::Uplink::LinkState::Disconnected:
+        if (!m_realLinkConnectingSeen) {
+            // 未见 Connecting 的 Disconnected 视为残留信号，忽略
+            break;
+        }
+        if (!m_realLinkEverConnected) {
+            // 连接失败: 自动回退本地模拟（§6.1）
+            m_statusBarWidget->addAlarm(
+                QStringLiteral("[链路] 真实链路连接失败，已回退本地模拟"));
+            m_telemetryManager->setMode(Core::Uplink::SourceMode::Simulation);
+            return;  // setMode -> modeChanged 已刷新徽标/分段/控件状态
+        }
+        // 曾连接后断链: 不自动切回模拟，数据流入暂停等待用户处理（§6.1）
+        m_statusBarWidget->addAlarm(
+            QStringLiteral("[链路] 真实链路断链，数据流入暂停（不自动切回模拟）"));
+        // D2-a 修复：停止真实源复位运行标志——段控件与「开始」按钮解锁，两击重连路径成立；
+        // stop() 重发 Disconnected 经源/管理器双层变更守卫抑制，无信号重入；
+        // 模式保持 RealLink、徽标保持断链——保留「不自动切回模拟，用户裁决」语义（§6.1）
+        m_telemetryManager->stop();
+        break;
+    default:
+        break;
+    }
+    updateSourceBadge();
+    updateSourceControlStates();
+}
+
+// HMS 告警事件回调（REQ-015 WP4）: 冻结级别映射 -> 告警面板 + 事件日志双区分发，
+// 并保留状态栏轻提示（沿袭 WP3 行为）
+void MainWindow::onAlertReceived(const Core::Uplink::AlertEvent &event)
+{
+    // 映射表冻结 2026-10-11，对齐 docs/interfaces/接口规格-MSDK对接.md events 契约
+    // 与 feature §6.4: level 0/1/2 = HMS 提示/警告/严重；-1（无级别事件）及未知值按提示处理
+    Core::AlarmLevel alarmLevel = Core::AlarmLevel::Info;
+    switch (event.level) {
+    case 0:
+        alarmLevel = Core::AlarmLevel::Info;
+        break;
+    case 1:
+        alarmLevel = Core::AlarmLevel::Warning;
+        break;
+    case 2:
+        alarmLevel = Core::AlarmLevel::Error;
+        break;
+    default:  // -1 及未知值 -> 提示
+        alarmLevel = Core::AlarmLevel::Info;
+        break;
+    }
+
+    // AlarmInfo 组装（字段见 include/Core/Data/Types.h AlarmInfo）:
+    // 正文带 [HMS] 来源前缀并显示 code + 文案（feature §6.4/§6.6），时间戳取当前
+    Core::AlarmInfo alarm;
+    alarm.level = alarmLevel;
+    alarm.message = QStringLiteral("[HMS] %1 — %2").arg(event.code, event.text);
+    alarm.createTime = QDateTime::currentDateTime();
+
+    // 双区分发: 告警面板（级别着色列表）+ 事件日志（同级别条目）
+    m_alertPanel->addAlert(alarm);
+    m_eventLog->appendEvent(alarmLevel, alarm.message);
+
+    // 状态栏轻提示（现状行为保留，正文与双区一致）
+    m_statusBarWidget->addAlarm(alarm.message);
 }
 
 // 三向联动: 目标表/地图/视频框 任一选中 -> 同步其他两区
@@ -1119,6 +1393,74 @@ void MainWindow::repositionFloatingWidgets()
     } else if (m_overlayShadowLayer != nullptr) {
         m_overlayShadowLayer->hide();
     }
+
+    // 数据源徽标: 地图舞台左上角常显（kPipMargin 边距），尺寸随文案自适应
+    if (m_sourceBadge != nullptr) {
+        m_sourceBadge->setGeometry(kPipMargin, kPipMargin,
+                                   m_sourceBadge->sizeHint().width(),
+                                   m_sourceBadge->sizeHint().height());
+        m_sourceBadge->raise();
+        m_sourceBadge->show();
+    }
+}
+
+// 刷新数据源徽标: 模拟模式 [模拟]（中威胁语义色，沿袭原工具栏角标文案）；
+// 真实链路按链路状态显示冻结文案（§6.2）: 真实数据/连接中…/数据停滞/真实数据·断链
+void MainWindow::updateSourceBadge()
+{
+    if (m_sourceBadge == nullptr || m_telemetryManager == nullptr) {
+        return;
+    }
+    QString text;
+    QString color;
+    if (m_telemetryManager->mode() == Core::Uplink::SourceMode::Simulation) {
+        text = QStringLiteral("[模拟]");
+        color = GlobalStyle::Colors::ThreatMedium;
+    } else {
+        switch (m_telemetryManager->linkState()) {
+        case Core::Uplink::LinkState::Connected:
+            text = QStringLiteral("真实数据·已连接");
+            color = GlobalStyle::Colors::TierBlue;
+            break;
+        case Core::Uplink::LinkState::Connecting:
+            text = QStringLiteral("连接中…");
+            color = GlobalStyle::Colors::StatusBusy;
+            break;
+        case Core::Uplink::LinkState::Stalled:
+            text = QStringLiteral("数据停滞（>5s 无遥测）");
+            color = GlobalStyle::Colors::StatusBusy;
+            break;
+        case Core::Uplink::LinkState::Disconnected:
+        default:
+            text = QStringLiteral("真实数据·断链");
+            color = GlobalStyle::Colors::StatusError;
+            break;
+        }
+    }
+    m_sourceBadge->setText(text);
+    // 内联语义色覆盖 labelRole=caption 的默认文字色（StatusBarWidget 同模式）
+    m_sourceBadge->setStyleSheet(QStringLiteral("color: %1;").arg(color));
+    repositionFloatingWidgets();  // 文案变化后同步徽标几何
+}
+
+// 刷新数据源分段控件与 [开始] 可用性（§6.1）:
+// 运行中/连接中锁定分段切换; [开始] 仅模拟模式或已连接时可用
+void MainWindow::updateSourceControlStates()
+{
+    if (m_telemetryManager == nullptr || m_simSourceBtn == nullptr) {
+        return;
+    }
+    const bool running = m_telemetryManager->isRunning();
+    const bool connecting =
+            m_telemetryManager->mode() == Core::Uplink::SourceMode::RealLink
+            && m_telemetryManager->linkState() == Core::Uplink::LinkState::Connecting;
+    const bool canSwitch = !running && !connecting;
+    m_simSourceBtn->setEnabled(canSwitch);
+    m_realSourceBtn->setEnabled(canSwitch);
+    const bool canStart =
+            m_telemetryManager->mode() == Core::Uplink::SourceMode::Simulation
+            || m_telemetryManager->linkState() == Core::Uplink::LinkState::Connected;
+    m_startBtn->setEnabled(canStart);
 }
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)

@@ -12,7 +12,7 @@ namespace Core::Simulation {
 static constexpr int TIMER_INTERVAL_MS = 100;
 
 DroneTelemetrySimulator::DroneTelemetrySimulator(QObject *parent)
-    : QObject(parent)
+    : Core::Uplink::ITelemetrySource(parent)
     , m_totalDurationSec(96.0)
     , m_timer(nullptr)
     , m_running(false)
@@ -71,7 +71,7 @@ void DroneTelemetrySimulator::onTick()
     // 到达航线终点：停止定时器，输出最后一个航点
     if (elapsedSec >= m_totalDurationSec) {
         const DroneWaypoint& last = m_route.last();
-        emit telemetryUpdated(last.lat, last.lng, last.alt, last.heading);
+        emit telemetryUpdated(Core::Uplink::TelemetryData{last.lat, last.lng, last.alt, last.heading});
         m_timer->stop();
         m_running = false;
         return;
@@ -110,7 +110,7 @@ void DroneTelemetrySimulator::onTick()
     // 归一化到 [0, 360)
     heading = std::fmod(heading + 360.0, 360.0);
 
-    emit telemetryUpdated(lat, lng, alt, heading);
+    emit telemetryUpdated(Core::Uplink::TelemetryData{lat, lng, alt, heading});
 }
 
 }

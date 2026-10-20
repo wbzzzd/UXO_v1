@@ -29,6 +29,40 @@ find_package(Qt5 REQUIRED COMPONENTS
 find_package(ZeroMQ QUIET)
 find_package(PostgreSQL QUIET)
 
+# Eclipse Paho MQTT C/C++ 库（REQ-015 M4E 真实链路遥测）。
+# mqttpp3 的 NEEDED 依赖 libpaho-mqtt3as.so.1，而 DT_RUNPATH 不传递间接依赖，
+# 故 3a/3as/mqttpp3 三个库均建 IMPORTED 目标并直接链接（WP3 核查结论，
+# 见 .omo/plans/20261010-req012-m4e-implementation.md）。
+find_path(PAHO_MQTT_INCLUDE_DIR mqtt/async_client.h)
+# conda 工具链（cmake 4.4.0）检测不到 multiarch 三元组，CMAKE_LIBRARY_ARCHITECTURE
+# 为空时 find_library 漏搜 <prefix>/lib/x86_64-linux-gnu（dpkg 解包布局即此路径）；
+# PATH_SUFFIXES 仅追加候选路径，对 apt 安装与其他平台无副作用（WP3 构建门禁实测）。
+find_library(PAHO_MQTTPP_LIBRARY NAMES paho-mqttpp3 PATH_SUFFIXES x86_64-linux-gnu)
+find_library(PAHO_MQTT_C_ASYNC_SSL_LIBRARY NAMES paho-mqtt3as PATH_SUFFIXES x86_64-linux-gnu)
+find_library(PAHO_MQTT_C_ASYNC_LIBRARY NAMES paho-mqtt3a PATH_SUFFIXES x86_64-linux-gnu)
+if(NOT PAHO_MQTT_INCLUDE_DIR OR NOT PAHO_MQTTPP_LIBRARY
+        OR NOT PAHO_MQTT_C_ASYNC_SSL_LIBRARY OR NOT PAHO_MQTT_C_ASYNC_LIBRARY)
+    message(FATAL_ERROR "未找到 Eclipse Paho MQTT 库（paho-mqttpp3/paho-mqtt3as/paho-mqtt3a），"
+        "请用 -DCMAKE_PREFIX_PATH=$ENV{HOME}/.local/opt/paho/usr 指定安装前缀")
+endif()
+get_filename_component(PAHO_MQTT_LIB_DIR "${PAHO_MQTTPP_LIBRARY}" DIRECTORY)
+if(NOT TARGET paho-mqtt3a)
+    add_library(paho-mqtt3a UNKNOWN IMPORTED)
+    set_target_properties(paho-mqtt3a PROPERTIES
+        IMPORTED_LOCATION "${PAHO_MQTT_C_ASYNC_LIBRARY}")
+endif()
+if(NOT TARGET paho-mqtt3as)
+    add_library(paho-mqtt3as UNKNOWN IMPORTED)
+    set_target_properties(paho-mqtt3as PROPERTIES
+        IMPORTED_LOCATION "${PAHO_MQTT_C_ASYNC_SSL_LIBRARY}")
+endif()
+if(NOT TARGET paho-mqttpp3)
+    add_library(paho-mqttpp3 UNKNOWN IMPORTED)
+    set_target_properties(paho-mqttpp3 PROPERTIES
+        IMPORTED_LOCATION "${PAHO_MQTTPP_LIBRARY}"
+        INTERFACE_INCLUDE_DIRECTORIES "${PAHO_MQTT_INCLUDE_DIR}")
+endif()
+
 # 链接环境修正：本项目用系统 GCC11（/usr/bin/c++）作为编译驱动，而 Qt5 取自本机
 # conda 环境 uxo-dev；环境中 ICU 78 依赖 __cxa_call_terminate@CXXABI_1.3.15，
 # 该符号仅存在于较新 libstdc++（环境 6.0.34 有、系统 6.0.30 无）。把环境 lib 目录
@@ -54,8 +88,8 @@ add_link_options(-Wl,--no-relax)
 set(HEADERS_DIR ${CMAKE_SOURCE_DIR}/include)
 set(SOURCES_DIR ${CMAKE_SOURCE_DIR}/src)
 
-# 构建期 RPATH: 让可执行文件在构建树中能找到 libonnxruntime.so（绝对路径注入，仅开发期用）
-set(CMAKE_BUILD_RPATH "${CMAKE_SOURCE_DIR}/third_party/onnxruntime/lib")
+# 构建期 RPATH: 让可执行文件在构建树中能找到 libonnxruntime.so 与 Paho MQTT 库（绝对路径注入，仅开发期用）
+set(CMAKE_BUILD_RPATH "${CMAKE_SOURCE_DIR}/third_party/onnxruntime/lib" "${PAHO_MQTT_LIB_DIR}")
 # 安装期 RPATH: 安装版按 $ORIGIN/../lib 相对解析 onnxruntime。
 # 必须在 add_subdirectory 之前设置——该变量仅在目标创建时初始化 INSTALL_RPATH 属性
 set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
@@ -73,7 +107,7 @@ add_subdirectory(src/MainWindow)
 add_subdirectory(src/App)
 
 # ---- 安装规则（cmake --install）----
-# 布局: bin/UXOMissionControl + lib/onnxruntime + share/uxo/assets/{models,media}
+# 布局: bin/UXOMissionControl + lib/{onnxruntime,paho-mqtt} + share/uxo/assets/{models,media}
 
 # onnxruntime: 取带版本号的真实库文件（跳过 .so / .so.1 符号链），
 # 按 SONAME(libonnxruntime.so.1) 安装，避免符号链被解引用成多份拷贝
@@ -84,6 +118,24 @@ install(FILES ${ONNXRUNTIME_VERSIONED_LIB}
     DESTINATION lib)
 install(FILES
     "${CMAKE_SOURCE_DIR}/third_party/onnxruntime/lib/libonnxruntime_providers_shared.so"
+    DESTINATION lib)
+
+# Paho MQTT: 同 onnxruntime 策略，取带版本号的真实库文件（跳过 .so / .so.1 符号链）
+# 按 SONAME 安装；"libpaho-mqtt3a.so.*.*" 不会误配 3as（3a 后是 's' 不是 '.'）
+file(GLOB PAHO_MQTTPP_VERSIONED_LIB
+    "${PAHO_MQTTPP_LIBRARY}.*.*")
+file(GLOB PAHO_MQTT_3AS_VERSIONED_LIB
+    "${PAHO_MQTT_C_ASYNC_SSL_LIBRARY}.*.*")
+file(GLOB PAHO_MQTT_3A_VERSIONED_LIB
+    "${PAHO_MQTT_C_ASYNC_LIBRARY}.*.*")
+install(FILES ${PAHO_MQTTPP_VERSIONED_LIB}
+    RENAME libpaho-mqttpp3.so.1
+    DESTINATION lib)
+install(FILES ${PAHO_MQTT_3AS_VERSIONED_LIB}
+    RENAME libpaho-mqtt3as.so.1
+    DESTINATION lib)
+install(FILES ${PAHO_MQTT_3A_VERSIONED_LIB}
+    RENAME libpaho-mqtt3a.so.1
     DESTINATION lib)
 
 # 运行时模型资产（不含已废弃的 patchcore_128.onnx 与 *.bak 实验备份）
@@ -458,6 +510,52 @@ add_test(NAME mos_runway_closure COMMAND UXOMissionControlMosRunwayClosureTest)
 set_tests_properties(mos_runway_closure PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
 )
+
+# REQ-015 M4E WP3 遥测数据源管理器单测（纯 QCoreApplication，无需 QPA 平台插件；
+# 全局 AUTOMOC + CMAKE_INCLUDE_CURRENT_DIR 覆盖 moc 生成与 .moc 包含解析）
+add_executable(UXOMissionControlTelemetrySourceManagerTest
+    tests/telemetry_source_manager_test.cpp
+)
+target_include_directories(UXOMissionControlTelemetrySourceManagerTest PRIVATE
+    ${HEADERS_DIR}
+)
+target_link_libraries(UXOMissionControlTelemetrySourceManagerTest
+    Qt5::Core
+    Qt5::Test
+    Core
+)
+add_test(NAME telemetry_source_manager COMMAND UXOMissionControlTelemetrySourceManagerTest)
+
+# REQ-015 M4E WP6 落库映射单测（纯 QCoreApplication，无需 QPA 平台插件；
+# 覆盖主题 SN 提取、OSD 轨迹行 20 键映射、events 行映射、无效帧丢弃与开关默认关闭；
+# 不触库，无头环境无条件执行）
+add_executable(UXOMissionControlTrackStoreTest
+    tests/track_store_test.cpp
+)
+target_include_directories(UXOMissionControlTrackStoreTest PRIVATE
+    ${HEADERS_DIR}
+)
+target_link_libraries(UXOMissionControlTrackStoreTest
+    Qt5::Core
+    Qt5::Test
+    Core
+)
+add_test(NAME track_store COMMAND UXOMissionControlTrackStoreTest)
+
+# REQ-015 M4E WP5 视频源环境配置单测（纯 QCoreApplication，无需 QPA 平台插件；
+# 覆盖 UXO_VIDEO_RTSP_URL 未设/空回退默认测试流、设置生效；
+# 配置为头文件内联实现，免链接 Core）
+add_executable(UXOMissionControlVideoSourceConfigTest
+    tests/video_source_config_test.cpp
+)
+target_include_directories(UXOMissionControlVideoSourceConfigTest PRIVATE
+    ${HEADERS_DIR}
+)
+target_link_libraries(UXOMissionControlVideoSourceConfigTest
+    Qt5::Core
+    Qt5::Test
+)
+add_test(NAME video_source_config COMMAND UXOMissionControlVideoSourceConfigTest)
 
 # ---- GPR 解析层单元测试（REQ-013）----
 # 合成 fixture 为主；真实数据 smoke 由 GPR_SAMPLE_DATA_DIR 宏控制，数据缺失时自动 QSKIP。
