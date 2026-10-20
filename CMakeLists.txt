@@ -23,6 +23,7 @@ find_package(Qt5 REQUIRED COMPONENTS
     Test
     Multimedia
     MultimediaWidgets
+    Charts
 )
 
 find_package(ZeroMQ QUIET)
@@ -99,6 +100,9 @@ add_subdirectory(third_party/QtAwesome)
 add_subdirectory(src/Common)
 add_subdirectory(src/Core)
 add_subdirectory(src/Detection)
+add_subdirectory(src/GPR)
+# REQ-012 数据平台接入：Integration 静态库（P0 纯适配器，API 通道，不进入模拟链）
+add_subdirectory(src/Integration)
 add_subdirectory(src/MainWindow)
 add_subdirectory(src/App)
 
@@ -552,3 +556,180 @@ target_link_libraries(UXOMissionControlVideoSourceConfigTest
     Qt5::Test
 )
 add_test(NAME video_source_config COMMAND UXOMissionControlVideoSourceConfigTest)
+
+# ---- GPR 解析层单元测试（REQ-013）----
+# 合成 fixture 为主；真实数据 smoke 由 GPR_SAMPLE_DATA_DIR 宏控制，数据缺失时自动 QSKIP。
+
+# GPR .rad 采集参数头解析测试
+add_executable(UXOMissionControlGprHeaderTest
+    tests/gpr_header_test.cpp
+)
+target_include_directories(UXOMissionControlGprHeaderTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprHeaderTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_header COMMAND UXOMissionControlGprHeaderTest)
+
+# GPR .rd3 B-Scan 懒加载读取测试（含逐通道 t0 初至估计）
+add_executable(UXOMissionControlGprBScanTest
+    tests/gpr_bscan_test.cpp
+)
+target_include_directories(UXOMissionControlGprBScanTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprBScanTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_bscan COMMAND UXOMissionControlGprBScanTest)
+
+# GPR 数据集目录扫描测试（H/L 两组 × 16 通道文件组聚合、缺失通道报告）
+add_executable(UXOMissionControlGprDatasetTest
+    tests/gpr_dataset_test.cpp
+)
+target_include_directories(UXOMissionControlGprDatasetTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprDatasetTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_dataset COMMAND UXOMissionControlGprDatasetTest)
+
+# GPR .cor RTK 轨迹解析测试（道号 1:1 对齐、间隙插值、UTC 时间戳、高斯重平滑）
+add_executable(UXOMissionControlGprTrackTest
+    tests/gpr_track_test.cpp
+)
+target_include_directories(UXOMissionControlGprTrackTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprTrackTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_track COMMAND UXOMissionControlGprTrackTest)
+
+# GPR 阈值候选检测测试（预研验证管线移植；检测仅作候选标记，人工复核必需）
+add_executable(UXOMissionControlGprDetectorTest
+    tests/gpr_detector_test.cpp
+)
+target_include_directories(UXOMissionControlGprDetectorTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprDetectorTest
+    Qt5::Core
+    Qt5::Test
+    GPR
+)
+add_test(NAME gpr_detector COMMAND UXOMissionControlGprDetectorTest)
+
+# 雷达页（GprView）离屏 UI 契约测试（REQ-013 / gpr-display.md §7.3）：
+# 稳定对象名、空态降级、频段/通道切换信号、疑似意图转发、[模拟] 标注；
+# 真实样例数据用例由 GPR_SAMPLE_DATA_DIR 宏控制，数据缺失时自动 QSKIP。
+add_executable(UXOMissionControlGprViewTest
+    tests/gpr_view_test.cpp
+)
+target_include_directories(UXOMissionControlGprViewTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprViewTest
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    Qt5::Test
+    MainWindow
+    GPR
+    Core
+    Common
+)
+add_test(NAME gpr_view COMMAND UXOMissionControlGprViewTest)
+set_tests_properties(gpr_view PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_OPENGL=software;LIBGL_ALWAYS_SOFTWARE=1"
+)
+
+# 雷达页（GprView）离屏截图工具（人工核对用，非测试，不注册 add_test）：
+# 加载真实样例数据后按 1280×720 / 1920×1080 / 3840×2160 三视口抓帧；
+# 退出码 2=数据缺失 / 3=加载失败 / 4=保存失败。
+add_executable(UXOMissionControlGprScreenshotTool
+    tests/gpr_screenshot_tool.cpp
+)
+target_include_directories(UXOMissionControlGprScreenshotTool PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlGprScreenshotTool
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Widgets
+    MainWindow
+    GPR
+    Core
+    Common
+)
+# REQ-012 W2 契约错误模型单元测试：契约 §8 错误载荷解析（10 个错误码映射、400 聚合、非法回退），纯逻辑不依赖网络
+add_executable(UXOMissionControlIntegrationApiErrorTest
+    tests/integration_api_error_test.cpp
+)
+target_include_directories(UXOMissionControlIntegrationApiErrorTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationApiErrorTest
+    Qt5::Core
+    Qt5::Test
+    Integration
+)
+add_test(NAME integration_api_error COMMAND UXOMissionControlIntegrationApiErrorTest)
+
+# REQ-012 W2 HTTP 基础设施单元测试：基址解析（UXO_API_HOST/UXO_API_PORT 覆盖与非法回退）与列表信封解析，纯逻辑不发起网络请求
+add_executable(UXOMissionControlIntegrationHttpClientTest
+    tests/integration_http_client_test.cpp
+)
+target_include_directories(UXOMissionControlIntegrationHttpClientTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationHttpClientTest
+    Qt5::Core
+    Qt5::Test
+    Qt5::Network
+    Integration
+)
+add_test(NAME integration_http_client COMMAND UXOMissionControlIntegrationHttpClientTest)
+
+# REQ-012 W3 实体映射单元测试：契约 §6 五实体字段与客户端领域模型的 JSON 映射转换（to/from 双向与非法回退），纯逻辑不依赖网络
+add_executable(UXOMissionControlIntegrationEntityMappingTest tests/integration_entity_mapping_test.cpp)
+target_include_directories(UXOMissionControlIntegrationEntityMappingTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationEntityMappingTest
+    Qt5::Core
+    Qt5::Test
+    Integration
+)
+add_test(NAME integration_entity_mapping COMMAND UXOMissionControlIntegrationEntityMappingTest)
+
+# W4 词表与模型类映射缓存集成测试（对本地实例断言形状与顺序；缺席 QSKIP）
+add_executable(UXOMissionControlIntegrationVocabularyCacheTest tests/integration_vocabulary_cache_test.cpp)
+target_include_directories(UXOMissionControlIntegrationVocabularyCacheTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationVocabularyCacheTest
+    Qt5::Core
+    Qt5::Test
+    Integration
+)
+add_test(NAME integration_vocabulary_cache COMMAND UXOMissionControlIntegrationVocabularyCacheTest)
+
+# W5 五实体 CRUD 适配集成测试（对本地实例断言健康/CRUD/分页/过滤/错误路径；缺席 QSKIP）
+add_executable(UXOMissionControlIntegrationDataPlatformApiTest tests/integration_data_platform_api_test.cpp)
+target_include_directories(UXOMissionControlIntegrationDataPlatformApiTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationDataPlatformApiTest
+    Qt5::Core
+    Qt5::Test
+    Integration
+)
+add_test(NAME integration_data_platform_api COMMAND UXOMissionControlIntegrationDataPlatformApiTest)
+
+# W6 契约一致性套件（10 错误码适配面缺口：聚合保留/类型严格性/404 变体/PUT id 错配；缺席 QSKIP）
+add_executable(UXOMissionControlIntegrationContractTest tests/integration_contract_test.cpp)
+target_include_directories(UXOMissionControlIntegrationContractTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlIntegrationContractTest
+    Qt5::Core
+    Qt5::Test
+    Integration
+)
+add_test(NAME integration_contract COMMAND UXOMissionControlIntegrationContractTest)
+
+# REQ-014 统计聚合单元测试：五实体统计聚合纯逻辑（不依赖网络）
+add_executable(UXOMissionControlStatisticsAggregationTest tests/statistics_aggregation_test.cpp)
+target_include_directories(UXOMissionControlStatisticsAggregationTest PRIVATE ${HEADERS_DIR})
+target_link_libraries(UXOMissionControlStatisticsAggregationTest
+    Qt5::Core
+    Qt5::Gui
+    Qt5::Test
+    MainWindow
+)
+add_test(NAME statistics_aggregation COMMAND UXOMissionControlStatisticsAggregationTest)

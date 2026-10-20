@@ -12,7 +12,10 @@
 #include "MainWindow/EventLogWidget.h"
 #include "MainWindow/DecisionView.h"
 #include "MainWindow/DetectionView.h"
+#include "MainWindow/GprView.h"
 #include "MainWindow/MosPlanningController.h"
+#include "MainWindow/StatisticsView.h"
+#include "MainWindow/StatisticsController.h"
 
 #include "Core/Data/Types.h"
 #include "Core/Simulation/DemoScenarioProvider.h"
@@ -134,6 +137,8 @@ MainWindow::MainWindow(QWidget *parent)
     , m_situationPage(nullptr)
     , m_decisionView(nullptr)
     , m_mosController(nullptr)
+    , m_statisticsView(nullptr)
+    , m_statisticsController(nullptr)
     , m_currentDroneLat(0.0)
     , m_currentDroneLng(0.0)
     , m_currentDroneAlt(0.0)
@@ -168,6 +173,10 @@ void MainWindow::setupUi()
     // MOS P0 控制器在 UI 构造前创建，确保 createConnections 可接线
     m_mosController = new Core::MOS::MosPlanningController(this);
     m_mosController->setObjectName(QStringLiteral("mosPlanningController"));
+
+    // REQ-014 统计控制器先于页面构造创建，统计页构造时接管其信号
+    m_statisticsController = new StatisticsController(this);
+    m_statisticsController->setObjectName(QStringLiteral("statisticsController"));
 
     createMenuBar();
     createMainLayout();
@@ -363,10 +372,24 @@ void MainWindow::createMainLayout()
     // MOS 决策页：页面栈 index 2
     m_decisionView = new DecisionView;
     m_decisionView->setObjectName(QStringLiteral("mosDecisionPage"));
+
+    // 雷达页：页面栈 index 3（REQ-013，GPR B-scan 回放 + 疑似列表，全部标注模拟/演示）
+    m_gprView = new GprView;
+    m_gprView->setObjectName(QStringLiteral("gprPage"));
+
     m_pageStack->addWidget(m_situationPage);    // index 0
     m_pageStack->addWidget(m_detectionView);     // index 1
     m_pageStack->addWidget(m_decisionView);      // index 2
+    m_pageStack->addWidget(m_gprView);           // index 3（雷达页，REQ-013）
+    // 统计分析页（REQ-014）：页面栈 index 4，与导航 index 4（"统计"）对齐
+    m_statisticsView = new StatisticsView(m_statisticsController);
+    m_statisticsView->setObjectName(QStringLiteral("statisticsPage"));
+    m_pageStack->addWidget(m_statisticsView);   // index 4
     m_pageStack->setCurrentIndex(0);
+
+    // 启动时加载默认样例数据集（目录扫描轻量，通道数据在 GprView 内异步加载）；
+    // GPR_SAMPLE_DATA_DIR 未定义或路径无效时雷达页自行降级为空态（gpr-display.md §6.3）
+    m_gprView->loadDefaultDataset();
     mainLayout->addWidget(m_pageStack, 1);
 
     setCentralWidget(centralWidget);
@@ -599,6 +622,12 @@ void MainWindow::createConnections()
             this, &MainWindow::onTargetRejected);
     connect(m_detectionView, &DetectionView::resultSelected,
             this, &MainWindow::onSelectTargetEverywhere);
+
+    // 雷达页: 人工校验 -> 确认目标注入统一目标体系（与视频 AI 同构）/ 误报记日志（§5.3）
+    connect(m_gprView, &GprView::suspectConfirmRequested,
+            this, &MainWindow::onGprSuspectConfirmed);
+    connect(m_gprView, &GprView::suspectFalsePositiveRequested,
+            this, &MainWindow::onGprSuspectFalsePositive);
 
     // MOS P0 决策页接线
     // mosStateChanged 不自动触发 setSnapshot：档位选择 emit 该信号后同步全量重建会
@@ -1136,6 +1165,31 @@ Core::TargetInfo MainWindow::createDetectedTarget(const ImageDetectionResult& re
     return target;
 }
 
+Core::TargetInfo MainWindow::createGprConfirmedTarget(const GPR::GprSuspect& suspect,
+                                                      const GPR::GprTrackPoint& point,
+                                                      const QString& band,
+                                                      const QString& channel,
+                                                      const QString& targetId) const
+{
+    Core::TargetInfo target;
+    target.id = targetId;
+    target.type = Core::TargetType::Unknown;    // 阈值候选无分类依据，保持未知
+    target.typeName = targetTypeName(target.type);
+    target.position = QVector3D(point.longitude, point.latitude, 0.0f);  // x=经度, y=纬度
+    target.depth = suspect.depthM;
+    target.confidence = 0.0;                    // 幅度非概率，原始值保留在 remark
+    target.threatLevel = Core::ThreatLevel::Unknown;
+    target.status = Core::TargetStatus::Detected;
+    target.radarDataPath = QStringLiteral("%1/%2").arg(band, channel);
+    target.detectTime = QDateTime::currentDateTime();
+    target.remark = QStringLiteral("[GPR自动检测][模拟] 频段 %1 通道 %2 道 %3 深度 %4 m 幅度 %5")
+                        .arg(band, channel)
+                        .arg(suspect.traceIndex)
+                        .arg(suspect.depthM, 0, 'f', 2)
+                        .arg(suspect.amplitude, 0, 'f', 0);
+    return target;
+}
+
 void MainWindow::onTargetConfirmed(const QString& targetId)
 {
     if (m_simulationWorkflow.selectTarget(targetId)
@@ -1152,17 +1206,66 @@ void MainWindow::onTargetRejected(const QString& targetId)
     }
 }
 
+// 雷达页 [确认目标]：RTK 平滑轨迹点 → 经纬度 → 统一目标表/地图红点/工作流（与视频 AI 同构，§5.3）
+void MainWindow::onGprSuspectConfirmed(int suspectId)
+{
+    const auto suspects = m_gprView->suspects();
+    const GPR::GprSuspect *suspect = nullptr;
+    for (const GPR::GprSuspect &s : suspects) {
+        if (s.id == suspectId) {
+            suspect = &s;
+            break;
+        }
+    }
+    if (suspect == nullptr) {
+        return;
+    }
+
+    // 无有效 RTK 定位时不注入：坐标缺失的地图红点/目标表行比不处理更误导
+    const GPR::GprTrackPoint point = m_gprView->trackPointForTrace(suspect->traceIndex);
+    if (!point.valid) {
+        m_statusBarWidget->addAlarm(
+            QStringLiteral("[GPR] 疑似目标 #%1 无有效 RTK 定位，未注入目标").arg(suspectId));
+        return;
+    }
+
+    m_targetCounter++;
+    const QString targetId = QStringLiteral("T-%1").arg(m_targetCounter, 3, 10, QLatin1Char('0'));
+    const Core::TargetInfo target = createGprConfirmedTarget(
+        *suspect, point, m_gprView->currentBand(), m_gprView->currentChannel(), targetId);
+
+    m_leftPanel->addTargetRow(target);
+    m_tacticalMap->addTarget(target);
+    m_simulationWorkflow.addTarget(target);
+
+    m_statusBarWidget->addAlarm(
+        QStringLiteral("[GPR] 确认疑似目标 #%1 → 目标 %2（[模拟]）").arg(suspectId).arg(targetId));
+}
+
+// 雷达页 [标记误报]：候选由 GprView 移除；疑似未入目标体系，工作流无状态可转，仅记日志
+void MainWindow::onGprSuspectFalsePositive(int suspectId)
+{
+    m_statusBarWidget->addAlarm(
+        QStringLiteral("[GPR] 疑似目标 #%1 标记为误报（[模拟]）").arg(suspectId));
+}
+
 void MainWindow::onNavigationChanged(int index)
 {
     qDebug() << "Navigation changed to:" << index;
 
     // 路由：导航 index 1（探测）切到探测页，index 2（决策）切到 MOS 决策页，
+    // index 3（雷达，REQ-013）切到雷达页，index 4（统计，REQ-014）切到统计分析页，
     // 其余 index 保持态势工作区
     if (!m_pageStack) {
         return;
     }
-    int page = (index == 1) ? 1 : (index == 2) ? 2 : 0;
+    int page = (index == 1) ? 1 : (index == 2) ? 2 : (index == 3) ? 3 : (index == 4) ? 4 : 0;
     m_pageStack->setCurrentIndex(page);
+
+    // 进入统计页触发快照加载/刷新（页内自带三态与置灰不清空逻辑，REQ-014 A3）
+    if (index == 4 && m_statisticsView) {
+        m_statisticsView->triggerLoad();
+    }
 }
 
 void MainWindow::onRefreshSimulationRequested()

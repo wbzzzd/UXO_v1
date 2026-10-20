@@ -17,7 +17,7 @@ CURRENT 与 TARGET 不一致只表示架构缺口，不能通过修改需求迁�
 
 ## 2. CURRENT 工程概览与构建目标
 
-当前是单进程 Qt 桌面应用：`MainWindow` 组合界面并承担大部分协调；`Core` 提供本地模拟、目标状态机和部分 3D 支持；除 REQ-015 获批的只读外部数据接入（`Core/Uplink` MQTT 订阅 + 视频拉流，2026-10-20 关单）外无外部集成；持久化仅 `Core/TrackStore` 轨迹库写入（REQ-015 授权、`UXO_TRACKSTORE` 运行时开关、默认关闭）。
+当前是单进程 Qt 桌面应用：`MainWindow` 组合界面并承担大部分协调；`Core` 提供本地模拟、目标状态机和部分 3D 支持；模拟链状态全部在内存中。运行时外部只读集成现有两条通道：数据平台适配器库 `Integration`（REQ-012）已对本地数据平台实例完成契约一致性验证，并经统计页（REQ-014）首次接入应用装配——统计页以 `StatisticsController`/`StatisticsView` 只读消费其五实体列表与词表接口（统计页只持有展示用快照，不成为状态权威）；以及 REQ-015 获批的无人机侧只读外部数据接入（`Core/Uplink` MQTT 订阅 + 视频拉流，2026-10-20 关单）。持久化仅 `Core/TrackStore` 轨迹库写入（REQ-015 授权、`UXO_TRACKSTORE` 运行时开关、默认关闭），此外无任何持久化写回。
 
 下图的箭头表示 CMake 链接依赖（A -> B 表示 A 链接 B）。Qt 是外部依赖，测试目标、配置和文件不是生产模块，均不画入。
 
@@ -27,19 +27,26 @@ flowchart LR
     MainWindow --> Core["Core<br/>(静态库)"]
     MainWindow --> Common["Common<br/>(静态库)"]
     MainWindow --> Detection["Detection<br/>(静态库)"]
+    MainWindow --> GPR["GPR<br/>(静态库)"]
+    MainWindow --> Integration["Integration<br/>(静态库)"]
+    Integration --> Core
 ```
 
 | 构建目标 | 源码位置 | 当前责任 | 直接项目依赖 |
 |----------|----------|----------|--------------|
 | `UXOMissionControl` | `src/App/`、`include/App/` | `main.cpp`、CURRENT `Application` 生命周期类与窗口创建 | `MainWindow` |
-| `MainWindow` | `src/MainWindow/`、`include/MainWindow/` | 24 个已编译 UI 源文件：检测阶段控件（MainWindow、LeftPanelWidget、StatusBarWidget、NavigationWidget、VideoStreamPanel、VideoOverlayWidget、TacticalMapWidget、DeviceResourceBar、TargetDetailOverlay、DetectionView）+ MOS 决策模块（DecisionView 及其 Layout/Snapshot/Tier 辅助、MosPlanningController、MosRunwayWidget 及其 Interaction、MosParamsPanel、MosGeneratorDialog、TargetCardWidget、PlanCardWidget）+ 态势页告警/事件条带（AlertPanel、EventLogWidget，REQ-015 HMS 呈现）+ 图标工具（UiIcons）；承担 UI 组合与大部分协调 | `Common`、`Core`、`Detection` |
+| `MainWindow` | `src/MainWindow/`、`include/MainWindow/` | 30 个已编译 UI 源文件：检测阶段控件（MainWindow、LeftPanelWidget、StatusBarWidget、NavigationWidget、VideoStreamPanel、VideoOverlayWidget、TacticalMapWidget、DeviceResourceBar、TargetDetailOverlay、DetectionView）+ MOS 决策模块（DecisionView 及其 Layout/Snapshot/Tier 辅助、MosPlanningController、MosRunwayWidget 及其 Interaction、MosParamsPanel、MosGeneratorDialog、TargetCardWidget、PlanCardWidget）+ 态势页告警/事件条带（AlertPanel、EventLogWidget，REQ-015 HMS 呈现）+ 图标工具（UiIcons）+ 雷达页 GPR 组件（GprView、GprBScanWidget、GprSuspectPanel）+ 统计页模块（StatisticsController、StatisticsAggregation、StatisticsView）；承担 UI 组合与大部分协调 | `Common`、`Core`、`Detection`、`GPR`、`Integration` |
 | `Core` | `src/Core/`、`include/Core/` | AirportData、AirportSceneFactory、DemoScenarioProvider、SimulationWorkflow、DroneTelemetrySimulator、DetectionSimulator（无当前调用方，保留备用回退）；MOS 合成数据模型（MosTypes）、输入包络校验（MosValidation）、确定性合成 fixture 生成器（MosFixtureGenerator）、合成修复估算器（MosEstimator）、合成规划器（MosPlanner/MosPlannerProgressive）、规划会话（MosPlanningSession）；`Uplink`（REQ-015：`ITelemetrySource` 数据源契约、`TelemetrySourceManager` 模拟/真实互斥管理与两级停滞/断链检测、`MqttTelemetrySource`/`MqttUplinkClient` Cloud API 信封只读解析）；`TrackStore`（REQ-015：QPSQL 逐行 INSERT 轨迹库写入，`UXO_TRACKSTORE` 运行时开关、默认关闭） | 无项目依赖（外部依赖见下文） |
 | `Detection` | `src/Detection/`、`include/Detection/` | DetectionEngine、PatchCoreDetector、YoloClassifier：ONNX 双阶段 UXO 检测推理（PatchCore 异常检测 + YOLOv8-cls 分类），模型文件位于 `assets/models/` | 无项目依赖（链接 `onnxruntime` 与 `Qt5::Core/Gui/Concurrent`） |
 | `Common` | `src/Common/`、`include/Common/` | GlobalStyle（UI 样式）、MockDataGenerator（无当前调用方） | 无项目依赖（注：`Core` 不链接 `Common`；`Common` 通过公共头文件目录引用 `Core/Data/Types.h`，构成隐藏依赖） |
+| `GPR` | `src/GPR/`、`include/GPR/` | MALA 样例数据解析与候选检测：GprRadarHeader（`.rad` 采集参数）、GprBScanData（`.rd3` 整读预载 + 未预载懒加载回退 + 逐通道 t0 校正）、GprTrack（`.cor` RTK 轨迹解析与平滑插值）、GprDataset（H/L × 16 通道清单扫描）、GprThresholdDetector（阈值候选检测，输出仅供人工复核）；样例数据经 `GPR_SAMPLE_DATA_DIR` 外部路径引用，不接真实设备 | 无项目依赖（仅链接 `Qt5::Core`，不含 Widgets 代码） |
+| `Integration` | `src/Integration/`、`include/Integration/` | 数据平台 API v1 客户端适配器（REQ-012）：HTTP 客户端与错误模型（HttpClient/ApiError）、五实体双向映射（EntityMapping）、词表缓存（VocabularyCache）、五实体 CRUD/分页/过滤与健康检查（DataPlatformApi）；按 P0 纯适配器范围原仅测试目标链接，现已被 `MainWindow` 库链接并经统计页（REQ-014）只读消费（首个应用侧消费方，页面交互零写回），写路径（POST/PUT）仍仅测试目标使用 | `Core`（另链接 `Qt5::Network`） |
 
-外部依赖：`Qt5::Sql` 已由 `Core`（TrackStore QPSQL）链接使用；`Qt5::Network` 仅查找、无生产目标使用；`Qt5::Multimedia`/`Qt5::MultimediaWidgets`（视频播放）经 `MainWindow` 链接；Paho MQTT C++（libpaho-mqtt 1.3.9 + mqttpp 1.2.0，apt 解包至 `~/.local/opt/paho`、经 `-DCMAKE_PREFIX_PATH` 注入，mqttpp3/3as/3a 三库直链）由 `Core`（Uplink）链接；ZeroMQ、PostgreSQL 只做可选探测（PostgreSQL 经 Qt QPSQL 插件访问，不直链 libpq）；ONNX Runtime 头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库（`third_party/onnxruntime/`），需本地部署后才能构建，由 `Detection` 库链接，模型资产路径经 `DETECTION_ASSETS_DIR` 以开发期绝对路径注入。根 CMake 另定义 20 个测试目标（6 个检测/通用 + 3 个 REQ-015 新增 + 11 个 MOS），测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
+外部依赖：`Qt5::Sql` 已由 `Core`（TrackStore QPSQL）链接使用；`Qt5::Network` 由 `Integration` 库链接使用；`Qt5::Charts` 由 `MainWindow` 库链接用于统计页图表；`Qt5::Concurrent` 由 `MainWindow` 库链接用于雷达页通道数据异步加载；`Qt5::Multimedia`/`Qt5::MultimediaWidgets`（视频播放）经 `MainWindow` 链接；Paho MQTT C++（libpaho-mqtt 1.3.9 + mqttpp 1.2.0，apt 解包至 `~/.local/opt/paho`、经 `-DCMAKE_PREFIX_PATH` 注入，mqttpp3/3as/3a 三库直链）由 `Core`（Uplink）链接；ZeroMQ、PostgreSQL 只做可选探测（PostgreSQL 经 Qt QPSQL 插件访问，不直链 libpq）；ONNX Runtime 头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库（`third_party/onnxruntime/`），需本地部署后才能构建，由 `Detection` 库链接，模型资产路径经 `DETECTION_ASSETS_DIR` 以开发期绝对路径注入。根 CMake 另定义 33 个测试目标（6 个检测/通用 + 3 个 REQ-015 新增 + 11 个 MOS + 6 个 GPR + 6 个数据平台集成 + 1 个统计聚合），测试范围见 [DEVELOPMENT.md](./DEVELOPMENT.md) 第 4 节。
 
 `MainWindow` 库内 `MosPlanningController` 拥有同步 `MosReplanWorker`（值持有，`Qt::DirectConnection` 直连），不引入生产 `QThread`；worker 调用 plain Core `MosPlanner::planProgressive` 后同步返回完成结果。`DecisionView` 只持有 `MosPlanningSnapshot` 副本，不拥有会话状态、不发起规划、不联网。`MosRunwayWidget` 的 P0 渲染只绘制并命中当前选中档位（`m_selectedTier`），在单一共享坐标系下使用各向同性 `pxPerM`（X/Y 共用同一比例），障碍物影响圆像素半径 = `influenceRadius × pxPerM`，绘制与命中测试共用同一公式且无钳制或系数。
+
+`StatisticsController` 是 MainWindow 层首个真 `QThread` 控制器（REQ-014）：worker 懒建并独占 `HttpClient`/`DataPlatformApi`/`VocabularyCache`（`QNetworkAccessManager` 线程亲和，构造/使用/销毁均在 worker 线程），全部 HTTP/解析/聚合在 worker 线程执行，UI 线程只接收值拷贝信号（`snapshotReady`/`listReady`/`snapshotFetchFailed`/`listFetchFailed`）；revision 守卫在 controller 侧丢弃陈旧快照，只放行最新一次请求的结果；析构先 `quit` 再 `wait` 回收线程。统计聚合由 `StatisticsAggregation` 纯函数层承担：契约 v1 无聚合端点，客户端以 `page_size=100` 循环翻页全量拉取后本地聚合（设计假设单实体 ≤ 约 1 万行；此为契约暂无聚合端点下的权宜实现——单实体达千级行、出现第二个统计消费方或需要自动刷新/任意时间窗统计时，应迁移为数据平台服务端聚合端点，客户端仅消费聚合结果，`StatisticsSnapshot` 值契约与 UI 层可保持不变）。`StatisticsView` 为三态页（加载中/显式不可用+重试/就绪），经页面栈 index 4 路由；进页加载与手动刷新共用同一 `triggerLoad()` 入口，已有数据时刷新失败仅行内提示（置灰不清空）；统计页全部交互只读、零写回。
 
 > CURRENT 启动装配、状态所有权与已验证调用链的细节见：
 > - [startup.md](./architecture/startup.md)：启动时序与对象装配
@@ -55,9 +62,9 @@ flowchart LR
 | `Common` 混合 UI 样式与未使用的模拟数据生成，且对 `Core/Data/Types.h` 存在隐藏头文件依赖 | 责任混杂，依赖不透明 |
 | `UXOMissionControl` 是启动外壳，初始化为占位 | 无真实配置、日志、装配 |
 | 状态权威分散在 `SimulationWorkflow`、`MainWindow` 与 UI 面板 | 跨面板不一致，手工同步易错 |
-| 根 CMake 查找 `Qt5::Network`、ZeroMQ、PostgreSQL 但无生产目标使用（`Qt5::Sql` 已由 Core/TrackStore 使用） | 误导存在外部集成 |
+| 根 CMake 查找 ZeroMQ、PostgreSQL 但无生产目标使用（`Qt5::Sql` 已由 `Core`（TrackStore）使用，`Qt5::Network` 已由 `Integration` 库使用） | 误导存在更多外部集成 |
 | ONNX Runtime 头文件随源码入库、预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库并由 `Detection` 链接；模型资产路径为开发期绝对路径注入 | 新增真实外部依赖；新克隆仓库需本地部署动态库后才能构建；部署形态（安装相对路径/Qt 资源）未定，二进制可移植性受限 |
-| 外部数据边界部分开启（REQ-015 只读接入：MQTT 遥测/HMS + RTSP 视频；下行指令仍为零） | 写入侧仅 TrackStore（默认关）；无设备控制与服务适配器 |
+| 外部数据边界部分开启：数据平台侧从适配器库（`Integration`，REQ-012）扩展到首个应用侧消费方（统计页，REQ-014，只读可视化零写回），适配器写路径（POST/PUT）仍无生产调用方；无人机侧 REQ-015 只读接入（MQTT 遥测/HMS + RTSP 视频，下行指令为零）已关单，写入侧仅 TrackStore（默认关） | 外部集成覆盖面窄；存储、设备适配器仍无 |
 
 各问题的长期归属集中见第 6.1 节，避免在两处维护同一迁移决定。
 

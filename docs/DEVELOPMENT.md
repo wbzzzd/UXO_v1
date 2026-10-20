@@ -20,10 +20,11 @@
 | 构建系统 | CMake 3.16+ |
 | 语言 | C++17 |
 | Qt | Qt 5.15.15（`uxo-dev` micromamba 环境） |
-| Qt 组件 | Core、Widgets、Gui、Concurrent、3DCore、3DRender、3DInput、3DExtras、Network、Sql、Multimedia、MultimediaWidgets、Test |
+| Qt 组件 | Core、Widgets、Gui、Concurrent、3DCore、3DRender、3DInput、3DExtras、Network、Sql、Charts、Multimedia、MultimediaWidgets、Test |
 | Eclipse Paho MQTT C++ | libpaho-mqtt 1.3.9 + mqttpp3 1.2.0（apt 包解包至 `~/.local/opt/paho`，免 sudo）；CMake 配置需 `-DCMAKE_PREFIX_PATH=$HOME/.local/opt/paho/usr`；mqttpp3/3as/3a 三库直链（DT_RUNPATH 不传递间接依赖） |
 | GStreamer | conda `uxo-dev` 运行时（Qt Multimedia/QMediaPlayer 后端，含 RTSP 与解码插件） |
 | 可选探测 | ZeroMQ（当前无使用）；PostgreSQL 经 Qt QPSQL 插件访问（TrackStore 落库，`UXO_TRACKSTORE` 默认关） |
+| 数据平台实例 | 集成测试与客户端统计页（REQ-014）需要：本地数据平台（`127.0.0.1:8080` + 本地 postgres，UXO_DataPlatform 仓）；实例缺席时 `integration_vocabulary_cache`/`integration_data_platform_api`/`integration_contract` 整体 QSKIP，客户端统计页显示显式不可用态（不回退模拟数据）；实例库内业务数据为集成测试写路径套件历次运行的写入残留（数据平台仓无造数机制，词表由 V1 迁移正式灌入），统计页数字即反映该库现状 |
 | ONNX Runtime | 1.23.2；头文件随源码入库，预编译动态库 `libonnxruntime.so.1.23.2` 经 `.gitignore` 不入库，需先本地部署 `third_party/onnxruntime/` 下的动态库才能构建 |
 | 中文字体 | Noto CJK 或等价字体 |
 
@@ -33,6 +34,8 @@
 - 演示视频：原始 MP4（1080p/30fps/96s，约 56MB）经 x264 CRF 26 / preset veryfast 转码并去除音轨（源无音轨），约 23MB。
 
 原始未压缩素材保存在仓库外，不入库。
+
+GPR 样例数据（MALA 格式，约 235MB）不入库：经编译期宏 `GPR_SAMPLE_DATA_DIR` 以开发期绝对路径注入（默认 `/mnt/d/工作/排弹/数据集/001`），与 `DETECTION_ASSETS_DIR` 模式一致。数据缺失时雷达页显示降级态；GPR 测试中依赖真实数据的用例自动跳过，合成 fixture 用例不受影响。
 
 激活环境：
 
@@ -108,10 +111,25 @@ ctest --test-dir build --output-on-failure
 | `telemetry_source_manager` | 数据源互斥切换（本地模拟/真实链路）与两级检测状态契约 | 真实 MQTT 网关在线行为（运行前提＝本机 1883 无 broker；keepalive 定制→REQ-017） |
 | `track_store` | TrackStore 列映射与 `UXO_TRACKSTORE*` 配置解析纯逻辑 | 真实数据库落库（DB 验证走 /tmp harness，不进 ctest） |
 | `video_source_config` | `UXO_VIDEO_RTSP_URL` 环境解析与默认本地测试流回退 | 视频流实际渲染（归 `video_render_capture`，xcb 环境） |
+| `gpr_header` | `.rad` 采集参数键值解析与两程时间深度换算 | 未解码字段语义、真实设备全参数 |
+| `gpr_bscan` | `.rd3` 整读预载（常驻断言：预载后删源文件仍可访问）与未预载懒加载回退、逐通道 t0 校正（合成 fixture + 真实数据 smoke 与预载性能阈值） | 全数据集整体性能；真实数据用例在无数据环境自动跳过 |
+| `gpr_dataset` | 数据目录扫描聚合 H/L × 16 通道清单与缺失通道报告 | 真实目录异常全形态 |
+| `gpr_track` | `.cor` RTK 解析、道 1:1 对齐、缺行插值与高斯平滑轨迹点查询 | 真实定位精度、多趟标定 |
+| `gpr_detector` | 阈值候选检测管线（合成 B-Scan 命中 + 真实数据 smoke） | 目标类型识别（输出仅为候选，人工复核必需） |
+| `gpr_view` | 雷达页稳定对象名、频段/通道切换、降级态、疑似列表确认/误报处置与本地移除、对比度 120ms 防抖（离屏） | 渲染像素正确性、人工集成走查 |
+| `integration_api_error` | API 错误信封解析：10 个契约错误码映射、field/code 提取、多错误聚合保留、未知码兜底 | 真实服务端错误触发 |
+| `integration_http_client` | HTTP 基址解析（默认回环 127.0.0.1:8080、环境变量覆盖）与 GET/POST/PUT 构造、超时/网络错误映射；非回环基址用例为纯函数夹具，不发真实请求 | 真实服务端业务语义 |
+| `integration_entity_mapping` | 五实体 Core 类型与契约 JSON 双向映射、枚举越界拒发、必填字段完整性 | 服务端校验结果、真实持久化 |
+| `integration_vocabulary_cache` | 九词表拉取与缓存、未知名称与服务不可用的错误传播（回环负路径） | 词表数据正典内容 |
+| `integration_data_platform_api` | 五实体 CRUD/分页/过滤对真实本地实例往返、健康检查 200 路径；pagination_invalid/duplicate_id/foreign_key_violation/not_found 四错误码实况断言 | 破坏性场景、并发、多实例 |
+| `integration_contract` | 契约过滤与错误语义对真实实例符合性门禁：invalid_enum/out_of_range/not_null/invalid_format 四码实况断言、错误聚合保留、404 field 变体、PUT 路径与体 id 错配、类型严格性、健康 200 原始形状 | internal_error 实况触发（无可靠触发器） |
+| `statistics_aggregation` | 统计页聚合纯函数（REQ-014）：五卡片主/副指标口径、10 分布词表分桶与合计一致性、6 趋势近 30 天 UTC 日分桶空日补 0、告警处置汇总、`page_size=100` 翻页全拉收敛；fixture 与契约词表漂移时红灯，不静默适配 | 真实实例数据、图表渲染、worker 线程与网络行为 |
 
 测试通过只能证明表中列出的行为，不能用于声明整个客户端或某个未覆盖面板已完成。离屏 UI 测试中的 Qt3D 上下文警告不影响当前断言，因此全部测试通过也不证明三维场景成功渲染。`video_render_capture` 与 `stop_select_flicker_repro` 必须在 XCB 和可见显示环境中运行。
 
 台架联调（REQ-015 真实链路验证）：本地 broker（amqtt 用户态）＋ 遥测注入 `scripts/sim_telemetry.py` ＋ ffmpeg RTSP→HTTP 中继 ＋ 客户端环境变量 `UXO_VIDEO_RTSP_URL`；完整复现命令（runbook）见 `.omo/evidence/wp7-rc-integration/wp7-acceptance-report.md` §7。EMQX 部署用仓根 `docker-compose.yml`，属部署现场关注项，不在本仓构建/测试门禁内。运行 ctest 前必须先停本地 broker（`telemetry_source_manager` 契约：前提为本机 1883 无 MQTT 网关）。
+
+`integration_vocabulary_cache`、`integration_data_platform_api` 与 `integration_contract` 需要本地数据平台实例（`127.0.0.1:8080` + 本地 postgres）正在运行；实例缺席时这些套件整体 QSKIP，全量通过不代表其断言已执行，需直接运行对应测试二进制确认 `Totals` 行无 skipped。2026-10-12 已在监督下完成一次性破坏性实测（pg_ctl 停库约 66 秒）：健康检查 503 专属形状（`{"status":"unavailable","database":"unreachable"}`）与 `database_unavailable`（503，读/写路径）对真实实例断言通过，与契约 §3/§8 文档值逐字一致；`internal_error`（500）无可靠触发器，仅由 `integration_api_error` 解析层覆盖。
 
 ## 5. 当前构建目标
 
@@ -121,6 +139,7 @@ UXOMissionControl executable
      -> Core static library
      -> Detection static library
      -> Common static library
+     -> Integration static library
 ```
 
 - `src/App`：应用入口和生命周期。
@@ -128,6 +147,7 @@ UXOMissionControl executable
 - `src/Detection`：ONNX 双阶段推理引擎（PatchCore 异常检测 + YOLOv8-cls 分类），链接 ONNX Runtime 与 `Qt5::Concurrent`。
 - `src/Core`：数据类型、模拟工作流、3D 场景数据、遥测上行（`Uplink/`：Paho MQTT 真实源＋模拟源＋互斥管理）与轨迹存储（`TrackStore/`：PostgreSQL QPSQL 落库，默认关）。
 - `src/Common`：全局样式与当前未接入的 MockDataGenerator。
+- `src/Integration`：数据平台 API v1 客户端适配器（REQ-012），被 `MainWindow` 链接供统计页只读消费（REQ-014）。
 
 真实模块关系以 `ARCHITECTURE.md` 和各级 `CMakeLists.txt` 为准。
 
